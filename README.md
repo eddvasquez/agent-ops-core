@@ -320,4 +320,17 @@ Este proyecto está distribuido bajo la Licencia [Apache 2.0](LICENSE).
 
 <br>
 
-**Aviso de Independencia y Marcas:** Agent Ops Core es un marco de gobernanza independiente desarrollado por Edd Vásquez. No está afiliado, patrocinado, respaldado ni certificado por Google LLC, Anthropic PBC, OpenAI ni ninguna de sus entidades filiales. Todas las marcas registradas y nombres de productos mencionados pertenecen a sus respectivos titulares.
+### Autoría, Licencia y Descargo de Marcas Registradas
+
+**Autor:** Edd Vásquez. Todos los derechos reservados.  
+**Licencia:** Distribuido bajo la Licencia [Apache 2.0](LICENSE).  
+**Descargo de Marcas Registradas (Trademark Disclaimer):** Claude es una marca registrada de Anthropic PBC. ChatGPT es una marca registrada de OpenAI LLC. Gemini y Google Drive son marcas registradas de Google LLC. Cursor es una marca registrada de Anysphere Inc. Git es una marca registrada de Software Freedom Conservancy. Agent Ops Core es un marco de gobernanza independiente de código abierto y no está afiliado, respaldado, patrocinado ni certificado por Anthropic, OpenAI, Google, Anysphere, Microsoft ni ninguna de sus respectivas filiales. Todas las marcas registradas y nombres comerciales pertenecen a sus respectivos titulares.
+
+<details>
+<summary><strong>English Version: Author, License & Trademark Notice</strong></summary>
+
+**Author:** Edd Vásquez. All rights reserved.  
+**License:** Distributed under [Apache License 2.0](LICENSE).  
+**Trademark Disclaimer:** Claude is a registered trademark of Anthropic PBC. ChatGPT is a registered trademark of OpenAI LLC. Gemini and Google Drive are registered trademarks of Google LLC. Cursor is a registered trademark of Anysphere Inc. Git is a registered trademark of the Software Freedom Conservancy. Agent Ops Core is an independent open-source project and is not affiliated with, endorsed by, sponsored by, or certified by Anthropic, OpenAI, Google, Anysphere, Microsoft, or any of their affiliates. All trademarks and registered trademarks are the property of their respective owners.
+
+</details>
