@@ -34,7 +34,7 @@ Abres una conversación nueva y la IA **ya olvidó quién es tu cliente, qué ac
 
 ## Cómo Arrancar en 60 Segundos (Cero Código)
 
-No necesitas ser programador, compilar herramientas ni memorizar comandos técnicos. Solo copia y pega este bloque en el chat de tu IA favorita (**Claude Desktop**, **ChatGPT**, **Gemini**, **Cursor** o **Antigravity**):
+No necesitas ser programador, compilar herramientas ni memorizar comandos técnicos. Solo copia y pega este bloque en el primer mensaje de tu IA favorita (**ChatGPT**, **Claude**, **Gemini**, **Cursor** o **Antigravity**):
 
 ```text
 Actúa como mi Coordinador de Operaciones y Gobernanza de Proyectos.
@@ -46,6 +46,22 @@ Por favor realiza lo siguiente de forma estricta:
 2. Adopta de inmediato el Protocolo 1 (MODO ENTRADA): audita el estado actual de nuestro proyecto y los archivos de memoria en .context/ y entrégame el Reporte de 5 Puntos antes de realizar cualquier cambio, propuesta o entregable.
 3. Aplica la regla de Cero Suposición y Cero Complacencia: si falta información crítica, formúlame una pregunta bloqueante en lugar de adivinar, y no des ninguna tarea por terminada sin antes verificarla físicamente.
 ```
+
+*(Disponible también en inglés y formato descargable en [`prompts/prompt-arranque-universal.md`](prompts/prompt-arranque-universal.md)).*
+
+---
+
+### ¿Trabajas en Chat Web? Configúralo 1 Sola Vez y Olvídate
+
+Si utilizas las aplicaciones web de **ChatGPT**, **Claude.ai** o **Gemini** a diario, no necesitas copiar y pegar el prompt en cada conversación nueva. Puedes dejarlo guardado de forma permanente:
+
+* **En Claude.ai (Recomendado):** Ve a **Projects** en la barra lateral $\to$ crea un proyecto (ej. *"Operaciones y Estrategia"*) $\to$ pega el prompt en **Project Instructions**. Todo chat dentro de ese proyecto nacerá gobernado automáticamente.
+* **En ChatGPT (OpenAI):** Haz clic en tu perfil $\to$ **Personalizar ChatGPT** (*Custom Instructions*) $\to$ pega el prompt en el recuadro *"¿Cómo te gustaría que responda ChatGPT?"*. (O agrégalo en las instrucciones de un *Custom GPT* de tu equipo).
+* **En Google Gemini:** En el menú lateral abre **Gem Manager** $\to$ crea un **Gem** llamado *"Coordinador Agent Ops"* y pega el prompt en sus instrucciones del sistema.
+
+> [!NOTE]
+> **En tu Computadora (Cursor, Claude Code, Antigravity, Windsurf):**  
+> Si trabajas localmente abriendo carpetas en tu máquina, **no tienes que hacer nada de esto**. La IA lee automáticamente el archivo `AGENTS.md` ubicado en la raíz de tu proyecto.
 
 ---
 
