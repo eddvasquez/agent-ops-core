@@ -67,14 +67,14 @@ curl -fsSL https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/inst
 Una vez activado el sistema, así operas en el día a día para mantener disciplina absoluta en proyectos de **marketing digital, consultoría, finanzas, operaciones o software**:
 
 ```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '15px' }}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'flowchart': { 'minNodeWidth': 280, 'nodeSpacing': 25, 'rankSpacing': 25, 'padding': 16 }}}%%
 flowchart TD
-    Paso1["<b>PASO 1: Arrancar Proyecto</b><br><i>'Usa ops-crear-proyecto para [Nombre]'</i><br>Crea carpeta, inicializa Git y levanta .context/"]
-    Paso2["<b>PASO 2: Abrir Sesión de Trabajo</b><br><i>'Iniciemos turno con ops-gestion-relevo MODO ENTRADA'</i><br>Audita Git real, revisa lecciones y emite Reporte de 5 Puntos"]
-    Paso3["<b>PASO 3: Cerrar Sesión y Respaldar</b><br><i>'Terminamos por hoy, ejecuta ops-gestion-relevo MODO SALIDA'</i><br>Audita entregables, actualiza progreso y genera commit atómico"]
+    Paso1["PASO 1: ARRANCAR PROYECTO<br>Comando: ops-crear-proyecto<br>Crea Git local y memoria .context/"]
+    Paso2["PASO 2: ABRIR SESION DE TRABAJO<br>Comando: ops-gestion-relevo ENTRADA<br>Audita Git y emite Reporte 5 Puntos"]
+    Paso3["PASO 3: CERRAR SESION Y RESPALDAR<br>Comando: ops-gestion-relevo SALIDA<br>Audita entregables y genera commit"]
 
     Paso1 ==> Paso2 ==> Paso3
-    Paso3 -.->|"Siguiente sesión sin amnesia"| Paso2
+    Paso3 -.->|"Siguiente sesion sin amnesia"| Paso2
 
     classDef step fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
     class Paso1,Paso2,Paso3 step;
@@ -150,25 +150,25 @@ La IA audita qué tareas se cumplieron objetivamente, documenta cualquier error 
 El sistema de gobernanza reside en una capa independiente y universal. Ningún arnés ni empresa de IA es propietaria de tu estructura de trabajo:
 
 ```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'system-ui, -apple-system, sans-serif' }}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'flowchart': { 'minNodeWidth': 220, 'nodeSpacing': 20, 'rankSpacing': 25, 'padding': 14 }}}%%
 flowchart TD
-    subgraph GITHUB["Repositorio Central (Capa Pública)"]
-        Core["agent-ops-core<br><b>(Gobernanza y Protocolos)</b>"]
+    subgraph GITHUB["Repositorio Central (Capa Publica)"]
+        Core["agent-ops-core<br>(Gobernanza y Protocolos)"]
     end
 
     subgraph LOCAL["Entorno Local del Operador"]
         subgraph HARNESSES["Arneses de Inteligencia Artificial"]
             direction LR
-            Gemini["~/.gemini/skills/<br><b>(Antigravity / Gemini)</b>"]
-            Claude["~/.claude/skills/<br><b>(Claude Code / App)</b>"]
-            Codex["~/.agents/skills/<br><b>(OpenAI Codex / Std)</b>"]
+            Gemini["~/.gemini/skills/<br>(Antigravity / Gemini)"]
+            Claude["~/.claude/skills/<br>(Claude Code / App)"]
+            Codex["~/.agents/skills/<br>(OpenAI Codex / Std)"]
         end
 
         subgraph PROYECTOS["Proyectos Multidisciplinarios"]
             direction LR
-            P1["Marketing & Tráfico<br>(.context/ + AGENTS.md)"]
+            P1["Marketing & Trafico<br>(.context/ + AGENTS.md)"]
             P2["Operaciones & Negocio<br>(.context/ + AGENTS.md)"]
-            P3["Software & Código<br>(.context/ + AGENTS.md)"]
+            P3["Software & Codigo<br>(.context/ + AGENTS.md)"]
         end
     end
 
@@ -195,28 +195,28 @@ flowchart TD
 El framework separa de forma estricta los procesos operativos de los activos propietarios del negocio:
 
 ```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'flowchart': { 'minNodeWidth': 230, 'nodeSpacing': 20, 'rankSpacing': 25, 'padding': 14 }}}%%
 flowchart TD
-    subgraph CAPA1["CAPA 1: Gobernanza Universal (GitHub Público)"]
+    subgraph CAPA1["CAPA 1: Gobernanza Universal (GitHub Publico)"]
         direction TB
         OpsCore["agent-ops-core"]
-        P_Ops["• ops-crear-proyecto<br>• ops-gestion-relevo<br>• ops-migrar-proyecto<br>• dev-tdd & dev-debugging"]
+        P_Ops["• ops-crear-proyecto<br>• ops-gestion-relevo<br>• ops-migrar-proyecto<br>• dev-tdd & debugging"]
     end
 
-    subgraph CAPA2["CAPA 2: Bóveda Privada (Google Drive Local)"]
+    subgraph CAPA2["CAPA 2: Boveda Privada (Google Drive Local)"]
         direction TB
         HubPrivado["_ai-skills-hub"]
-        P_Priv["• Metodologías comerciales<br>• Activos de marketing y copy<br>• Ofertas de conversión<br>• Credenciales y accesos"]
+        P_Priv["• Marcos comerciales<br>• Activos de marketing<br>• Ofertas y conversion<br>• Credenciales y accesos"]
     end
 
-    subgraph MOTOR["Entorno de Ejecución Local"]
+    subgraph MOTOR["Entorno de Ejecucion Local"]
         IA["Claude Code / Antigravity / Codex"]
         Proyecto["Proyectos Activos del Negocio<br>(Marketing, Operaciones, Software)"]
     end
 
-    CAPA1 -->|"Sincronización Git"| IA
-    CAPA2 -->|"Servicio de Sincronización"| IA
-    IA -->|"Ejecución Blindada"| Proyecto
+    CAPA1 -->|"Sincronizacion Git"| IA
+    CAPA2 -->|"Servicio de Sincronizacion"| IA
+    IA -->|"Ejecucion Blindada"| Proyecto
 
     classDef public fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
     classDef private fill:#1e293b,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
