@@ -2,9 +2,9 @@
 
 # Agent Ops Core
 
-### Memoria Persistente y Protocolos de Ejecución para Profesionales y Negocios que Trabajan con Inteligencia Artificial.
+### Marco de Gobernanza Operativa y Memoria Persistente para Agentes de IA
 
-**Deja de quemar horas reexplicando tu negocio en cada chat. Dale a tu IA una memoria permanente en tu computadora, verificación de avances sin complacencia y cero amnesia entre sesiones.**
+**Disciplina militar para tus agentes de Inteligencia Artificial. Elimina la amnesia entre sesiones, prohíbe las tareas dadas por terminadas sin comprobación física y blinda los archivos de tu negocio en tu propia computadora.**
 
 [![Compatibilidad](https://img.shields.io/badge/Compatible-Agentes%20de%20IA%20(Claude%20Code%20%7C%20Cursor%20%7C%20Antigravity%20%7C%20Codex)-818cf8?style=flat-square)]()
 [![Memoria](https://img.shields.io/badge/Memoria-Persistente%20(.context%2F)-38bdf8?style=flat-square)]()
@@ -23,12 +23,16 @@
 
 ## Qué es este Sistema (En 30 Segundos)
 
-Si utilizas agentes y aplicaciones de Inteligencia Artificial (como **Claude Code**, **Cursor**, **Antigravity**, **OpenAI Codex**, **Windsurf** o asistentes locales con acceso a carpetas de trabajo) para marketing, investigación, operaciones o desarrollo, conoces exactamente este problema:
-Abres una conversación nueva y la IA **ya olvidó quién es tu cliente, qué acordaron ayer o cómo te gusta trabajar**. Tienes que volver a explicarle todo desde cero, o peor aún, confiarte y descubrir que inventó datos o entregó un documento a medias diciendo con entusiasmo que *"está terminado"*.
+Cualquiera que trabaje con agentes de IA locales (**Cursor**, **Claude Code**, **Antigravity**, **OpenAI Codex** o **Windsurf**) en marketing, investigación, operaciones o desarrollo conoce este triple cuello de botella:
+1. **La IA olvida el contexto:** Abres una sesión nueva y ya no recuerda las directrices de la marca ni qué se acordó ayer.
+2. **La IA miente complacientemente:** Afirma con entusiasmo que un informe, análisis o entregable está *"terminado"* cuando en realidad contiene números inventados o instrucciones a medias.
+3. **La IA modifica a ciegas:** Si comete un error, altera archivos al azar sin analizar la causa raíz ni dejar registro de la versión anterior.
 
-**Agent Ops Core resuelve esto dándole a tu IA dos cosas:**
-1. **Un Archivador Digital Inteligente (`.context/`):** Cinco libretas sencillas en tu computadora donde la IA consulta quién es el cliente, qué directrices debe seguir, qué tareas están hechas y qué errores no debe repetir jamás.
-2. **Un Protocolo de Disciplina:** La IA tiene prohibido inventar supuestos. Si le falta información, te hace una pregunta directa en vez de adivinar. Y no puede dar nada por terminado sin antes comprobar que los archivos, cifras y entregables están completos.
+**Agent Ops Core erradica estos tres dolores mediante una tríada de gobernanza física:**
+
+* **1. Memoria Aislada por Proyecto (`.context/`):** Cinco libretas en tu computadora donde la IA está obligada a consultar quién es el cliente, qué directrices debe seguir y qué errores no debe repetir jamás antes de tocar un solo archivo.
+* **2. Mandato Físico Anti-Complacencia (`AGENTS.md`):** La IA tiene prohibido dar una tarea por terminada sin comprobarla contra criterios objetivos y mostrar evidencia real. Si falta información crítica, está obligada a formular una pregunta bloqueante en lugar de adivinar.
+* **3. Protocolo de Relevo y Respaldo Continuo (Git + Nube):** Cada sesión se abre con un reporte de sincronización de 5 puntos y se cierra con un guardado atómico que protege tu trabajo en Google Drive ante cualquier fallo de hardware.
 
 ---
 
