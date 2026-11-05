@@ -1,0 +1,11 @@
+# Entorno y logs
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Estado local y caché
+.last_update_check
+.last_sync
+.tmp/
+scratch/
