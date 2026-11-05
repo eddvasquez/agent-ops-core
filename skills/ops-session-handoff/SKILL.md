@@ -1,15 +1,17 @@
 ---
-name: ops-gestion-relevo
+name: ops-session-handoff
 description: Protocolo de Recepción (MODO ENTRADA) y Cierre de Turno (MODO SALIDA) con auditoría Git, verificación de auto-actualización cada 24h y mandato anti-racionalización.
 triggers:
+  - "ops-session-handoff"
   - "ops-gestion-relevo"
+  - "session handoff"
   - "inicia turno"
   - "modo entrada"
   - "cierra turno"
   - "modo salida"
 ---
 
-# Skill: Gestión de Relevo Multi-Agente (`ops-gestion-relevo`)
+# Skill: Gestión de Relevo y Sesiones (`ops-session-handoff`)
 
 ## MODO A: RECEPCIÓN DE TURNO (`MODO ENTRADA`)
 **PROHIBIDO modificar archivos o escribir código antes de que el usuario apruebe este reporte.**

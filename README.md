@@ -74,9 +74,9 @@ Una vez activado el sistema, así trabajas día a día con tu IA:
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'flowchart': { 'minNodeWidth': 280, 'nodeSpacing': 25, 'rankSpacing': 25, 'padding': 16 }}}%%
 flowchart TD
-    Paso1["PASO 1: ARRANCAR PROYECTO<br>Comando: ops-crear-proyecto<br>Crea carpeta limpia y archivador .context/"]
-    Paso2["PASO 2: ABRIR SESION DE TRABAJO<br>Comando: ops-gestion-relevo ENTRADA<br>Audita historial y emite Reporte 5 Puntos"]
-    Paso3["PASO 3: CERRAR SESION Y GUARDAR<br>Comando: ops-gestion-relevo SALIDA<br>Audita entregables y guarda respaldo"]
+    Paso1["PASO 1: ARRANCAR PROYECTO<br>Comando: ops-project-init<br>Crea carpeta limpia y archivador .context/"]
+    Paso2["PASO 2: ABRIR SESION DE TRABAJO<br>Comando: ops-session-handoff ENTRADA<br>Audita historial y emite Reporte 5 Puntos"]
+    Paso3["PASO 3: CERRAR SESION Y GUARDAR<br>Comando: ops-session-handoff SALIDA<br>Audita entregables y guarda respaldo"]
 
     Paso1 ==> Paso2 ==> Paso3
     Paso3 -.->|"Siguiente sesion sin amnesia"| Paso2
@@ -87,19 +87,19 @@ flowchart TD
 
 ### 1. Paso 1: Arrancar un Proyecto Nuevo
 Dile a tu IA:
-> *"Usa `ops-crear-proyecto` para crear el proyecto [Nombre]"*
+> *"Usa `ops-project-init` para crear el proyecto [Nombre]"*
 
 La IA crea la carpeta protegida, comprueba que esté respaldada en tu almacenamiento cloud (Google Drive) para evitar pérdidas y genera el archivador `.context/` con sus 5 libretas de memoria.
 
 ### 2. Paso 2: Abrir Sesión de Trabajo (Modo Entrada)
 Al comenzar el día o abrir un nuevo chat, dile:
-> *"Iniciemos turno con `ops-gestion-relevo` MODO ENTRADA"*
+> *"Iniciemos turno con `ops-session-handoff` MODO ENTRADA"*
 
 La IA tiene prohibido tocar archivos o improvisar. Primero revisa qué se avanzó ayer, qué directrices están vigentes y te entrega el **Reporte de 5 Puntos** (estado del proyecto, reglas activas y siguiente paso inmediato). Solo tienes que responder "OK" para autorizar el avance.
 
 ### 3. Paso 3: Cerrar Sesión y Guardar (Modo Salida)
 Al terminar la jornada o antes de cerrar el chat, dile:
-> *"Terminamos por hoy, ejecuta `ops-gestion-relevo` MODO SALIDA"*
+> *"Terminamos por hoy, ejecuta `ops-session-handoff` MODO SALIDA"*
 
 La IA comprueba qué tareas se completaron con evidencia real, anota los aprendizajes o correcciones del día en la libreta de lecciones, actualiza la bitácora y sella una copia de seguridad automática respaldada en tu nube.
 
@@ -141,9 +141,9 @@ La IA comprueba qué tareas se completaron con evidencia real, anota los aprendi
 
 | Habilidad | Tipo | Función Crítica y Resultado Tangible |
 | :--- | :---: | :--- |
-| **`ops-crear-proyecto`** | Operación | Inicializa proyectos nuevos con arquitectura v2, Git protegido y auditoría preventiva de respaldo en Google Drive/Cloud. |
-| **`ops-gestion-relevo`** | Gobernanza | Ejecuta el protocolo de relevo diario (Modo Entrada y Modo Salida) con auto-actualización silenciosa cada 24 horas. |
-| **`ops-migrar-proyecto`** | Operación | Convierte proyectos legados o desordenados a la arquitectura universal v2 sin destruir datos ni duplicar archivos. |
+| **`ops-project-init`** | Operación | Inicializa proyectos nuevos con arquitectura v2, Git protegido y auditoría preventiva de respaldo en Google Drive/Cloud. |
+| **`ops-session-handoff`** | Gobernanza | Ejecuta el protocolo de relevo diario (Modo Entrada y Modo Salida) con auto-actualización silenciosa cada 24 horas. |
+| **`ops-project-migrate`** | Operación | Convierte proyectos legados o desordenados a la arquitectura universal v2 sin destruir datos ni duplicar archivos. |
 | **`ops-git-worktrees`** | Operación | Gestiona espacios de trabajo paralelos para abordar tareas simultáneas sin interferencias ni bloqueos. |
 | **`dev-tdd`** | Calidad | Implementa el principio de "revisar antes de publicar", garantizando que ningún entregable se apruebe sin pruebas de consistencia. |
 | **`dev-systematic-debugging`** | Resolución | Metodología de 4 fases para investigar y resolver incidencias de causa raíz sin parches a ciegas ni improvisación. |
@@ -205,7 +205,7 @@ flowchart TD
     subgraph CAPA1["CAPA 1: Gobernanza Universal (GitHub Publico)"]
         direction TB
         OpsCore["agent-ops-core"]
-        P_Ops["• ops-crear-proyecto<br>• ops-gestion-relevo<br>• ops-migrar-proyecto<br>• dev-tdd & debugging"]
+        P_Ops["• ops-project-init<br>• ops-session-handoff<br>• ops-project-migrate<br>• dev-tdd & debugging"]
     end
 
     subgraph CAPA2["CAPA 2: Boveda Privada (Google Drive Local)"]
@@ -233,9 +233,9 @@ flowchart TD
 
 1. **Capa 1: Marco de Gobernanza (`agent-ops-core` en GitHub):**
    - Protocolo universal `AGENTS.md`.
-   - Inicializador de proyectos (`ops-crear-proyecto`).
-   - Gestión de relevos y recepción/cierre de turnos (`ops-gestion-relevo`).
-   - Estandarización y rescate de proyectos legados (`ops-migrar-proyecto`).
+   - Inicializador de proyectos (`ops-project-init`).
+   - Gestión de relevos y recepción/cierre de turnos (`ops-session-handoff`).
+   - Estandarización y rescate de proyectos legados (`ops-project-migrate`).
    - Aislamiento de tareas paralelas (`ops-git-worktrees`).
    - Protocolos de verificación y depuración de causa raíz.
 

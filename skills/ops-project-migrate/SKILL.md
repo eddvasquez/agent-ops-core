@@ -1,13 +1,15 @@
 ---
-name: ops-migrar-proyecto
+name: ops-project-migrate
 description: Migra proyectos existentes a la arquitectura de gobernanza universal v2, repara .context/ faltante, actualiza AGENTS.md y elimina carpetas de skills duplicadas sin destruir datos.
 triggers:
+  - "ops-project-migrate"
   - "ops-migrar-proyecto"
+  - "project migrate"
   - "migrar proyecto"
   - "limpiar skills duplicadas"
 ---
 
-# Skill: Migración y Estandarización de Proyectos (`ops-migrar-proyecto`)
+# Skill: Migración y Estandarización de Proyectos (`ops-project-migrate`)
 
 ## REGLA DE ORO (NO-DESTRUCTIVA):
 - **Si los archivos de `.context/` YA existen:** Está ESTRICTAMENTE PROHIBIDO sobrescribirlos o borrar su contenido preexistente.

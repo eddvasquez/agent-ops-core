@@ -5,8 +5,8 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 ---
 
 ### Protocolo 1 (Inicio de Sesión y Auditoría Git - MODO ENTRADA)
-- Al iniciar cualquier turno sobre el proyecto, es mandatorio invocar la skill `ops-gestion-relevo` bajo **MODO ENTRADA**.
-- Lee `AGENTS.md`, todos los archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`) y las skills disponibles en tu arnés activo.
+- Al iniciar cualquier turno sobre el proyecto, es mandatorio invocar la skill `ops-session-handoff` (o `ops-gestion-relevo`) bajo **MODO ENTRADA**.
+- Lee `AGENTS.md`, todos los archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`) y las skills disponibles en tus aplicaciones de IA.
 - Ejecuta una auditoría física en Git (`git status -s`, `git log -n 3 --oneline`, `git diff --stat`).
 - **Resolución de discrepancias:** En caso de existir cualquier contradicción entre el texto de `.context/activeContext.md` y el estado real del árbol de trabajo en Git, **prevalece siempre la evidencia física de Git**.
 - Emite el reporte de sincronización de 5 puntos y **detente a esperar la confirmación explícita del usuario** antes de tocar archivos o escribir código.
@@ -41,7 +41,7 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 ---
 
 ### Protocolo 6 (Cierre de Turno / Handoff - MODO SALIDA)
-- Al concluir cualquier unidad de trabajo o antes de devolver el control al usuario, el agente debe ejecutar obligatoriamente `ops-gestion-relevo` bajo **MODO SALIDA**.
+- Al concluir cualquier unidad de trabajo o antes de devolver el control al usuario, el agente debe ejecutar obligatoriamente `ops-session-handoff` (o `ops-gestion-relevo`) bajo **MODO SALIDA**.
 - Actualizar `.context/lessons_learned.md` si hubo aprendizajes o correcciones.
 - Actualizar `.context/progress.md` marcando con `[x]` **únicamente hitos comprobados objetivamente** mediante pruebas ejecutadas en verde o verificación física.
 - Actualizar `.context/activeContext.md` indicando con precisión quirúrgica: último archivo modificado, estado de revisión/errores y el siguiente paso ejecutable inmediato para el próximo relevo.

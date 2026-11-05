@@ -1,13 +1,15 @@
 ---
-name: ops-crear-proyecto
+name: ops-project-init
 description: Inicializa un nuevo proyecto con arquitectura de gobernanza universal, .context/, docs/, AGENTS.md, Git local protegido y validación de respaldo en Google Drive o nube.
 triggers:
+  - "ops-project-init"
   - "ops-crear-proyecto"
+  - "init project"
   - "crear nuevo proyecto"
   - "inicializar proyecto"
 ---
 
-# Skill: Inicializador de Proyecto con Gobernanza Universal (`ops-crear-proyecto`)
+# Skill: Inicializador de Proyecto con Gobernanza Universal (`ops-project-init`)
 
 ## FASE 1: CUESTIONARIO BLOQUEANTE
 Detente y formula ÚNICAMENTE estas 4 preguntas antes de crear archivos o generar código:
