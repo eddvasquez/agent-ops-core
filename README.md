@@ -1,17 +1,21 @@
-# Agent Ops Core ⚡
-### El Sistema Operativo de Gobernanza que Evita que tus Agentes de IA Destruyan tu Base de Código.
+# Agent Ops Core
 
-> **La realidad incómoda:** Los modelos de IA no alucinan código por falta de inteligencia; alucinan por **ausencia total de gobernanza operativa**.
-> 
-> Sin protocolos físicos, un agente de IA actúa como un becario complaciente: aplica parches a ciegas (*shotgun debugging*), reporta que "todo funciona" sin correr una sola prueba, olvida las decisiones tomadas en el turno anterior y te ata al monopolio de un solo proveedor.
-> 
-> **Agent Ops Core** es el framework agnóstico y determinista que impone rigor de ingeniería, desarrollo guiado por pruebas (TDD), memoria persistente y handoffs quirúrgicos en **Claude Code**, **Antigravity (Gemini)** y **OpenAI Codex**.
+### Sistema de Gobernanza Operativa y Memoria Persistente para Equipos de Inteligencia Artificial.
+
+El principal obstáculo al delegar operaciones complejas en modelos de Inteligencia Artificial (Claude, Gemini, Codex) no es su capacidad intelectual, sino la **ausencia de gobernanza y trazabilidad**.
+
+Sin protocolos operativos formales, cualquier IA padece tres fallas estructurales:
+1. **Amnesia de sesión:** Olvida decisiones estratégicas previas y contradice acuerdos comerciales o técnicos alcanzados en turnos anteriores.
+2. **Complacencia no verificada:** Da por concluidas tareas de marketing, análisis financiero o redacción sin aplicar criterios objetivos de validación.
+3. **Dependencia de plataforma:** Deja la memoria de tu negocio secuestrada dentro de la interfaz propietaria de un único proveedor corporativo.
+
+**Agent Ops Core** establece un estándar neutral, multiplataforma y versionado en Git que transforma el caos conversacional en un sistema disciplinado de ejecución para proyectos de **estrategia comercial, marketing digital, operaciones de oficina, gestión de clientes y desarrollo técnico**.
 
 ---
 
-## 🚀 Instalación Inmediata en 1 Línea (Cero Fricción)
+## Instalación Universal
 
-En menos de 5 segundos, tus arneses de IA (`~/.gemini`, `~/.claude`, `~/.agents`) tendrán instaladas las skills operativas:
+En segundos, el instalador despliega los protocolos operativos en los entornos locales de Claude, Gemini y Codex:
 
 ### En Windows (PowerShell):
 ```powershell
@@ -25,50 +29,50 @@ curl -fsSL https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/inst
 
 ---
 
-## 🛑 Los 4 Dolores Operativos que Este Framework Destruye
+## Los Cuatro Cuellos de Botella que Resuelve Este Sistema
 
-### 1. El Parche Ciego (*Shotgun Debugging*)
-- **El Dolor:** La IA encuentra un error, altera 5 variables al azar, inserta un bloque `try/catch` vacío para silenciar la excepción y asegura que está resuelto, rompiendo tres módulos adyacentes.
-- **La Solución (`dev-systematic-debugging`):** Mandato obligatorio de 4 fases: reproducción aislada demostrable, rastreo de estado hacia la causa raíz, formulación de hipótesis única y cambio quirúrgico. Cero conjeturas.
+### 1. La Amnesia de Turno y la Desalineación de Objetivos
+- **El Problema:** Al abrir una nueva conversación, la IA desconoce el contexto histórico del cliente, los números de la oferta, las directrices de marca o las restricciones presupuestarias.
+- **La Solución:** La arquitectura `.context/` mantiene cinco registros vivos en Markdown nativo (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`). La IA asimila el estado exacto del proyecto antes de ejecutar cualquier acción.
 
-### 2. La Complacencia del "Ya Quedó Listo" (*Fake Progress*)
-- **El Dolor:** El agente marca hitos como terminados basándose en su propia autocomplacencia, dejándote código roto que descubres horas después al compilar.
-- **La Solución (`dev-tdd` y Protocolo 6):** Prohibido escribir código de producción sin una prueba roja previa. Prohibido marcar un hito en `progress.md` sin evidencia física y objetiva de pruebas ejecutadas en verde.
+### 2. La Complacencia y el Falso Avance
+- **El Problema:** El agente afirma que una tarea de investigación, un copy de ventas o una configuración publicitaria está "terminada", cuando en realidad omitió pasos críticos o introdujo datos genéricos.
+- **La Solución:** Protocolo de verificación objetiva. Queda prohibido marcar un hito como completado sin evidencia comprobable (revisión de fuentes, pruebas unitarias o confirmación física de entregables).
 
-### 3. La Amnesia de Contexto y el Secuestro de Plataforma (*Vendor Lock-in*)
-- **El Dolor:** Abres una nueva sesión o cambias de modelo y la IA arranca desde cero, perdiendo el hilo o contradiciendo directrices previas. Además, tus reglas quedan atrapadas en la interfaz propietaria de una sola empresa.
-- **La Solución (Arquitectura en 2 Capas + `activeContext.md`):** Tu proyecto conserva memoria viva mediante archivos Markdown nativos. Si Claude se satura o colapsa, abres Gemini o Codex y continúan la misma línea de trabajo bajo el mismo protocolo `AGENTS.md`.
+### 3. La Modificación Especulativa
+- **El Problema:** Ante un error operativo o inconsistencia en datos, los modelos tienden a parchar los síntomas cambiando supuestos al azar, corrompiendo la coherencia de los entregables adyacentes.
+- **La Solución:** Metodología sistemática de resolución en cuatro fases: aislamiento del escenario, diagnóstico de causa raíz, formulación de hipótesis única y corrección quirúrgica.
 
-### 4. La Fragilidad ante Pérdida de Equipo o Colisión en Nube
-- **El Dolor:** Trabajas en rutas locales temporales y una falla de disco destruye semanas de desarrollo, o archivos duplicados con sufijos de versión (`_v2`, `_final`) corrompen la sincronización.
-- **La Solución (`ops-crear-proyecto` + Protocolo 5):** Auditoría preventiva obligatoria de Google Drive/Cloud, prohibición taxativa de duplicados y commits atómicos con pausas para liberar bloqueos de sincronización.
+### 4. La Vulnerabilidad de Datos y Pérdida de Información
+- **El Problema:** Proyectos dispersos en discos locales sin sincronización, sujetos a pérdida total ante fallas del equipo físico, o colisiones por duplicidad de archivos con nombres informales (`brief_v2`, `final_final`).
+- **La Solución:** Auditoría obligatoria de respaldo en Google Drive o almacenamiento cloud, prohibición taxativa de duplicados informales y control de versiones atómico con Git.
 
 ---
 
-## 📊 Matriz de Impacto: Sin Gobernanza vs. Con Agent Ops Core
+## Comparativa de Rendimiento Operativo
 
-| Dimensión Operativa | Sin Gobernanza (El estándar de la industria) | Con Agent Ops Core |
+| Dimensión | Operación Sin Gobernanza (Tradicional) | Operación Con Agent Ops Core |
 | :--- | :--- | :--- |
-| **Control de Errores** | Modificación especulativa hasta que "parezca que compila". | Protocolo de Causa Raíz (`dev-systematic-debugging`) con reproducción aislada obligatoria. |
-| **Desarrollo de Funciones** | Generación masiva de código sin pruebas previas. | Ciclo estricto **Red-Green-Refactor** (`dev-tdd`). |
-| **Cambio de Turno / Handoff** | *"Ayer estábamos haciendo algo con la API..."* (Amnesia). | Reporte auditado de 5 puntos contrastado físicamente contra `git status -s`. |
-| **Independencia de IA** | Atrapado en el ecosistema o chat de un solo proveedor. | Neutral: Las mismas reglas corren idénticas en Claude, Gemini y Codex. |
-| **Actualizaciones del Sistema** | Copiar y pegar archivos manualmente entre máquinas. | Auto-actualización silenciosa cada 24 horas vía GitHub. |
+| **Continuidad entre Sesiones** | Amnesia recurrente; el usuario debe reexplicar el contexto en cada turno. | Protocolo de Relevo (Modo Entrada): auditoría del estado real y confirmación de foco. |
+| **Calidad de Entregables** | Contenido genérico y complaciente sin verificación rigurosa. | Validación contra criterios de éxito explícitos y memoria de lecciones aprendidas. |
+| **Resolución de Incidencias** | Modificaciones a ciegas (*shotgun approach*) que generan retrabajos. | Análisis determinista de causa raíz antes de intervenir cualquier activo. |
+| **Independencia Tecnológica** | Dependencia absoluta del ecosistema de un solo proveedor. | Neutral: Las mismas reglas operan idénticas en Claude, Gemini, ChatGPT y terminales locales. |
+| **Seguridad de Archivos** | Riesgo de pérdida por daño físico o sobreescritura accidental. | Auditoría automática de almacenamiento en la nube y versionado Git protegido. |
 
 ---
 
-## 🏛️ Arquitectura de Neutralidad Multiagente
+## Neutralidad Multiagente
 
-Ningún arnés de IA ni proveedor corporativo es dueño de tu arquitectura:
+El sistema de gobernanza reside en una capa independiente y universal. Ningún arnés ni empresa de IA es propietaria de tu estructura de trabajo:
 
 ```
                                ┌─────────────────────────────────┐
                                │        agent-ops-core           │
-                               │      (GitHub Repository)        │
+                               │      (Repositorio GitHub)       │
                                └────────────────┬────────────────┘
                                                 │
                  ┌──────────────────────────────┼──────────────────────────────┐
-                 │ Distribuye en paralelo       │                              │
+                 │ Distribución simétrica       │                              │
                  ▼                              ▼                              ▼
       ┌────────────────────┐         ┌────────────────────┐         ┌────────────────────┐
       │  ~/.gemini/skills/ │         │  ~/.claude/skills/ │         │  ~/.agents/skills/ │
@@ -80,47 +84,40 @@ Ningún arnés de IA ni proveedor corporativo es dueño de tu arquitectura:
                                                 │
                                                 ▼
                                ┌─────────────────────────────────┐
-                               │   Cualquier IA que ejecute un   │
-                               │ proyecto lee el MISMO protocolo │
-                               │  AGENTS.md y las MISMAS skills  │
+                               │   Cualquier IA que abra el      │
+                               │ proyecto opera bajo el MISMO    │
+                               │ protocolo y los MISMOS activos  │
                                └─────────────────────────────────┘
 ```
 
 ---
 
-## 🛡️ Separación en 2 Capas (Núcleo Público + Bóveda Privada)
+## Arquitectura de Trabajo en Dos Capas
 
-El framework aísla la metodología operativa de tus secretos comerciales:
+El framework separa de forma estricta los procesos operativos de los activos propietarios del negocio:
 
-1. **Capa 1: Núcleo Operativo (`agent-ops-core` en GitHub):**
+1. **Capa 1: Marco de Gobernanza (`agent-ops-core` en GitHub):**
    - Protocolo universal `AGENTS.md`.
-   - Inicializador de proyectos (`ops-crear-proyecto`).
-   - Gestión de relevos y handoff (`ops-gestion-relevo`).
-   - Migración de proyectos legados (`ops-migrar-proyecto`).
-   - Aislamiento paralelo con worktrees (`ops-git-worktrees`).
-   - Metodología TDD (`dev-tdd`) y Depuración Sistemática (`dev-systematic-debugging`).
+   - Inicializador de proyectos multidisciplinarios (`ops-crear-proyecto`).
+   - Gestión de relevos y recepción/cierre de turnos (`ops-gestion-relevo`).
+   - Estandarización y rescate de proyectos legados (`ops-migrar-proyecto`).
+   - Aislamiento de tareas paralelas (`ops-git-worktrees`).
+   - Protocolos de verificación y depuración de causa raíz.
 
-2. **Capa 2: Bóveda Privada de Negocio (`_ai-skills-hub` en Google Drive):**
-   - Activos comerciales propietarios (copys de venta, ofertas high-ticket, optimizadores de pauta, credenciales).
-   - Vive exclusivamente en tu almacenamiento local respaldado y **nunca se expone en repositorios públicos**.
-   - Los servicios de sincronización en segundo plano integran ambas capas en los arneses de IA en tiempo real.
-
----
-
-## 🔄 Auto-Actualización Periódica (Cada 24 Horas)
-
-1. **En cada Inicio de Sesión (`ops-gestion-relevo` MODO ENTRADA):** El agente verifica el archivo local `~/.agent-ops/.last_update_check`. Si han transcurrido más de 24 horas, ejecuta silenciosamente `git pull --ff-only`.
-2. **Tarea Programada en el Sistema:** El instalador registra una tarea silenciosa (Programador de Tareas en Windows, `launchd` en macOS o `cron` en Linux) que se ejecuta a las 9:00 AM para mantener el entorno al día.
+2. **Capa 2: Bóveda Privada de Negocio (Almacenamiento Local Respaldado):**
+   - Habilidades propietarias de la empresa: marcos de consultoría, ángulos de adquisición, guiones comerciales y credenciales.
+   - Reside exclusivamente en tu almacenamiento respaldado y privado, sin exposición en repositorios públicos.
+   - Servicios de sincronización en segundo plano unifican ambas capas en los arneses de IA en tiempo real.
 
 ---
 
-## 📜 Los 6 Protocolos Universales de AGENTS.md
+## Los Seis Protocolos Universales de AGENTS.md
 
-Todo proyecto creado con este framework cuenta con gobernanza estricta en su archivo raíz `AGENTS.md`:
+Todo proyecto iniciado con este framework incluye un archivo rector `AGENTS.md` con seis reglas innegociables:
 
-1. **Protocolo 1 (Inicio de Turno / Auditoría Git):** Prevalece la evidencia física de Git (`git status -s`, `git diff`) sobre cualquier texto. Reporte de 5 puntos obligatorio antes de tocar código.
-2. **Protocolo 2 (Cero Suposiciones y Memoria Cruda):** Prohibido adivinar dependencias o requerimientos. Registro obligatorio de correcciones en `.context/lessons_learned.md`.
-3. **Protocolo 3 (Invocación Mandatoria y Anti-Racionalización):** Prohibido eludir skills. Toda depuración de bugs exige `dev-systematic-debugging` (Causa Raíz); todo código nuevo exige `dev-tdd` (Red-Green-Refactor).
-4. **Protocolo 4 (Destilación a Skill General):** Los aprendizajes maduros se extraen a skills reutilizables.
-5. **Protocolo 5 (Escritor Único e Higiene Cloud):** Un solo agente activo a la vez; cero archivos con sufijos de versionado (`_v1`, `_final`); commits atómicos con pausa para liberar bloqueos en nube.
-6. **Protocolo 6 (Cierre de Turno / Relevo):** Auditoría objetiva de pruebas en verde antes de marcar hitos en `.context/progress.md` y commit de relevo.
+1. **Protocolo 1 (Inicio de Turno / Auditoría de Estado):** Prevalencia de la evidencia física de Git y los registros de contexto sobre suposiciones verbales. Reporte de 5 puntos obligatorio antes de modificar activos.
+2. **Protocolo 2 (Cero Suposiciones y Memoria Cruda):** Prohibido adivinar requerimientos o directrices del cliente. Toda corrección humana se registra cronológicamente en `.context/lessons_learned.md`.
+3. **Protocolo 3 (Invocación Mandatoria y Anti-Racionalización):** Prohibido omitir habilidades o metodologías probadas con excusas de premura.
+4. **Protocolo 4 (Destilación de Conocimiento):** Las reglas operativas que demuestren valor universal se abstraen hacia habilidades maestras reutilizables.
+5. **Protocolo 5 (Escritor Único e Higiene en la Nube):** Un único agente activo por turno para prevenir colisiones; prohibición de archivos duplicados; pausas de seguridad para liberar bloqueos de sincronización en la nube.
+6. **Protocolo 6 (Cierre de Turno y Relevo):** Auditoría objetiva de tareas terminadas antes de actualizar el progreso y generación de commit atómico de relevo.
