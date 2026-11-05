@@ -27,6 +27,21 @@ irm https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/install.ps1
 curl -fsSL https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/install.sh | bash
 ```
 
+### Para Usuarios No Programadores (Copiar y Pegar en el Chat de tu IA)
+
+Si no deseas utilizar la terminal, copia y pega el siguiente bloque directamente en la ventana de chat de Claude Desktop, ChatGPT o Gemini:
+
+```text
+Actúa como mi Ingeniero de Operaciones y Gobernanza de Proyectos. 
+
+Quiero que trabajemos bajo el estándar universal de AGENTS.md del repositorio https://github.com/eddvasquez/agent-ops-core.
+
+Por favor realiza lo siguiente:
+1. Revisa las instrucciones públicas de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/README.md y los 6 Protocolos de AGENTS.md.
+2. Si tienes acceso a mi terminal o herramientas locales, ejecuta el comando de instalación de 1 línea para mi sistema operativo (Windows o Mac/Linux) para instalar las skills operativas en mis carpetas locales (~/.gemini, ~/.claude o ~/.agents).
+3. Si estamos operando únicamente en esta ventana de chat sin acceso local a terminal, adopta inmediatamente el Protocolo 1 (MODO ENTRADA): audita nuestro objetivo, verifica qué directrices tenemos y entrégame el Reporte de 5 Puntos antes de realizar cualquier cambio o generar código.
+```
+
 ---
 
 ## Los Cuatro Cuellos de Botella que Resuelve Este Sistema
@@ -197,3 +212,11 @@ Todo proyecto iniciado con este framework incluye un archivo rector `AGENTS.md` 
 4. **Protocolo 4 (Destilación de Conocimiento):** Las reglas operativas que demuestren valor universal se abstraen hacia habilidades maestras reutilizables.
 5. **Protocolo 5 (Escritor Único e Higiene en la Nube):** Un único agente activo por turno para prevenir colisiones; prohibición de archivos duplicados; pausas de seguridad para liberar bloqueos de sincronización en la nube.
 6. **Protocolo 6 (Cierre de Turno y Relevo):** Auditoría objetiva de tareas terminadas antes de actualizar el progreso y generación de commit atómico de relevo.
+
+---
+
+## Licencia y Aviso Legal de Independencia
+
+Este proyecto está distribuido bajo la Licencia [Apache 2.0](LICENSE).
+
+**Aviso de Independencia y Marcas:** Agent Ops Core es un marco de gobernanza independiente desarrollado por Edd Vásquez. No está afiliado, patrocinado, respaldado ni certificado por Google LLC, Anthropic PBC, OpenAI ni ninguna de sus entidades filiales. Todas las marcas registradas y nombres de productos mencionados pertenecen a sus respectivos titulares.
