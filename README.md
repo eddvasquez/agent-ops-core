@@ -1,66 +1,122 @@
+<div align="center">
+
 # Agent Ops Core
 
-### Sistema de Gobernanza Operativa y Memoria Persistente para Equipos de Inteligencia Artificial.
+### El Sistema de Memoria Persistente y Gobernanza Operativa para Equipos de Inteligencia Artificial.
 
-El principal obstáculo al delegar operaciones complejas en modelos de Inteligencia Artificial (Claude, Gemini, Codex) no es su capacidad intelectual, sino la **ausencia de gobernanza y trazabilidad**.
+**Deja de quemar horas reexplicando tu negocio en cada chat. Dale a tu IA una memoria física indestructible en Git, verificación de avances sin complacencia y cero amnesia entre sesiones.**
 
-Sin protocolos operativos formales, cualquier IA padece tres fallas estructurales:
-1. **Amnesia de sesión:** Olvida decisiones estratégicas previas y contradice acuerdos comerciales o técnicos alcanzados en turnos anteriores.
-2. **Complacencia no verificada:** Da por concluidas tareas de marketing, análisis financiero o redacción sin aplicar criterios objetivos de validación.
-3. **Dependencia de plataforma:** Deja la memoria de tu negocio secuestrada dentro de la interfaz propietaria de un único proveedor corporativo.
+[![Ecosistema](https://img.shields.io/badge/Ecosistema-Multiagente%20(Claude%20%7C%20Gemini%20%7C%20Codex)-818cf8?style=flat-square)]()
+[![Arquitectura](https://img.shields.io/badge/Arquitectura-Git%20%2B%20.context%2F-38bdf8?style=flat-square)]()
+[![Instalación](https://img.shields.io/badge/Instalador-1--Click%20(Win%20%7C%20Mac%20%7C%20Linux)-10b981?style=flat-square)]()
+[![Licencia](https://img.shields.io/badge/Licencia-Apache%202.0-blue?style=flat-square)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills%20Core-6%20Habilidades%20Maestras-orange?style=flat-square)](#el-catalogo-de-las-6-skills-operativas-incluidas)
 
-**Agent Ops Core** establece un estándar neutral, multiplataforma y versionado en Git que transforma el caos conversacional en un sistema disciplinado de ejecución para proyectos de **estrategia comercial, marketing digital, operaciones de oficina, gestión de clientes y desarrollo técnico**.
+[Arranque en 60s](#como-arrancar-este-sistema-en-60-segundos-cero-codigo) · [Flujo Diario en 3 Pasos](#el-flujo-de-trabajo-diario-en-3-pasos) · [Garantía Antirriesgo](#tus-archivos-y-tu-memoria-estan-a-salvo) · [Los 4 Cuellos de Botella](#los-cuatro-cuellos-de-botella-que-destruyen-tu-productividad-con-ia) · [Diagramas](#neutralidad-multiagente-y-distribucion-simetrica) · [Los 6 Protocolos](#los-seis-protocolos-universales-de-agentsmd) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
+
+</div>
+
+> [!IMPORTANT]
+> **Tus Archivos y tu Memoria Están a Salvo:**
+> Toda IA dejada a su suerte improvisa supuestos, inventa conclusiones complacientes y olvida el contexto al cerrar la ventana. **Agent Ops Core** impone un estándar físico: ningún agente puede afirmar que una tarea está terminada sin evidencia comprobable, ningún archivo se modifica a ciegas y la memoria histórica de tu negocio queda blindada localmente bajo control de versiones Git y respaldo cloud.
 
 ---
 
-## Instalación Universal
+## Cómo Arrancar este Sistema en 60 Segundos (Cero Código)
 
-En segundos, el instalador despliega los protocolos operativos en los entornos locales de Claude, Gemini y Codex:
+No necesitas ser programador, compilar dependencias ni memorizar comandos de terminal. Elige la vía que mejor se adapte a tu forma de trabajar:
 
-### En Windows (PowerShell):
-```powershell
-irm https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/install.ps1 | iex
-```
+### Método 1: La Vía Directa en Chat (100% Sin Terminal)
 
-### En macOS y Linux (Bash / Zsh):
-```bash
-curl -fsSL https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/install.sh | bash
-```
-
-### Para Usuarios No Programadores (Copiar y Pegar en el Chat de tu IA)
-
-Si no deseas utilizar la terminal, copia y pega el siguiente bloque directamente en la ventana de chat de Claude Desktop, ChatGPT o Gemini:
+Si utilizas **Claude Desktop**, **ChatGPT**, **Gemini**, **Cursor** o **Antigravity**, copia y pega este bloque en el chat de tu IA para activar el protocolo de inmediato:
 
 ```text
 Actúa como mi Ingeniero de Operaciones y Gobernanza de Proyectos. 
 
-Quiero que trabajemos bajo el estándar universal de AGENTS.md del repositorio https://github.com/eddvasquez/agent-ops-core.
+Quiero que trabajemos bajo el estándar universal de AGENTS.md del repositorio público https://github.com/eddvasquez/agent-ops-core.
 
-Por favor realiza lo siguiente:
-1. Revisa las instrucciones públicas de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/README.md y los 6 Protocolos de AGENTS.md.
+Por favor realiza lo siguiente de forma estricta:
+1. Revisa las directrices públicas de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/README.md y los 6 Protocolos de AGENTS.md.
 2. Si tienes acceso a mi terminal o herramientas locales, ejecuta el comando de instalación de 1 línea para mi sistema operativo (Windows o Mac/Linux) para instalar las skills operativas en mis carpetas locales (~/.gemini, ~/.claude o ~/.agents).
-3. Si estamos operando únicamente en esta ventana de chat sin acceso local a terminal, adopta inmediatamente el Protocolo 1 (MODO ENTRADA): audita nuestro objetivo, verifica qué directrices tenemos y entrégame el Reporte de 5 Puntos antes de realizar cualquier cambio o generar código.
+3. Si estamos operando exclusivamente en esta ventana de chat sin herramientas locales, adopta inmediatamente el Protocolo 1 (MODO ENTRADA): audita el estado actual de nuestro objetivo, revisa qué directrices previas tenemos y entrégame el Reporte de 5 Puntos antes de realizar cualquier cambio, redacción o propuesta.
 ```
 
 ---
 
-## Los Cuatro Cuellos de Botella que Resuelve Este Sistema
+### Método 2: Instalación Permanente en tu Computadora (1 Solo Comando)
 
-### 1. La Amnesia de Turno y la Desalineación de Objetivos
-- **El Problema:** Al abrir una nueva conversación, la IA desconoce el contexto histórico del cliente, los números de la oferta, las directrices de marca o las restricciones presupuestarias.
-- **La Solución:** La arquitectura `.context/` mantiene cinco registros vivos en Markdown nativo (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`). La IA asimila el estado exacto del proyecto antes de ejecutar cualquier acción.
+Si deseas que todas tus sesiones locales de Claude Code, Antigravity o Codex compartan automáticamente las skills maestras y se auto-actualicen cada 24 horas:
 
-### 2. La Complacencia y el Falso Avance
-- **El Problema:** El agente afirma que una tarea de investigación, un copy de ventas o una configuración publicitaria está "terminada", cuando en realidad omitió pasos críticos o introdujo datos genéricos.
-- **La Solución:** Protocolo de verificación objetiva. Queda prohibido marcar un hito como completado sin evidencia comprobable (revisión de fuentes, pruebas unitarias o confirmación física de entregables).
+#### En Windows (PowerShell):
+```powershell
+irm https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/install.ps1 | iex
+```
 
-### 3. La Modificación Especulativa
-- **El Problema:** Ante un error operativo o inconsistencia en datos, los modelos tienden a parchar los síntomas cambiando supuestos al azar, corrompiendo la coherencia de los entregables adyacentes.
-- **La Solución:** Metodología sistemática de resolución en cuatro fases: aislamiento del escenario, diagnóstico de causa raíz, formulación de hipótesis única y corrección quirúrgica.
+#### En macOS y Linux (Terminal):
+```bash
+curl -fsSL https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/install.sh | bash
+```
 
-### 4. La Vulnerabilidad de Datos y Pérdida de Información
-- **El Problema:** Proyectos dispersos en discos locales sin sincronización, sujetos a pérdida total ante fallas del equipo físico, o colisiones por duplicidad de archivos con nombres informales (`brief_v2`, `final_final`).
-- **La Solución:** Auditoría obligatoria de respaldo en Google Drive o almacenamiento cloud, prohibición taxativa de duplicados informales y control de versiones atómico con Git.
+> [!TIP]
+> **Detección Automática de Nube:** El instalador detecta si cuentas con Google Drive o almacenamiento cloud configurado, valida la sincronización y registra un proceso de actualización diaria silenciosa sin interrumpir tu trabajo.
+
+---
+
+## El Flujo de Trabajo Diario en 3 Pasos
+
+Una vez activado el sistema, así operas en el día a día para mantener disciplina absoluta en proyectos de **marketing digital, consultoría, finanzas, operaciones o software**:
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '15px' }}}%%
+flowchart TD
+    Paso1["<b>PASO 1: Arrancar Proyecto</b><br><i>'Usa ops-crear-proyecto para [Nombre]'</i><br>Crea carpeta, inicializa Git y levanta .context/"]
+    Paso2["<b>PASO 2: Abrir Sesión de Trabajo</b><br><i>'Iniciemos turno con ops-gestion-relevo MODO ENTRADA'</i><br>Audita Git real, revisa lecciones y emite Reporte de 5 Puntos"]
+    Paso3["<b>PASO 3: Cerrar Sesión y Respaldar</b><br><i>'Terminamos por hoy, ejecuta ops-gestion-relevo MODO SALIDA'</i><br>Audita entregables, actualiza progreso y genera commit atómico"]
+
+    Paso1 ==> Paso2 ==> Paso3
+    Paso3 -.->|"Siguiente sesión sin amnesia"| Paso2
+
+    classDef step fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    class Paso1,Paso2,Paso3 step;
+```
+
+### 1. Paso 1: Arrancar un Proyecto Nuevo
+Dile a tu IA:
+> *"Usa `ops-crear-proyecto` para inicializar el proyecto [Nombre de tu Proyecto]"*
+
+La IA creará la estructura limpia, verificará que el directorio esté respaldado en tu almacenamiento cloud (evitando pérdidas por daño de disco), inicializará el repositorio Git local protegido y creará la carpeta `.context/` con los 5 archivos de memoria persistente.
+
+### 2. Paso 2: Abrir Turno de Trabajo (Modo Entrada)
+Al comenzar el día o abrir un nuevo chat, dile:
+> *"Iniciemos sesión con `ops-gestion-relevo` MODO ENTRADA"*
+
+La IA tiene prohibido tocar archivos o sugerir cambios de inmediato. Primero ejecuta `git status -s` y `git log -n 3`, lee la memoria de `activeContext.md` y las lecciones aprendidas, y te entrega el **Reporte de 5 Puntos** (auditoría Git, directrices vigentes, habilidades disponibles, discrepancias detectadas y siguiente paso inmediato). Tú sólo respondes "OK" para autorizar el avance.
+
+### 3. Paso 3: Cerrar Turno y Relevar (Modo Salida)
+Al terminar tu jornada o antes de cerrar el chat, dile:
+> *"Terminamos por hoy, ejecuta `ops-gestion-relevo` MODO SALIDA"*
+
+La IA audita qué tareas se cumplieron objetivamente, documenta cualquier error o directriz nueva en `lessons_learned.md`, actualiza con precisión quirúrgica el archivo `activeContext.md` para el próximo turno y genera el commit atómico de relevo en Git con pausa de seguridad para la sincronización en la nube.
+
+---
+
+## Los Cuatro Cuellos de Botella que Destruyen tu Productividad con IA
+
+### 1. La Amnesia de Turno y la Reexplicación Crónica
+- **El Coste:** En cada nuevo chat, la IA olvida el perfil del cliente, las cifras de la oferta, el tono de marca y las objeciones previas. El operador pierde entre 20 y 45 minutos repitiendo antecedentes.
+- **La Solución Agent Ops:** Memoria persistente en Markdown nativo (`.context/`). La IA lee el estado exacto antes de escribir una sola palabra.
+
+### 2. La Complacencia del Falso Avance
+- **El Coste:** El modelo afirma con entusiasmo que un copy, un informe de mercado o un script de ventas está "listo", pero al inspeccionarlo contiene datos genéricos, números inventados o instrucciones a medio hacer.
+- **La Solución Agent Ops:** Mandato anti-complacencia. Queda prohibido marcar hitos como terminados sin evidencia física comprobable y contrastada contra criterios objetivos de éxito.
+
+### 3. La Modificación Especulativa (Parches a Ciegas)
+- **El Coste:** Ante un error o retroalimentación, la IA pide disculpas serviles y altera variables al azar (*shotgun approach*), dañando la coherencia del resto de entregables.
+- **La Solución Agent Ops:** Depuración sistemática en 4 fases: aislamiento del síntoma, análisis de causa raíz, hipótesis única y corrección quirúrgica controlada.
+
+### 4. La Dispersión de Datos y la Vulnerabilidad Cloud
+- **El Coste:** Archivos dispersos sin versionar, versiones duplicadas informales (`brief_final_v2.docx`) y riesgo de pérdida absoluta si la plataforma del proveedor sufre una caída o bloquea la cuenta.
+- **La Solución Agent Ops:** Neutralidad e independencia total. El conocimiento y la memoria residen en tu máquina y tu nube bajo Git, legibles por cualquier IA de hoy o de mañana.
 
 ---
 
@@ -73,6 +129,19 @@ Por favor realiza lo siguiente:
 | **Resolución de Incidencias** | Modificaciones a ciegas (*shotgun approach*) que generan retrabajos. | Análisis determinista de causa raíz antes de intervenir cualquier activo. |
 | **Independencia Tecnológica** | Dependencia absoluta del ecosistema de un solo proveedor. | Neutral: Las mismas reglas operan idénticas en Claude, Gemini, ChatGPT y terminales locales. |
 | **Seguridad de Archivos** | Riesgo de pérdida por daño físico o sobreescritura accidental. | Auditoría automática de almacenamiento en la nube y versionado Git protegido. |
+
+---
+
+## El Catálogo de las 6 Skills Operativas Incluidas
+
+| Skill | Tipo | Función Crítica y Resultado Operativo |
+| :--- | :---: | :--- |
+| **`ops-crear-proyecto`** | Operación | Inicializa proyectos nuevos con arquitectura v2, Git protegido y auditoría preventiva de respaldo en Google Drive/Cloud. |
+| **`ops-gestion-relevo`** | Gobernanza | Ejecuta el protocolo de relevo diario (Modo Entrada y Modo Salida) con auto-actualización silenciosa cada 24 horas. |
+| **`ops-migrar-proyecto`** | Operación | Convierte proyectos legados o desordenados a la arquitectura universal v2 sin destruir datos ni duplicar archivos. |
+| **`ops-git-worktrees`** | Operación | Gestiona directorios de trabajo paralelos en Git para abordar tareas simultáneas sin bloqueos de ramas. |
+| **`dev-tdd`** | Calidad | Implementa metodología Test-Driven Development (Red-Green-Refactor) para entregables verificados con pruebas. |
+| **`dev-systematic-debugging`** | Resolución | Metodología de 4 fases para investigar y resolver incidencias de causa raíz sin parches a ciegas. |
 
 ---
 
