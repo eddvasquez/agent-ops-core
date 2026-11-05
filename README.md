@@ -296,4 +296,28 @@ Todo proyecto iniciado con este framework incluye un archivo rector `AGENTS.md` 
 
 Este proyecto está distribuido bajo la Licencia [Apache 2.0](LICENSE).
 
+### Descargo de Responsabilidad Operativa y de Ejecución de IA
+
+> [!WARNING]
+> **Descargo de Responsabilidad Operativa y de Ejecución:**  
+> Este marco de gobernanza interactúa y coordina agentes de Inteligencia Artificial que operan directamente sobre tu sistema operativo local, terminal de comandos, estructura de archivos, control de versiones Git y almacenamiento sincronizado en la nube (Google Drive, Dropbox, OneDrive, etc.). Los agentes que operan bajo estas instrucciones tienen la capacidad técnica de crear, editar, sobreescribir y eliminar archivos, así como ejecutar comandos en tu computadora.
+> 
+> Aunque el sistema incorpora salvaguardas estrictas de fábrica (auditorías físicas previas con el Reporte de 5 Puntos, principio de Cero Suposiciones con preguntas bloqueantes, validación humana explícita obligatoria y pausas de seguridad cloud), **el usuario final asume la responsabilidad única y exclusiva de supervisar, revisar y autorizar cada comando, modificación de archivos y decisión operativa antes de su ejecución**.
+> 
+> El autor y los colaboradores no aceptan responsabilidad alguna por pérdida de datos, corrupción o sobrescritura de archivos, ejecución de comandos no deseados, colisiones de sincronización en la nube o resultados comerciales y operativos derivados del uso, instalación o configuración de este software.
+
+<details>
+<summary><strong>English Version: Operational & AI Execution Liability Disclaimer</strong></summary>
+
+> **Operational & AI Execution Liability Disclaimer:**  
+> This framework orchestrates autonomous and semi-autonomous AI agents that interact directly with your local operating system, shell environment, file directories, Git version control, and cloud-synchronized storage (e.g., Google Drive, Dropbox, OneDrive). Agents operating under these protocols have the capability to create, modify, overwrite, delete files, and execute terminal commands.
+> 
+> Although strict governance safeguards are built-in (Mandatory 5-Point Status Audits, Zero-Assumption blocking questions, Human-in-the-Loop explicit authorization, single-writer cloud hygiene, and atomic rollback points), **the end user assumes sole and exclusive responsibility for reviewing, auditing, and authorizing all file mutations, terminal commands, and operational decisions before execution**.
+> 
+> The author and contributors accept no liability whatsoever for data loss, file corruption, unintended command execution, cloud synchronization collisions, repository damage, or commercial/operational outcomes resulting from the use, installation, or configuration of this framework.
+
+</details>
+
+<br>
+
 **Aviso de Independencia y Marcas:** Agent Ops Core es un marco de gobernanza independiente desarrollado por Edd Vásquez. No está afiliado, patrocinado, respaldado ni certificado por Google LLC, Anthropic PBC, OpenAI ni ninguna de sus entidades filiales. Todas las marcas registradas y nombres de productos mencionados pertenecen a sus respectivos titulares.
