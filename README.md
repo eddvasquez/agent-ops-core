@@ -81,24 +81,25 @@ Por favor realiza lo siguiente:
 El sistema de gobernanza reside en una capa independiente y universal. Ningún arnés ni empresa de IA es propietaria de tu estructura de trabajo:
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'system-ui, -apple-system, sans-serif' }}}%%
 flowchart TD
     subgraph GITHUB["Repositorio Central (Capa Pública)"]
-        Core["agent-ops-core<br>(Gobernanza y Protocolos)"]
+        Core["agent-ops-core<br><b>(Gobernanza y Protocolos)</b>"]
     end
 
     subgraph LOCAL["Entorno Local del Operador"]
         subgraph HARNESSES["Arneses de Inteligencia Artificial"]
             direction LR
-            Gemini["~/.gemini/skills/<br>(Antigravity / Gemini CLI)"]
-            Claude["~/.claude/skills/<br>(Claude Code / Desktop)"]
-            Codex["~/.agents/skills/<br>(OpenAI Codex / Standard)"]
+            Gemini["~/.gemini/skills/<br><b>(Antigravity / Gemini)</b>"]
+            Claude["~/.claude/skills/<br><b>(Claude Code / App)</b>"]
+            Codex["~/.agents/skills/<br><b>(OpenAI Codex / Std)</b>"]
         end
 
         subgraph PROYECTOS["Proyectos Multidisciplinarios"]
             direction LR
-            P1["Marketing & Adquisición<br>(.context/ + AGENTS.md)"]
+            P1["Marketing & Tráfico<br>(.context/ + AGENTS.md)"]
             P2["Operaciones & Negocio<br>(.context/ + AGENTS.md)"]
-            P3["Desarrollo & Software<br>(.context/ + AGENTS.md)"]
+            P3["Software & Código<br>(.context/ + AGENTS.md)"]
         end
     end
 
@@ -111,8 +112,8 @@ flowchart TD
     Codex -->|"Gobernanza Unificada"| PROYECTOS
 
     classDef central fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef harness fill:#0f172a,stroke:#818cf8,stroke-width:1.5px,color:#f8fafc;
-    classDef project fill:#0f172a,stroke:#34d399,stroke-width:1.5px,color:#f8fafc;
+    classDef harness fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
+    classDef project fill:#0f172a,stroke:#34d399,stroke-width:2px,color:#f8fafc;
     class Core central;
     class Gemini,Claude,Codex harness;
     class P1,P2,P3 project;
@@ -125,7 +126,8 @@ flowchart TD
 El framework separa de forma estricta los procesos operativos de los activos propietarios del negocio:
 
 ```mermaid
-flowchart LR
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '16px' }}}%%
+flowchart TD
     subgraph CAPA1["CAPA 1: Gobernanza Universal (GitHub Público)"]
         direction TB
         OpsCore["agent-ops-core"]
@@ -135,20 +137,20 @@ flowchart LR
     subgraph CAPA2["CAPA 2: Bóveda Privada (Google Drive Local)"]
         direction TB
         HubPrivado["_ai-skills-hub"]
-        P_Priv["• Metodologías comerciales<br>• Activos de marketing<br>• Copys de conversión<br>• Credenciales del negocio"]
+        P_Priv["• Metodologías comerciales<br>• Activos de marketing y copy<br>• Ofertas de conversión<br>• Credenciales y accesos"]
     end
 
-    subgraph ARNESES["Arneses Locales de IA"]
-        direction TB
+    subgraph MOTOR["Entorno de Ejecución Local"]
         IA["Claude Code / Antigravity / Codex"]
+        Proyecto["Proyectos Activos del Negocio<br>(Marketing, Operaciones, Software)"]
     end
 
-    OpsCore -->|"Sincronización Git"| IA
-    HubPrivado -->|"Servicio de Sincronización"| IA
-    IA -->|"Ejecución Blindada"| Proyecto["Proyectos Activos del Negocio"]
+    CAPA1 -->|"Sincronización Git"| IA
+    CAPA2 -->|"Servicio de Sincronización"| IA
+    IA -->|"Ejecución Blindada"| Proyecto
 
-    classDef public fill:#1e293b,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc;
-    classDef private fill:#1e293b,stroke:#f59e0b,stroke-width:1.5px,color:#f8fafc;
+    classDef public fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    classDef private fill:#1e293b,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
     classDef target fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc;
     class OpsCore,P_Ops public;
     class HubPrivado,P_Priv private;
@@ -175,6 +177,7 @@ flowchart LR
 Así interactúan el operador, los agentes de Inteligencia Artificial y el control de versiones en cada turno de trabajo:
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'sequence': { 'actorFontSize': '14px', 'messageFontSize': '13px', 'noteFontSize': '12px', 'width': 170 }}}%%
 sequenceDiagram
     autonumber
     actor U as Operador (Usuario)
