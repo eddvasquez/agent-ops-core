@@ -26,8 +26,16 @@ Write-Host "[*] Comprobando actualizaciones de Agent Ops Core desde GitHub..." -
 
 try {
     Push-Location $RepoDir
-    $pullOutput = git pull --ff-only 2>&1 | Out-String
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    git pull --ff-only
+    $exitCode = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
     Pop-Location
+
+    if ($exitCode -ne 0) {
+        throw "git pull finalizo con codigo de error $exitCode"
+    }
 
     # Registrar timestamp de verificacion
     Set-Content -Path $TimestampFile -Value (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ") -Encoding UTF8
