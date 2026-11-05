@@ -2,106 +2,56 @@
 
 # Agent Ops Core
 
-### El Sistema de Memoria Persistente y Gobernanza Operativa para Equipos de Marketing, Experiencia de Usuario (UX) y Gerencia Administrativa.
+### Memoria Persistente y Protocolos de Trabajo para Equipos de Inteligencia Artificial.
 
-**Deja de quemar horas reexplicando tu negocio en cada chat. Dale a tu IA una memoria física indestructible, rigor analítico en datos y disciplina de oficina para operar sin amnesia ni complacencia.**
+**Deja de quemar horas reexplicando tu negocio en cada chat. Dale a tu IA una memoria permanente en tu computadora, verificación de avances sin complacencia y cero amnesia entre sesiones.**
 
 [![Ecosistema](https://img.shields.io/badge/Ecosistema-Multiagente%20(Claude%20%7C%20Gemini%20%7C%20Codex)-818cf8?style=flat-square)]()
-[![Arquitectura](https://img.shields.io/badge/Arquitectura-Git%20%2B%20.context%2F-38bdf8?style=flat-square)]()
-[![Equipos](https://img.shields.io/badge/Diseñado%20para-Marketing%20%7C%20UX%20%7C%20Gerencia-34d399?style=flat-square)]()
+[![Memoria](https://img.shields.io/badge/Memoria-Persistente%20(.context%2F)-38bdf8?style=flat-square)]()
+[![Instalación](https://img.shields.io/badge/Uso-Cero%20Código%20(60s)-10b981?style=flat-square)]()
 [![Licencia](https://img.shields.io/badge/Licencia-Apache%202.0-blue?style=flat-square)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills%20Core-6%20Habilidades%20Maestras-orange?style=flat-square)](#el-catalogo-de-las-6-skills-operativas-explicadas-para-negocios)
 
-[Arranque en 60s](#como-arrancar-este-sistema-en-60-segundos-cero-codigo) · [Para tu Área](#que-hace-este-sistema-por-tu-area-en-palabras-simples) · [Glosario Sin Jerga](#glosario-para-no-programadores-de-terminos-tecnicos-a-beneficio-real) · [Flujo Diario](#el-flujo-de-trabajo-diario-en-3-pasos) · [Casos Reales](#casos-de-uso-reales-como-opera-el-sistema-en-el-dia-a-dia) · [Diagramas](#neutralidad-multiagente-y-distribucion-simetrica) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
+[Arranque en 60s](#como-arrancar-en-60-segundos-cero-codigo) · [Flujo Diario en 3 Pasos](#el-flujo-de-trabajo-diario-en-3-pasos) · [Cuellos de Botella](#por-que-funciona-los-cuatro-cuellos-de-botella-que-resuelve) · [Diagramas](#neutralidad-multiagente-y-distribucion-simetrica) · [Los 6 Protocolos](#los-seis-protocolos-universales-de-agentsmd) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
 
 </div>
 
 > [!IMPORTANT]
-> **Tus Datos, Decisiones y Memoria Están a Salvo:**
-> Toda IA dejada a su suerte improvisa supuestos, inventa conclusiones complacientes y olvida el contexto al cerrar la ventana. **Agent Ops Core** impone un estándar físico: ningún agente puede afirmar que una tarea está terminada sin evidencia comprobable, ningún archivo se modifica a ciegas y la memoria histórica de tu negocio queda blindada localmente bajo control de versiones Git y respaldo cloud.
+> **Tus Datos y tu Memoria Están a Salvo:**
+> Toda IA dejada a su suerte improvisa supuestos, inventa conclusiones complacientes y olvida el contexto al cerrar la ventana. **Agent Ops Core** convierte a tu IA en un operador disciplinado: ningún agente puede afirmar que una tarea está terminada sin comprobarla físicamente, ningún archivo se modifica a ciegas y la memoria histórica de tu negocio queda blindada localmente bajo control de versiones y respaldo seguro en la nube.
 
 ---
 
-## Qué Hace este Sistema por tu Área (En Palabras Simples)
+## Qué es este Sistema (En 30 Segundos y Sin Tecnocracia)
 
-Si no eres programador y lideras o integras equipos de negocio, reconoces la mayor frustración de la IA actual: **la amnesia crónica y la complacencia**. Abres un nuevo chat y el asistente ya olvidó lo que acordaron ayer, inventa supuestos o te entrega un trabajo superficial diciendo que "está terminado".
+Si utilizas ChatGPT, Claude, Gemini o Antigravity para trabajar en marketing, investigación, operaciones o desarrollo, conoces exactamente este problema:
+Abres una conversación nueva y la IA **ya olvidó quién es tu cliente, qué acordaron ayer o cómo te gusta trabajar**. Tienes que volver a explicarle todo desde cero, o peor aún, confiarte y descubrir que inventó datos o entregó un documento a medias diciendo con entusiasmo que *"está terminado"*.
 
-**Agent Ops Core elimina esta fuga operativa dotando a tu IA de un archivador físico estructurado y reglas innegociables:**
-
-### 1. Para Equipos de Marketing y Adquisición (Media Buyers, Copywriters, Estrategas)
-* **Tu Briefing Maestro Inteligente:** En lugar de pegar el perfil del cliente, la oferta y los precios 50 veces a la semana, la IA los consulta directamente en `.context/projectbrief.md`.
-* **Cero Desalineación de Marca:** Toda propuesta publicitaria, guion de VSL o landing page se audita contra los pilares de la oferta y las directrices aprendidas de campañas anteriores.
-
-### 2. Para Equipos de Experiencia de Usuario (UX Research, Analistas de Encuestas y Producto)
-* **Análisis Forense de Sondeos y Encuestas:** Cuando alimentas a la IA con 500 respuestas de clientes, NPS, entrevistas o estudios de campo, el sistema le prohíbe inventar tendencias o alucinar datos.
-* **Trazabilidad de Indicadores a Tableros:** Cada hallazgo, métrica de fricción o recomendación de diseño mantiene trazabilidad con la muestra original de usuarios. Los tableros e informes ejecutivos se actualizan sin contradicciones históricas.
-
-### 3. Para Equipos de Gerencia Administrativa y Finanzas (Operaciones, Compras, Gestión)
-* **Manual de Procedimientos (SOP) con Cumplimiento Ciego:** La IA está obligada a consultar las políticas internas, condiciones comerciales de proveedores y tablas de tarifas vigentes.
-* **Principio de Cero Suposición:** Si falta un dato contable, legal o contractual, la IA se detiene y formula una pregunta bloqueante. Nunca inventa cláusulas ni datos financieros.
-* **Bitácora Sellada y Respaldo Cloud:** Cada sesión de trabajo termina con una copia de seguridad automática en tu almacenamiento corporativo (Google Drive / Cloud).
+**Agent Ops Core resuelve esto dándole a tu IA dos cosas:**
+1. **Un Archivador Digital Inteligente (`.context/`):** Cinco libretas sencillas en tu computadora donde la IA consulta quién es el cliente, qué directrices debe seguir, qué tareas están hechas y qué errores no debe repetir jamás.
+2. **Un Protocolo de Disciplina:** La IA tiene prohibido inventar supuestos. Si le falta información, te hace una pregunta directa en vez de adivinar. Y no puede dar nada por terminado sin antes comprobar que los archivos, cifras y entregables están completos.
 
 ---
 
-## Glosario para No Programadores: De Términos Técnicos a Beneficio Real
+## Cómo Arrancar en 60 Segundos (Cero Código)
 
-No necesitas aprender a programar para aprovechar el poder de este sistema. Aquí tienes la traducción exacta de los términos que verás:
+No necesitas ser programador, compilar herramientas ni memorizar comandos técnicos. Solo copia y pega este bloque en el chat de tu IA favorita (**Claude Desktop**, **ChatGPT**, **Gemini**, **Cursor** o **Antigravity**):
 
-| Término Técnico | ¿Qué Significa Realmente para Tu Trabajo Diario? |
-| :--- | :--- |
-| **Git** | **Tu Máquina del Tiempo de Seguridad:** Toma una "fotografía" sellada de tu trabajo al cerrar sesión. Si la IA o un compañero comete un error, puedes regresar al documento exacto de ayer en 1 segundo. |
-| **`.context/`** | **El Archivador Digital de 5 Libretas:** Carpeta donde la IA consulta: quién es el cliente o proyecto (`projectbrief.md`), cómo se trabaja (`systemPatterns.md`), qué se hace hoy (`activeContext.md`), qué está terminado (`progress.md`) y qué errores no debe repetir jamás (`lessons_learned.md`). |
-| **TDD / Verificación** | **Revisar Antes de Publicar:** La IA tiene prohibido dar por terminada una tarea (un análisis de sondeo, una campaña o una cotización) sin antes comprobar que los datos cuadran y los archivos existen. |
-| **Commit de Relevo** | **Firmar la Bitácora al Salir:** Guarda los avances, anota el estado exacto del proyecto y deja la copia de respaldo en la nube para que cualquiera continúe mañana sin perder el hilo. |
-| **Neutralidad Multiagente** | **Tu Información es Tuya:** Puedes trabajar hoy en Claude, mañana en ChatGPT y pasado mañana en Gemini. Todas leen y actualizan el mismo archivador sin amnesia. |
-
----
-
-## Cómo Arrancar este Sistema en 60 Segundos (Cero Código)
-
-No necesitas compilar dependencias ni memorizar comandos técnicos. Elige el prompt adaptado a tu rol y pégalo en tu aplicación de IA favorita (**Claude Desktop**, **ChatGPT**, **Gemini**, **Cursor** o **Antigravity**):
-
-### Opción 1: Para Marketing y Adquisición
 ```text
-Actúa como mi Director de Operaciones de Marketing y Media Buying.
+Actúa como mi Coordinador de Operaciones y Gobernanza de Proyectos.
 
-Quiero que gestionemos nuestras campañas y activos bajo el estándar universal de AGENTS.md de https://github.com/eddvasquez/agent-ops-core.
+Quiero que gestionemos este proyecto bajo el estándar de AGENTS.md del repositorio público https://github.com/eddvasquez/agent-ops-core.
 
 Por favor realiza lo siguiente de forma estricta:
-1. Revisa las directrices públicas de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/README.md y los 6 Protocolos de AGENTS.md.
-2. Adopta de inmediato el Protocolo 1 (MODO ENTRADA): audita el objetivo de marketing de nuestro proyecto, revisa el perfil del cliente, la oferta y los datos del brief en .context/ y entrégame el Reporte de 5 Puntos antes de redactar copies, proponer anuncios o sugerir cambios de presupuesto.
-3. Aplica la regla de Cero Complacencia: no des ninguna tarea por terminada sin comprobar los criterios de conversión y consistencia de marca.
-```
-
-### Opción 2: Para Experiencia de Usuario (UX), Sondeos y Tableros
-```text
-Actúa como mi Investigador Líder de Experiencia de Usuario (UX Research) y Analista de Inteligencia de Clientes.
-
-Quiero que analicemos nuestros estudios, encuestas, sondeos y tableros bajo el estándar de AGENTS.md de https://github.com/eddvasquez/agent-ops-core.
-
-Por favor realiza lo siguiente de forma estricta:
-1. Revisa las directrices públicas de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/README.md y los 6 Protocolos de AGENTS.md.
-2. Adopta de inmediato el Protocolo 1 (MODO ENTRADA): audita la muestra de datos, encuestas o sondeos disponibles en el proyecto, revisa el histórico en .context/ y entrégame el Reporte de 5 Puntos antes de proponer hallazgos, indicadores o tableros de visualización.
-3. Aplica el Mandato de Evidencia Factual: queda terminantemente prohibido inventar tendencias, extrapolar sin base estadística o alucinar datos. Toda conclusión debe estar vinculada a la muestra real de usuarios analizada.
-```
-
-### Opción 3: Para Gerencia Administrativa y Finanzas
-```text
-Actúa como mi Coordinador Senior de Procesos, Operaciones y Gerencia Administrativa.
-
-Quiero que gestionemos este proyecto bajo el estándar de gobernanza de AGENTS.md de https://github.com/eddvasquez/agent-ops-core.
-
-Por favor realiza lo siguiente de forma estricta:
-1. Revisa las directrices públicas de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/README.md y los 6 Protocolos de AGENTS.md.
-2. Adopta de inmediato el Protocolo 1 (MODO ENTRADA): audita los procedimientos, acuerdos con clientes/proveedores y presupuestos vigentes en .context/ y entrégame el Reporte de 5 Puntos antes de redactar documentos, contratos, cotizaciones o informes.
-3. Aplica el Principio de Cero Suposición: si falta un dato contable, fiscal o de especificación, formúlame una pregunta bloqueante en lugar de inventar supuestos.
+1. Revisa las directrices de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/README.md y los 6 Protocolos de AGENTS.md.
+2. Adopta de inmediato el Protocolo 1 (MODO ENTRADA): audita el estado actual de nuestro proyecto y los archivos de memoria en .context/ y entrégame el Reporte de 5 Puntos antes de realizar cualquier cambio, propuesta o entregable.
+3. Aplica la regla de Cero Suposición y Cero Complacencia: si falta información crítica, formúlame una pregunta bloqueante en lugar de adivinar, y no des ninguna tarea por terminada sin antes verificarla físicamente.
 ```
 
 ---
 
-### Método Permanente en tu Computadora (1 Solo Comando Opcional)
+### (Opcional) Instalación Permanente en tu Computadora (1 Solo Comando)
 
-Si deseas que todas tus sesiones locales de Claude Code, Antigravity o Codex compartan automáticamente las skills maestras y se auto-actualicen cada 24 horas:
+Si prefieres que todas tus sesiones locales de Claude Code, Antigravity o Codex compartan automáticamente las skills maestras sin tener que pegar el prompt cada vez:
 
 * **En Windows (PowerShell):**
   ```powershell
@@ -113,20 +63,20 @@ Si deseas que todas tus sesiones locales de Claude Code, Antigravity o Codex com
   ```
 
 > [!TIP]
-> **Detección Automática de Nube:** El instalador detecta si cuentas con Google Drive o almacenamiento cloud configurado, valida la sincronización y registra un proceso de actualización diaria silenciosa sin interrumpir tu trabajo.
+> El instalador detecta automáticamente si cuentas con Google Drive o almacenamiento cloud configurado, valida la sincronización y programa una actualización diaria silenciosa sin interrumpir tu trabajo.
 
 ---
 
 ## El Flujo de Trabajo Diario en 3 Pasos
 
-Una vez activado el sistema, así operas en el día a día para mantener disciplina absoluta en proyectos de **marketing digital, experiencia de usuario, operaciones administrativas o software**:
+Una vez activado el sistema, así trabajas día a día con tu IA:
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'flowchart': { 'minNodeWidth': 280, 'nodeSpacing': 25, 'rankSpacing': 25, 'padding': 16 }}}%%
 flowchart TD
-    Paso1["PASO 1: ARRANCAR PROYECTO<br>Comando: ops-crear-proyecto<br>Crea Git local y memoria .context/"]
-    Paso2["PASO 2: ABRIR SESION DE TRABAJO<br>Comando: ops-gestion-relevo ENTRADA<br>Audita Git y emite Reporte 5 Puntos"]
-    Paso3["PASO 3: CERRAR SESION Y RESPALDAR<br>Comando: ops-gestion-relevo SALIDA<br>Audita entregables y genera commit"]
+    Paso1["PASO 1: ARRANCAR PROYECTO<br>Comando: ops-crear-proyecto<br>Crea carpeta limpia y archivador .context/"]
+    Paso2["PASO 2: ABRIR SESION DE TRABAJO<br>Comando: ops-gestion-relevo ENTRADA<br>Audita historial y emite Reporte 5 Puntos"]
+    Paso3["PASO 3: CERRAR SESION Y GUARDAR<br>Comando: ops-gestion-relevo SALIDA<br>Audita entregables y guarda respaldo"]
 
     Paso1 ==> Paso2 ==> Paso3
     Paso3 -.->|"Siguiente sesion sin amnesia"| Paso2
@@ -137,47 +87,25 @@ flowchart TD
 
 ### 1. Paso 1: Arrancar un Proyecto Nuevo
 Dile a tu IA:
-> *"Usa `ops-crear-proyecto` para inicializar el proyecto [Nombre de tu Proyecto]"*
+> *"Usa `ops-crear-proyecto` para crear el proyecto [Nombre]"*
 
-La IA creará la estructura limpia, verificará que el directorio esté respaldado en tu almacenamiento cloud (evitando pérdidas por daño de disco), inicializará el repositorio Git local protegido y creará la carpeta `.context/` con los 5 archivos de memoria persistente.
+La IA crea la carpeta protegida, comprueba que esté respaldada en tu almacenamiento cloud (Google Drive) para evitar pérdidas y genera el archivador `.context/` con sus 5 libretas de memoria.
 
-### 2. Paso 2: Abrir Turno de Trabajo (Modo Entrada)
+### 2. Paso 2: Abrir Sesión de Trabajo (Modo Entrada)
 Al comenzar el día o abrir un nuevo chat, dile:
-> *"Iniciemos sesión con `ops-gestion-relevo` MODO ENTRADA"*
+> *"Iniciemos turno con `ops-gestion-relevo` MODO ENTRADA"*
 
-La IA tiene prohibido tocar archivos o sugerir cambios de inmediato. Primero ejecuta `git status -s` y `git log -n 3`, lee la memoria de `activeContext.md` y las lecciones aprendidas, y te entrega el **Reporte de 5 Puntos** (auditoría Git, directrices vigentes, habilidades disponibles, discrepancias detectadas y siguiente paso inmediato). Tú sólo respondes "OK" para autorizar el avance.
+La IA tiene prohibido tocar archivos o improvisar. Primero revisa qué se avanzó ayer, qué directrices están vigentes y te entrega el **Reporte de 5 Puntos** (estado del proyecto, reglas activas y siguiente paso inmediato). Solo tienes que responder "OK" para autorizar el avance.
 
-### 3. Paso 3: Cerrar Turno y Relevar (Modo Salida)
-Al terminar tu jornada o antes de cerrar el chat, dile:
+### 3. Paso 3: Cerrar Sesión y Guardar (Modo Salida)
+Al terminar la jornada o antes de cerrar el chat, dile:
 > *"Terminamos por hoy, ejecuta `ops-gestion-relevo` MODO SALIDA"*
 
-La IA audita qué tareas se cumplieron objetivamente, documenta cualquier error o directriz nueva en `lessons_learned.md`, actualiza con precisión quirúrgica el archivo `activeContext.md` para el próximo turno y genera el commit atómico de relevo en Git con pausa de seguridad para la sincronización en la nube.
+La IA comprueba qué tareas se completaron con evidencia real, anota los aprendizajes o correcciones del día en la libreta de lecciones, actualiza la bitácora y sella una copia de seguridad automática respaldada en tu nube.
 
 ---
 
-## Casos de Uso Reales: Cómo Opera el Sistema en el Día a Día
-
-### Caso 1: Marketing (Lanzamiento de Campaña de Tráfico)
-1. **Creación:** El Media Buyer le dice a la IA: *"Usa `ops-crear-proyecto` para crear `Campaña-Q4-Lanzamiento`"*. Se genera la estructura y se registra el brief del producto en `.context/projectbrief.md`.
-2. **Entrada:** En cada sesión, el marketer escribe *"Iniciemos turno con `ops-gestion-relevo` MODO ENTRADA"*. La IA lee el brief, verifica los ganchos aprobados y emite el Reporte de 5 Puntos.
-3. **Ejecución:** Redacta 8 variaciones de anuncios alineadas a la oferta sin salirse de las directrices ni alterar los precios.
-4. **Salida:** Al terminar, escribe *"Cierra sesión con `ops-gestion-relevo` MODO SALIDA"*. La IA anota en `progress.md` qué anuncios quedaron listos y realiza el commit atómico respaldado en Google Drive.
-
-### Caso 2: Experiencia de Usuario (Análisis de 400 Encuestas y Tablero)
-1. **Creación:** La investigadora de UX solicita crear `Estudio-Satisfaccion-Onboarding`.
-2. **Entrada:** En Modo Entrada, la IA audita las 400 respuestas crudas de la encuesta y verifica qué hipótesis de fricción están documentadas en `.context/systemPatterns.md`.
-3. **Ejecución:** La IA agrupa los dolores en 4 indicadores clave (fricción en login, claridad de precios, tiempo de setup, soporte), extrayendo citas literales sin inventar datos, y estructura la matriz para el tablero de visualización y la presentación ejecutiva.
-4. **Salida:** En Modo Salida, la IA registra las lecciones aprendidas sobre el comportamiento del usuario y sella la versión del estudio en Git.
-
-### Caso 3: Gerencia Administrativa (Contratación de Proveedores y Presupuestos)
-1. **Creación:** El coordinador administrativo inicializa `Licitacion-Proveedores-2027`.
-2. **Entrada:** La IA lee los criterios de evaluación obligatorios y el techo presupuestal fijado en `.context/`.
-3. **Ejecución:** La IA compara 3 cotizaciones recibidas contra la política de compras. Al detectar que una cotización no incluye IVA, en lugar de asumir el cálculo, detiene el proceso y formula la pregunta bloqueante.
-4. **Salida:** El informe comparativo queda listo para firma gerencial y se respalda automáticamente.
-
----
-
-## Los Cuatro Cuellos de Botella que Destruyen tu Productividad con IA
+## Por Qué Funciona: Los Cuatro Cuellos de Botella que Resuelve
 
 ### 1. La Amnesia de Turno y la Reexplicación Crónica
 - **El Coste:** En cada nuevo chat, la IA olvida el perfil del cliente, las cifras de la oferta, el tono de marca y las objeciones previas. El operador pierde entre 20 y 45 minutos repitiendo antecedentes.
@@ -191,9 +119,9 @@ La IA audita qué tareas se cumplieron objetivamente, documenta cualquier error 
 - **El Coste:** Ante un error o retroalimentación, la IA pide disculpas serviles y altera variables al azar (*shotgun approach*), dañando la coherencia del resto de entregables.
 - **La Solución Agent Ops:** Depuración sistemática en 4 fases: aislamiento del síntoma, análisis de causa raíz, hipótesis única y corrección quirúrgica controlada.
 
-### 4. La Dispersión de Datos y la Vulnerabilidad Cloud
-- **El Coste:** Archivos dispersos sin versionar, versiones duplicadas informales (`brief_final_v2.docx`) y riesgo de pérdida absoluta si la plataforma del proveedor sufre una caída o bloquea la cuenta.
-- **La Solución Agent Ops:** Neutralidad e independencia total. El conocimiento y la memoria residen en tu máquina y tu nube bajo Git, legibles por cualquier IA de hoy o de mañana.
+### 4. La Dispersión de Datos y la Pérdida de Archivos
+- **El Coste:** Archivos dispersos sin versionar, versiones duplicadas informales (`documento_final_v2.docx`) y riesgo de pérdida absoluta si la plataforma del proveedor sufre una caída o bloquea la cuenta.
+- **La Solución Agent Ops:** Neutralidad e independencia total. El conocimiento y la memoria residen en tu equipo y tu nube bajo Git, legibles por cualquier IA de hoy o de mañana.
 
 ---
 
@@ -209,14 +137,14 @@ La IA audita qué tareas se cumplieron objetivamente, documenta cualquier error 
 
 ---
 
-## El Catálogo de las 6 Skills Operativas Explicadas para Negocios
+## Las 6 Habilidades Maestras que Adquiere tu IA
 
-| Skill | Tipo | Función Crítica y Resultado Tangible |
+| Habilidad | Tipo | Función Crítica y Resultado Tangible |
 | :--- | :---: | :--- |
 | **`ops-crear-proyecto`** | Operación | Inicializa proyectos nuevos con arquitectura v2, Git protegido y auditoría preventiva de respaldo en Google Drive/Cloud. |
 | **`ops-gestion-relevo`** | Gobernanza | Ejecuta el protocolo de relevo diario (Modo Entrada y Modo Salida) con auto-actualización silenciosa cada 24 horas. |
 | **`ops-migrar-proyecto`** | Operación | Convierte proyectos legados o desordenados a la arquitectura universal v2 sin destruir datos ni duplicar archivos. |
-| **`ops-git-worktrees`** | Operación | Gestiona directorios de trabajo paralelos en Git para abordar tareas simultáneas sin interferencias ni bloqueos. |
+| **`ops-git-worktrees`** | Operación | Gestiona espacios de trabajo paralelos para abordar tareas simultáneas sin interferencias ni bloqueos. |
 | **`dev-tdd`** | Calidad | Implementa el principio de "revisar antes de publicar", garantizando que ningún entregable se apruebe sin pruebas de consistencia. |
 | **`dev-systematic-debugging`** | Resolución | Metodología de 4 fases para investigar y resolver incidencias de causa raíz sin parches a ciegas ni improvisación. |
 
@@ -241,11 +169,11 @@ flowchart TD
             Codex["~/.agents/skills/<br>(OpenAI Codex / Std)"]
         end
 
-        subgraph PROYECTOS["Proyectos Multidisciplinarios"]
+        subgraph PROYECTOS["Proyectos Activos de la Empresa"]
             direction LR
-            P1["Marketing & Trafico<br>(.context/ + AGENTS.md)"]
-            P2["UX, Sondeos & KPIs<br>(.context/ + AGENTS.md)"]
-            P3["Gerencia & Procesos<br>(.context/ + AGENTS.md)"]
+            P1["Marketing & Adquisicion<br>(.context/ + AGENTS.md)"]
+            P2["Operaciones & Negocio<br>(.context/ + AGENTS.md)"]
+            P3["Software & Tecnologia<br>(.context/ + AGENTS.md)"]
         end
     end
 
@@ -283,12 +211,12 @@ flowchart TD
     subgraph CAPA2["CAPA 2: Boveda Privada (Google Drive Local)"]
         direction TB
         HubPrivado["_ai-skills-hub"]
-        P_Priv["• Metodologias y marcos<br>• Estudios e indicadores<br>• Datos de clientes y compras<br>• Credenciales y accesos"]
+        P_Priv["• Metodologias comerciales<br>• Activos de marketing y copy<br>• Ofertas de conversion<br>• Credenciales y accesos"]
     end
 
     subgraph MOTOR["Entorno de Ejecucion Local"]
         IA["Claude Code / Antigravity / Codex"]
-        Proyecto["Proyectos Activos del Negocio<br>(Marketing, UX, Gerencia)"]
+        Proyecto["Proyectos Activos del Negocio<br>(Marketing, Operaciones, Software)"]
     end
 
     CAPA1 -->|"Sincronizacion Git"| IA
@@ -305,7 +233,7 @@ flowchart TD
 
 1. **Capa 1: Marco de Gobernanza (`agent-ops-core` en GitHub):**
    - Protocolo universal `AGENTS.md`.
-   - Inicializador de proyectos multidisciplinarios (`ops-crear-proyecto`).
+   - Inicializador de proyectos (`ops-crear-proyecto`).
    - Gestión de relevos y recepción/cierre de turnos (`ops-gestion-relevo`).
    - Estandarización y rescate de proyectos legados (`ops-migrar-proyecto`).
    - Aislamiento de tareas paralelas (`ops-git-worktrees`).
