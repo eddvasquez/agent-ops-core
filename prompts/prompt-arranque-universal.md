@@ -2,6 +2,9 @@
 
 Este archivo contiene el prompt de arranque oficial para activar la gobernanza de **Agent Ops Core** en cualquier aplicación de Inteligencia Artificial que no tenga acceso nativo a tu sistema de archivos local (como las interfaces web de ChatGPT, Claude.ai, Gemini o versiones móviles).
 
+> [!TIP]
+> **Antes de Iniciar (Regla de Oro):** Crea una carpeta vacía dedicada para tu proyecto dentro de tu almacenamiento en la nube (Google Drive, OneDrive o Dropbox). Nunca mezcles dos iniciativas o clientes en una misma carpeta para prevenir la contaminación cruzada de memoria en la IA.
+
 ---
 
 ## 1. Versión en Español (Recomendada)

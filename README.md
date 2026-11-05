@@ -11,7 +11,7 @@
 [![Instalación](https://img.shields.io/badge/Uso-Cero%20Código%20(60s)-10b981?style=flat-square)]()
 [![Licencia](https://img.shields.io/badge/Licencia-Apache%202.0-blue?style=flat-square)](LICENSE)
 
-[Arranque en 60s](#como-arrancar-en-60-segundos-cero-codigo) · [Flujo Diario en 3 Pasos](#el-flujo-de-trabajo-diario-en-3-pasos) · [Cuellos de Botella](#por-que-funciona-los-cuatro-cuellos-de-botella-que-resuelve) · [Diagramas](#compatibilidad-universal-y-distribucion-simetrica) · [Los 6 Protocolos](#los-seis-protocolos-universales-de-agentsmd) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
+[Arranque en 60s](#como-arrancar-en-60-segundos-cero-codigo) · [Estructura de Carpetas](#donde-crear-tus-proyectos-y-anatomia-de-carpetas) · [Flujo Diario en 3 Pasos](#el-flujo-de-trabajo-diario-en-3-pasos) · [Cuellos de Botella](#por-que-funciona-los-cuatro-cuellos-de-botella-que-resuelve) · [Diagramas](#compatibilidad-universal-y-distribucion-simetrica) · [Los 6 Protocolos](#los-seis-protocolos-universales-de-agentsmd) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
 
 </div>
 
@@ -80,6 +80,59 @@ Si prefieres que todas tus sesiones locales de Claude Code, Antigravity o Codex 
 
 > [!TIP]
 > El instalador detecta automáticamente si cuentas con Google Drive o almacenamiento cloud configurado, valida la sincronización y programa una actualización diaria silenciosa sin interrumpir tu trabajo.
+
+---
+
+## Dónde Crear tus Proyectos y Anatomía de Carpetas
+
+Para que la Inteligencia Artificial trabaje con precisión quirúrgica y nunca mezcle clientes ni pierda datos, este sistema se basa en **tres reglas de organización física**:
+
+### 1. La Regla de Oro: Un Proyecto = Una Carpeta Autónoma (Aislamiento de Contexto)
+* **El Problema:** Si trabajas con múltiples clientes o iniciativas en una misma carpeta o en el Escritorio, la memoria de la IA se contamina (*cross-contamination*). El asistente comenzará a mezclar números, tonos de voz y directrices de marcas distintas.
+* **La Regla:** **Cada cliente, campaña o producto debe tener su propia carpeta independiente.** Esa carpeta contiene su propio archivador de memoria (`.context/`) y su propio historial de versiones.
+
+---
+
+### 2. Dónde Crear tus Proyectos (Respaldo en la Nube Garantizado)
+Crea siempre tus carpetas de proyecto dentro de tu almacenamiento en la nube sincronizado:
+* **En Windows:** Dentro de tu unidad de Google Drive (ej. `G:\Mi unidad\Proyectos\<tu-proyecto>`) o en `C:\Usuarios\<TuUsuario>\Documents\ChatGPT\<tu-proyecto>` (si la carpeta Documentos está sincronizada con OneDrive o Google Drive).
+* **En macOS:** Dentro de `~/Google Drive/Mi unidad/Proyectos/<tu-proyecto>` o en iCloud/Dropbox sincronizado.
+* **En Linux:** Dentro de tu directorio de trabajo respaldado o vinculado a un repositorio remoto de GitHub.
+
+> [!IMPORTANT]
+> **Por qué esto es innegociable:** Si tu computadora sufre una falla eléctrica, un daño de disco o cambias de equipo, **todo tu trabajo, tus documentos y la memoria permanente de la IA están a salvo al instante**. Prohibido crear proyectos en carpetas temporales (`/tmp`) o sueltos en el Escritorio.
+
+---
+
+### 3. Anatomía Visual del Sistema (Qué hay Dentro de Cada Proyecto)
+
+Cuando la IA arranca tu proyecto mediante `ops-project-init`, genera automáticamente esta estructura limpia y estandarizada:
+
+```text
+📁 Tu-Carpeta-Cloud/ (Google Drive / OneDrive / Dropbox)
+  └── 📁 nombre-del-proyecto/              <- Carpeta raíz aislada de tu proyecto o cliente
+      ├── 📄 AGENTS.md                     <- El reglamento operativo (los 6 protocolos que la IA debe obedecer)
+      │
+      ├── 📁 .context/                     <- El Archivador Digital Inteligente (Memoria permanente de la IA)
+      │   ├── 📄 projectbrief.md           <- Misión, cliente, objetivos del negocio y requerimientos
+      │   ├── 📄 systemPatterns.md         <- Decisiones clave de diseño, arquitectura y reglas técnicas
+      │   ├── 📄 activeContext.md          <- Qué se está haciendo hoy, agente activo y siguiente paso
+      │   ├── 📄 progress.md               <- Checklist de hitos terminados con evidencia real
+      │   └── 📄 lessons_learned.md        <- Errores corregidos y directrices para no tropezar dos veces
+      │
+      ├── 📁 docs/                         <- Documentos formales, entregables, briefs de cliente o manuales
+      │
+      ├── 📁 [tus entregables]/            <- Donde vive tu trabajo real: copies, análisis, hojas de cálculo, código
+      │
+      └── 📁 .git/                         <- Copia de seguridad y versiones automática (invisible)
+```
+
+---
+
+### 4. Las Tres Reglas de Higiene del Espacio de Trabajo
+1. **Cero Archivos Duplicados:** Prohibido crear copias con sufijos como `brief_cliente_v2.docx` o `analisis_final_FINAL.md`. Toda evolución de un documento se versiona limpiamente en el historial automático (Git).
+2. **Cero Carpetas `skills/` Locales:** Las habilidades operativas de la IA son globales en tu máquina y residen en tu configuración central; no se deben duplicar ni crear carpetas `skills/` dentro de la carpeta del cliente.
+3. **Escritor Único:** Un solo asistente o aplicación de IA escribe en el proyecto por sesión para prevenir colisiones o sobreescrituras accidentales.
 
 ---
 
