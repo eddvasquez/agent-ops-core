@@ -11,7 +11,7 @@
 [![Instalación](https://img.shields.io/badge/Uso-Cero%20Código%20(60s)-10b981?style=flat-square)]()
 [![Licencia](https://img.shields.io/badge/Licencia-Apache%202.0-blue?style=flat-square)](LICENSE)
 
-[Arranque en 60s](#como-arrancar-en-60-segundos-cero-codigo) · [Estructura de Carpetas](#donde-crear-tus-proyectos-y-anatomia-de-carpetas) · [Flujo Diario en 3 Pasos](#el-flujo-de-trabajo-diario-en-3-pasos) · [Cuellos de Botella](#por-que-funciona-los-cuatro-cuellos-de-botella-que-resuelve) · [Diagramas](#compatibilidad-universal-y-distribucion-simetrica) · [Los 6 Protocolos](#los-seis-protocolos-universales-de-agentsmd) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
+[Arranque en 60s](#como-arrancar-en-60-segundos-cero-codigo) · [Estructura de Carpetas](#donde-crear-tus-proyectos-y-anatomia-de-carpetas) · [Conectar tus IAs](#5-como-conectar-cualquier-herramienta-de-ia-a-la-misma-carpeta-el-ancla-agnostica) · [Flujo Diario en 3 Pasos](#el-flujo-de-trabajo-diario-en-3-pasos) · [Cuellos de Botella](#por-que-funciona-los-cuatro-cuellos-de-botella-que-resuelve) · [Diagramas](#compatibilidad-universal-y-distribucion-simetrica) · [Los 6 Protocolos](#los-seis-protocolos-universales-de-agentsmd) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
 
 </div>
 
@@ -126,6 +126,27 @@ Cuando la IA arranca tu proyecto mediante `ops-project-init`, genera automática
 1. **Cero Archivos Duplicados:** Prohibido crear copias con sufijos como `brief_cliente_v2.docx` o `analisis_final_FINAL.md`. Toda evolución de un documento se versiona limpiamente en el historial automático (Git).
 2. **Cero Carpetas `skills/` Locales:** Las habilidades operativas de la IA son globales en tu máquina y residen en tu configuración central; no se deben duplicar ni crear carpetas `skills/` dentro de la carpeta del cliente.
 3. **Escritor Único:** Un solo asistente o aplicación de IA escribe en el proyecto por sesión para prevenir colisiones o sobreescrituras accidentales.
+
+---
+
+### 5. Cómo Conectar Cualquier Herramienta de IA a la Misma Carpeta (El Ancla Agnóstica)
+
+El secreto para que este sistema funcione de forma **100% independiente de cualquier proveedor** es que **todas tus herramientas de IA deben apuntar exactamente a la misma carpeta física en tu computadora**.
+
+Tu carpeta de proyecto en Google Drive es la "oficina central" donde residen los datos reales (`.context/`, `docs/`, `AGENTS.md` y tus entregables). Las diferentes IAs son empleados de turno que entran y salen de esa misma oficina:
+
+| Herramienta de IA | Proveedor | Cómo Conectarla a la Carpeta de tu Proyecto |
+| :--- | :--- | :--- |
+| **Cursor / Windsurf / VS Code** | Anysphere / Codeium / Microsoft | En el menú superior: `Archivo` $\to$ `Abrir Carpeta...` (`File` $\to$ `Open Folder...`) y seleccionas la carpeta de tu proyecto en Google Drive. El panel de la IA tendrá acceso inmediato a todos tus archivos y a la memoria. |
+| **Claude Code (CLI)** | Anthropic | Abres la terminal en tu computadora, te sitúas en la carpeta del proyecto (`cd "G:\Mi unidad\Proyectos\<tu-proyecto>"`) y ejecutas `claude`. La sesión se ancla automáticamente a ese espacio de trabajo. |
+| **Google Antigravity** | Google DeepMind | Abres la aplicación y seleccionas `Open Workspace` / `Abrir Espacio de Trabajo` apuntando a la misma carpeta física del proyecto. |
+| **Claude Desktop** | Anthropic | En los ajustes de la aplicación, añades la carpeta de tu proyecto a la lista de directorios locales permitidos (Filesystem MCP). |
+| **ChatGPT Desktop** | OpenAI | En la aplicación de escritorio, conectas la carpeta local del proyecto como espacio de trabajo activo mediante las funciones de trabajo con archivos locales. |
+
+#### El Relevo Cruzado en Acción (Ejemplo Real)
+1. **Por la mañana trabajas con Claude Code:** Le pides estructurar una propuesta comercial o investigar un mercado. Al terminar, ejecutas `ops-session-handoff SALIDA`. Claude actualiza `.context/activeContext.md` con el estado exacto del proyecto y guarda el respaldo en Git y Google Drive.
+2. **Por la tarde abres Cursor o Antigravity:** Abres esa misma carpeta física. Al iniciar turno (`ops-session-handoff ENTRADA`), el nuevo modelo lee `.context/activeContext.md`, sabe exactamente qué hizo Claude por la mañana y continúa la tarea sin perder un solo milímetro de contexto.
+3. **Resultado:** Cambiaste de herramienta y de empresa proveedora a mitad del día, pero tu proyecto no sufrió ni un solo segundo de amnesia.
 
 ---
 
