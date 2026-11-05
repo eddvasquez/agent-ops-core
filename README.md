@@ -2,7 +2,7 @@
 
 # Agent Ops Core
 
-### Memoria Persistente y Protocolos de Ejecución para tus Asistentes de Inteligencia Artificial.
+### Memoria Persistente y Protocolos de Ejecución para Profesionales y Negocios que Trabajan con Inteligencia Artificial.
 
 **Deja de quemar horas reexplicando tu negocio en cada chat. Dale a tu IA una memoria permanente en tu computadora, verificación de avances sin complacencia y cero amnesia entre sesiones.**
 
