@@ -2,11 +2,11 @@
 
 # Agent Ops Core
 
-### Marco de Gobernanza Operativa y Memoria Persistente para Agentes de IA
+### Memoria y Gobernanza Universal para Trabajar con Cualquier Inteligencia Artificial
 
-**Disciplina militar para tus agentes de Inteligencia Artificial. Elimina la amnesia entre sesiones, prohíbe las tareas dadas por terminadas sin comprobación física y blinda los archivos de tu negocio en tu propia computadora.**
+**El conocimiento y los proyectos de tu negocio en tu propia computadora, no secuestrados en una plataforma. Trabaja indistintamente con Claude, Cursor, ChatGPT o Gemini bajo un estándar único: cero amnesia entre sesiones, entregables verificados con evidencia real y total independencia tecnológica.**
 
-[![Compatibilidad](https://img.shields.io/badge/Compatible-Agentes%20de%20IA%20(Claude%20Code%20%7C%20Cursor%20%7C%20Antigravity%20%7C%20Codex)-818cf8?style=flat-square)]()
+[![Compatibilidad](https://img.shields.io/badge/Compatible-Cualquier%20IA%20(Claude%20%7C%20Cursor%20%7C%20ChatGPT%20%7C%20Gemini)-818cf8?style=flat-square)]()
 [![Memoria](https://img.shields.io/badge/Memoria-Persistente%20(.context%2F)-38bdf8?style=flat-square)]()
 [![Instalación](https://img.shields.io/badge/Uso-Cero%20Código%20(60s)-10b981?style=flat-square)]()
 [![Licencia](https://img.shields.io/badge/Licencia-Apache%202.0-blue?style=flat-square)](LICENSE)
@@ -23,16 +23,16 @@
 
 ## Qué es este Sistema (En 30 Segundos)
 
-Cualquiera que trabaje con agentes de IA locales (**Cursor**, **Claude Code**, **Antigravity**, **OpenAI Codex** o **Windsurf**) en marketing, investigación, operaciones o desarrollo conoce este triple cuello de botella:
-1. **La IA olvida el contexto:** Abres una sesión nueva y ya no recuerda las directrices de la marca ni qué se acordó ayer.
-2. **La IA miente complacientemente:** Afirma con entusiasmo que un informe, análisis o entregable está *"terminado"* cuando en realidad contiene números inventados o instrucciones a medias.
-3. **La IA modifica a ciegas:** Si comete un error, altera archivos al azar sin analizar la causa raíz ni dejar registro de la versión anterior.
+Cualquiera que trabaje con herramientas de Inteligencia Artificial (**Claude**, **Cursor**, **ChatGPT**, **Antigravity** o **OpenAI Codex**) en marketing, investigación, operaciones o desarrollo conoce este triple dolor:
+1. **El secuestro de contexto:** La memoria de tu negocio vive fragmentada y atrapada en ventanas de chat cerradas que no te pertenecen.
+2. **La amnesia y la reexplicación crónica:** Abres una sesión nueva y la IA ya no recuerda las directrices de la marca ni qué se acordó ayer.
+3. **La complacencia del falso avance:** La IA afirma con entusiasmo que un informe, análisis o entregable está *"terminado"* cuando en realidad contiene números inventados o instrucciones a medias.
 
-**Agent Ops Core erradica estos tres dolores mediante una tríada de gobernanza física:**
+**Agent Ops Core erradica estos problemas convirtiendo tu computadora en el centro soberano de operaciones:**
 
-* **1. Memoria Aislada por Proyecto (`.context/`):** Cinco libretas en tu computadora donde la IA está obligada a consultar quién es el cliente, qué directrices debe seguir y qué errores no debe repetir jamás antes de tocar un solo archivo.
-* **2. Mandato Físico Anti-Complacencia (`AGENTS.md`):** La IA tiene prohibido dar una tarea por terminada sin comprobarla contra criterios objetivos y mostrar evidencia real. Si falta información crítica, está obligada a formular una pregunta bloqueante en lugar de adivinar.
-* **3. Protocolo de Relevo y Respaldo Continuo (Git + Nube):** Cada sesión se abre con un reporte de sincronización de 5 puntos y se cierra con un guardado atómico que protege tu trabajo en Google Drive ante cualquier fallo de hardware.
+* **1. Soberanía y Agnolicismo Total (Cero Dependencia de Proveedores):** La memoria y los archivos de tu proyecto viven en tu máquina en Markdown estándar (`.context/`) y respaldados en tu Google Drive. Si una plataforma cambia sus tarifas o sufre una caída, puedes cambiar de IA en segundos sin perder un solo milímetro de contexto.
+* **2. Memoria Aislada por Proyecto (Cero Contaminación Cruzada):** Cinco libretas estructuradas donde cualquier IA que uses está obligada a consultar quién es el cliente, las directrices vigentes y los errores prohibidos antes de tocar un archivo.
+* **3. Mandato Físico Anti-Complacencia (`AGENTS.md`):** La IA tiene prohibido dar una tarea por terminada sin comprobarla físicamente con evidencia real. Si falta información crítica, formula una pregunta bloqueante en lugar de adivinar.
 
 ---
 
