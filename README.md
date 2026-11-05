@@ -2,22 +2,22 @@
 
 # Agent Ops Core
 
-### Memoria Persistente y Protocolos de Trabajo para Equipos de Inteligencia Artificial.
+### Memoria Persistente y Protocolos de Ejecución para tus Asistentes de Inteligencia Artificial.
 
 **Deja de quemar horas reexplicando tu negocio en cada chat. Dale a tu IA una memoria permanente en tu computadora, verificación de avances sin complacencia y cero amnesia entre sesiones.**
 
-[![Ecosistema](https://img.shields.io/badge/Ecosistema-Multiagente%20(Claude%20%7C%20Gemini%20%7C%20Codex)-818cf8?style=flat-square)]()
+[![Compatibilidad](https://img.shields.io/badge/Compatible-Cualquier%20IA%20(Claude%20%7C%20ChatGPT%20%7C%20Gemini)-818cf8?style=flat-square)]()
 [![Memoria](https://img.shields.io/badge/Memoria-Persistente%20(.context%2F)-38bdf8?style=flat-square)]()
 [![Instalación](https://img.shields.io/badge/Uso-Cero%20Código%20(60s)-10b981?style=flat-square)]()
 [![Licencia](https://img.shields.io/badge/Licencia-Apache%202.0-blue?style=flat-square)](LICENSE)
 
-[Arranque en 60s](#como-arrancar-en-60-segundos-cero-codigo) · [Flujo Diario en 3 Pasos](#el-flujo-de-trabajo-diario-en-3-pasos) · [Cuellos de Botella](#por-que-funciona-los-cuatro-cuellos-de-botella-que-resuelve) · [Diagramas](#neutralidad-multiagente-y-distribucion-simetrica) · [Los 6 Protocolos](#los-seis-protocolos-universales-de-agentsmd) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
+[Arranque en 60s](#como-arrancar-en-60-segundos-cero-codigo) · [Flujo Diario en 3 Pasos](#el-flujo-de-trabajo-diario-en-3-pasos) · [Cuellos de Botella](#por-que-funciona-los-cuatro-cuellos-de-botella-que-resuelve) · [Diagramas](#compatibilidad-universal-y-distribucion-simetrica) · [Los 6 Protocolos](#los-seis-protocolos-universales-de-agentsmd) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
 
 </div>
 
 > [!IMPORTANT]
 > **Tus Datos y tu Memoria Están a Salvo:**
-> Toda IA dejada a su suerte improvisa supuestos, inventa conclusiones complacientes y olvida el contexto al cerrar la ventana. **Agent Ops Core** convierte a tu IA en un operador disciplinado: ningún agente puede afirmar que una tarea está terminada sin comprobarla físicamente, ningún archivo se modifica a ciegas y la memoria histórica de tu negocio queda blindada localmente bajo control de versiones y respaldo seguro en la nube.
+> Toda IA dejada a su suerte improvisa supuestos, inventa conclusiones complacientes y olvida el contexto al cerrar la ventana. **Agent Ops Core** convierte a tu IA en un asistente disciplinado: ningún agente puede afirmar que una tarea está terminada sin comprobarla físicamente, ningún archivo se modifica a ciegas y la memoria histórica de tu negocio queda blindada localmente bajo control de versiones y respaldo seguro en la nube.
 
 ---
 
@@ -108,7 +108,7 @@ La IA comprueba qué tareas se completaron con evidencia real, anota los aprendi
 ## Por Qué Funciona: Los Cuatro Cuellos de Botella que Resuelve
 
 ### 1. La Amnesia de Turno y la Reexplicación Crónica
-- **El Coste:** En cada nuevo chat, la IA olvida el perfil del cliente, las cifras de la oferta, el tono de marca y las objeciones previas. El operador pierde entre 20 y 45 minutos repitiendo antecedentes.
+- **El Coste:** En cada nuevo chat, la IA olvida el perfil del cliente, las cifras de la oferta, el tono de marca y las objeciones previas. Pierdes entre 20 y 45 minutos de tu jornada repitiendo antecedentes en cada chat.
 - **La Solución Agent Ops:** Memoria persistente en Markdown nativo (`.context/`). La IA lee el estado exacto antes de escribir una sola palabra.
 
 ### 2. La Complacencia del Falso Avance
@@ -150,9 +150,9 @@ La IA comprueba qué tareas se completaron con evidencia real, anota los aprendi
 
 ---
 
-## Neutralidad Multiagente y Distribución Simétrica
+## Compatibilidad Universal y Distribución Simétrica
 
-El sistema de gobernanza reside en una capa independiente y universal. Ningún arnés ni empresa de IA es propietaria de tu estructura de trabajo:
+El sistema de gobernanza reside en una capa independiente y universal. Ninguna empresa corporativa (Claude, OpenAI, Google) es propietaria de la memoria de tu negocio:
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'flowchart': { 'minNodeWidth': 220, 'nodeSpacing': 20, 'rankSpacing': 25, 'padding': 14 }}}%%
@@ -161,8 +161,8 @@ flowchart TD
         Core["agent-ops-core<br>(Gobernanza y Protocolos)"]
     end
 
-    subgraph LOCAL["Entorno Local del Operador"]
-        subgraph HARNESSES["Arneses de Inteligencia Artificial"]
+    subgraph LOCAL["Tu Computadora (Espacio de Trabajo)"]
+        subgraph APPS["Tus Aplicaciones de IA"]
             direction LR
             Gemini["~/.gemini/skills/<br>(Antigravity / Gemini)"]
             Claude["~/.claude/skills/<br>(Claude Code / App)"]
@@ -242,22 +242,22 @@ flowchart TD
 2. **Capa 2: Bóveda Privada de Negocio (Almacenamiento Local Respaldado):**
    - Habilidades propietarias de la empresa: marcos de consultoría, ángulos de adquisición, guiones comerciales y credenciales.
    - Reside exclusivamente en tu almacenamiento respaldado y privado, sin exposición en repositorios públicos.
-   - Servicios de sincronización en segundo plano unifican ambas capas en los arneses de IA en tiempo real.
+   - Servicios de sincronización en segundo plano unifican ambas capas en tus aplicaciones de IA en tiempo real.
 
 ---
 
 ## Ciclo de Vida Operativo: Protocolo de Relevo
 
-Así interactúan el operador, los agentes de Inteligencia Artificial y el control de versiones en cada turno de trabajo:
+Así interactúas tú, los asistentes de Inteligencia Artificial y la copia de seguridad en cada sesión de trabajo:
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'sequence': { 'actorFontSize': '14px', 'messageFontSize': '13px', 'noteFontSize': '12px', 'width': 170 }}}%%
 sequenceDiagram
     autonumber
-    actor U as Operador (Usuario)
-    participant IA as Agente de IA (Claude / Gemini / Codex)
+    actor U as Usuario (Tú)
+    participant IA as Asistente de IA (Claude / ChatGPT / Gemini)
     participant CTX as Memoria Local (.context/)
-    participant GIT as Control Físico (Git)
+    participant GIT as Copia de Seguridad (Git)
 
     Note over U,GIT: FASE 1: RECEPCIÓN DE TURNO (MODO ENTRADA)
     U->>IA: Inicia sesión / asigna objetivo
