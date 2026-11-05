@@ -21,7 +21,7 @@
 
 ---
 
-## Qué es este Sistema (En 30 Segundos y Sin Tecnocracia)
+## Qué es este Sistema (En 30 Segundos)
 
 Si utilizas ChatGPT, Claude, Gemini o Antigravity para trabajar en marketing, investigación, operaciones o desarrollo, conoces exactamente este problema:
 Abres una conversación nueva y la IA **ya olvidó quién es tu cliente, qué acordaron ayer o cómo te gusta trabajar**. Tienes que volver a explicarle todo desde cero, o peor aún, confiarte y descubrir que inventó datos o entregó un documento a medias diciendo con entusiasmo que *"está terminado"*.
