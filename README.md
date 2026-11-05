@@ -61,33 +61,46 @@ curl -fsSL https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/inst
 
 ---
 
-## Neutralidad Multiagente
+## Neutralidad Multiagente y Distribución Simétrica
 
 El sistema de gobernanza reside en una capa independiente y universal. Ningún arnés ni empresa de IA es propietaria de tu estructura de trabajo:
 
-```
-                               ┌─────────────────────────────────┐
-                               │        agent-ops-core           │
-                               │      (Repositorio GitHub)       │
-                               └────────────────┬────────────────┘
-                                                │
-                 ┌──────────────────────────────┼──────────────────────────────┐
-                 │ Distribución simétrica       │                              │
-                 ▼                              ▼                              ▼
-      ┌────────────────────┐         ┌────────────────────┐         ┌────────────────────┐
-      │  ~/.gemini/skills/ │         │  ~/.claude/skills/ │         │  ~/.agents/skills/ │
-      │  (Antigravity /    │         │  (Claude Code /    │         │  (OpenAI Codex /   │
-      │   Gemini CLI)      │         │   Claude Desktop)  │         │   Agent Standard)  │
-      └──────────┬─────────┘         └──────────┬─────────┘         └──────────┬─────────┘
-                 │                              │                              │
-                 └──────────────────────────────┼──────────────────────────────┘
-                                                │
-                                                ▼
-                               ┌─────────────────────────────────┐
-                               │   Cualquier IA que abra el      │
-                               │ proyecto opera bajo el MISMO    │
-                               │ protocolo y los MISMOS activos  │
-                               └─────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph GITHUB["Repositorio Central (Capa Pública)"]
+        Core["agent-ops-core<br>(Gobernanza y Protocolos)"]
+    end
+
+    subgraph LOCAL["Entorno Local del Operador"]
+        subgraph HARNESSES["Arneses de Inteligencia Artificial"]
+            direction LR
+            Gemini["~/.gemini/skills/<br>(Antigravity / Gemini CLI)"]
+            Claude["~/.claude/skills/<br>(Claude Code / Desktop)"]
+            Codex["~/.agents/skills/<br>(OpenAI Codex / Standard)"]
+        end
+
+        subgraph PROYECTOS["Proyectos Multidisciplinarios"]
+            direction LR
+            P1["Marketing & Adquisición<br>(.context/ + AGENTS.md)"]
+            P2["Operaciones & Negocio<br>(.context/ + AGENTS.md)"]
+            P3["Desarrollo & Software<br>(.context/ + AGENTS.md)"]
+        end
+    end
+
+    Core -->|"install.ps1 / install.sh"| Gemini
+    Core -->|"install.ps1 / install.sh"| Claude
+    Core -->|"install.ps1 / install.sh"| Codex
+
+    Gemini -->|"Gobernanza Unificada"| PROYECTOS
+    Claude -->|"Gobernanza Unificada"| PROYECTOS
+    Codex -->|"Gobernanza Unificada"| PROYECTOS
+
+    classDef central fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    classDef harness fill:#0f172a,stroke:#818cf8,stroke-width:1.5px,color:#f8fafc;
+    classDef project fill:#0f172a,stroke:#34d399,stroke-width:1.5px,color:#f8fafc;
+    class Core central;
+    class Gemini,Claude,Codex harness;
+    class P1,P2,P3 project;
 ```
 
 ---
@@ -95,6 +108,37 @@ El sistema de gobernanza reside en una capa independiente y universal. Ningún a
 ## Arquitectura de Trabajo en Dos Capas
 
 El framework separa de forma estricta los procesos operativos de los activos propietarios del negocio:
+
+```mermaid
+flowchart LR
+    subgraph CAPA1["CAPA 1: Gobernanza Universal (GitHub Público)"]
+        direction TB
+        OpsCore["agent-ops-core"]
+        P_Ops["• ops-crear-proyecto<br>• ops-gestion-relevo<br>• ops-migrar-proyecto<br>• dev-tdd & dev-debugging"]
+    end
+
+    subgraph CAPA2["CAPA 2: Bóveda Privada (Google Drive Local)"]
+        direction TB
+        HubPrivado["_ai-skills-hub"]
+        P_Priv["• Metodologías comerciales<br>• Activos de marketing<br>• Copys de conversión<br>• Credenciales del negocio"]
+    end
+
+    subgraph ARNESES["Arneses Locales de IA"]
+        direction TB
+        IA["Claude Code / Antigravity / Codex"]
+    end
+
+    OpsCore -->|"Sincronización Git"| IA
+    HubPrivado -->|"Servicio de Sincronización"| IA
+    IA -->|"Ejecución Blindada"| Proyecto["Proyectos Activos del Negocio"]
+
+    classDef public fill:#1e293b,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc;
+    classDef private fill:#1e293b,stroke:#f59e0b,stroke-width:1.5px,color:#f8fafc;
+    classDef target fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+    class OpsCore,P_Ops public;
+    class HubPrivado,P_Priv private;
+    class IA,Proyecto target;
+```
 
 1. **Capa 1: Marco de Gobernanza (`agent-ops-core` en GitHub):**
    - Protocolo universal `AGENTS.md`.
@@ -108,6 +152,38 @@ El framework separa de forma estricta los procesos operativos de los activos pro
    - Habilidades propietarias de la empresa: marcos de consultoría, ángulos de adquisición, guiones comerciales y credenciales.
    - Reside exclusivamente en tu almacenamiento respaldado y privado, sin exposición en repositorios públicos.
    - Servicios de sincronización en segundo plano unifican ambas capas en los arneses de IA en tiempo real.
+
+---
+
+## Ciclo de Vida Operativo: Protocolo de Relevo
+
+Así interactúan el operador, los agentes de Inteligencia Artificial y el control de versiones en cada turno de trabajo:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Operador (Usuario)
+    participant IA as Agente de IA (Claude / Gemini / Codex)
+    participant CTX as Memoria Local (.context/)
+    participant GIT as Control Físico (Git)
+
+    Note over U,GIT: FASE 1: RECEPCIÓN DE TURNO (MODO ENTRADA)
+    U->>IA: Inicia sesión / asigna objetivo
+    IA->>CTX: Lee AGENTS.md, activeContext.md y lecciones aprendidas
+    IA->>GIT: Ejecuta git status -s y git log -n 3
+    GIT-->>IA: Retorna estado físico real del árbol
+    IA->>U: Emite Reporte de 5 Puntos (auditoría, reglas, skills, siguiente paso)
+    U-->>IA: Validación humana explícita ("OK")
+
+    Note over U,GIT: FASE 2: EJECUCIÓN DISCIPLINADA
+    IA->>IA: Aplica TDD (Red-Green-Refactor) o Depuración Sistemática
+    IA->>CTX: Actualiza memoria operativa
+
+    Note over U,GIT: FASE 3: CIERRE DE TURNO (MODO SALIDA)
+    IA->>CTX: Registra lecciones y actualiza activeContext.md
+    IA->>GIT: Commit atómico de relevo (con pausa cloud)
+    GIT-->>U: Confirmación de versión registrada y respaldo listo
+```
 
 ---
 
