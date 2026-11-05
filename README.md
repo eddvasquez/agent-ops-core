@@ -90,23 +90,28 @@ Crea siempre tus carpetas de proyecto dentro de tu almacenamiento en la nube sin
 
 ### 3. Anatomía Visual del Sistema (Qué hay Dentro de Cada Proyecto)
 
+> [!TIP]
+> **Tú no tienes que crear ninguna de estas subcarpetas a mano:**  
+> Tu asistente de IA ejecuta `ops-project-init` y construye todo el árbol de directorios, los 5 archivos de memoria en `.context/`, la guía de documentación en `docs/README.md` y la copia de seguridad de Git en menos de 2 segundos. Tú únicamente eliges el nombre de tu proyecto y confirmas que resida dentro de tu Google Drive o almacenamiento cloud.
+
 Cuando la IA arranca tu proyecto mediante `ops-project-init`, genera automáticamente esta estructura limpia y estandarizada:
 
 ```text
 📁 Tu-Carpeta-Cloud/ (Google Drive / OneDrive / Dropbox)
   └── 📁 nombre-del-proyecto/              <- Carpeta raíz aislada de tu proyecto o cliente
-      ├── 📄 AGENTS.md                     <- El reglamento operativo (los 6 protocolos que la IA debe obedecer)
+      ├── 📄 AGENTS.md                     <- Para la IA: el reglamento operativo (los 6 protocolos innegociables)
       │
-      ├── 📁 .context/                     <- El Archivador Digital Inteligente (Memoria permanente de la IA)
+      ├── 📁 .context/                     <- Exclusivo de la IA: el archivador inteligente (las 5 libretas que no debes tocar a mano)
       │   ├── 📄 projectbrief.md           <- Misión, cliente, objetivos del negocio y requerimientos
       │   ├── 📄 systemPatterns.md         <- Decisiones clave de diseño, arquitectura y reglas técnicas
       │   ├── 📄 activeContext.md          <- Qué se está haciendo hoy, agente activo y siguiente paso
       │   ├── 📄 progress.md               <- Checklist de hitos terminados con evidencia real
       │   └── 📄 lessons_learned.md        <- Errores corregidos y directrices para no tropezar dos veces
       │
-      ├── 📁 docs/                         <- Documentos formales, entregables, briefs de cliente o manuales
+      ├── 📁 docs/                         <- Para ti y tu equipo: briefs de cliente, informes formales, manuales y SOPs
+      │   └── 📄 README.md                 <- Guía interna de qué guardar aquí y cómo organizar tus documentos
       │
-      ├── 📁 [tus entregables]/            <- Donde vive tu trabajo real: copies, análisis, hojas de cálculo, código
+      ├── 📁 [tus entregables]/            <- Para ti y tu equipo: copies, análisis, hojas de cálculo, creatividades o código
       │
       └── 📁 .git/                         <- Copia de seguridad y versiones automática (invisible)
 ```

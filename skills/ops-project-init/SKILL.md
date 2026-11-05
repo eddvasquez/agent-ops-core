@@ -53,13 +53,14 @@ Antes de inicializar, validar la seguridad ante pérdida de hardware:
   ```
 - Crear `.gitignore` excluyendo dependencias masivas y archivos temporales (`.env`, `node_modules/`, `.venv/`, `*.log`, `.DS_Store`, `Thumbs.db`, `desktop.ini`).
 
-### 5. Inyección de `.context/` y `AGENTS.md`
+### 5. Inyección de `.context/`, `docs/` y `AGENTS.md`
 - Inyectar los 5 archivos base de `.context/`:
   - `projectbrief.md`: Con las respuestas de las Preguntas 1, 2 y 3.
   - `systemPatterns.md`: Con los mandatos de TDD (`dev-tdd`) y Depuración Sistemática (`dev-systematic-debugging`). Si la Pregunta 3 fue "Por definir", marcar `[BLOQUEO ACTIVO]`.
   - `activeContext.md`: Con el agente actual y el siguiente paso ejecutable.
   - `progress.md`: Con el hito de inicialización marcado.
   - `lessons_learned.md`: Con la regla de fidelidad a los 6 protocolos.
+- Inyectar `docs/README.md` (desde plantilla) para guiar al equipo sobre qué guardar en esa carpeta y permitir a Git versionarla de inmediato.
 - Inyectar `AGENTS.md` con los 6 Protocolos Universales. Si la Pregunta 4 fue "Sí", generar `docs/sop_gtm_governance.md`.
 
 ### 6. Commit Atómico Inicial
