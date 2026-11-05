@@ -6,7 +6,7 @@
 
 **Deja de quemar horas reexplicando tu negocio en cada chat. Dale a tu IA una memoria permanente en tu computadora, verificación de avances sin complacencia y cero amnesia entre sesiones.**
 
-[![Compatibilidad](https://img.shields.io/badge/Compatible-Cualquier%20IA%20(Claude%20%7C%20ChatGPT%20%7C%20Gemini)-818cf8?style=flat-square)]()
+[![Compatibilidad](https://img.shields.io/badge/Compatible-Agentes%20de%20IA%20(Claude%20Code%20%7C%20Cursor%20%7C%20Antigravity%20%7C%20Codex)-818cf8?style=flat-square)]()
 [![Memoria](https://img.shields.io/badge/Memoria-Persistente%20(.context%2F)-38bdf8?style=flat-square)]()
 [![Instalación](https://img.shields.io/badge/Uso-Cero%20Código%20(60s)-10b981?style=flat-square)]()
 [![Licencia](https://img.shields.io/badge/Licencia-Apache%202.0-blue?style=flat-square)](LICENSE)
@@ -23,7 +23,7 @@
 
 ## Qué es este Sistema (En 30 Segundos)
 
-Si utilizas ChatGPT, Claude, Gemini o Antigravity para trabajar en marketing, investigación, operaciones o desarrollo, conoces exactamente este problema:
+Si utilizas agentes y aplicaciones de Inteligencia Artificial (como **Claude Code**, **Cursor**, **Antigravity**, **OpenAI Codex**, **Windsurf** o asistentes locales con acceso a carpetas de trabajo) para marketing, investigación, operaciones o desarrollo, conoces exactamente este problema:
 Abres una conversación nueva y la IA **ya olvidó quién es tu cliente, qué acordaron ayer o cómo te gusta trabajar**. Tienes que volver a explicarle todo desde cero, o peor aún, confiarte y descubrir que inventó datos o entregó un documento a medias diciendo con entusiasmo que *"está terminado"*.
 
 **Agent Ops Core resuelve esto dándole a tu IA dos cosas:**
@@ -34,7 +34,7 @@ Abres una conversación nueva y la IA **ya olvidó quién es tu cliente, qué ac
 
 ## Cómo Arrancar en 60 Segundos (Cero Código)
 
-No necesitas ser programador, compilar herramientas ni memorizar comandos técnicos. Solo copia y pega este bloque en el primer mensaje de tu IA favorita (**ChatGPT**, **Claude**, **Gemini**, **Cursor** o **Antigravity**):
+No necesitas ser programador ni memorizar comandos técnicos. Simplemente abre la carpeta de tu proyecto en tu herramienta de IA favorita (**Cursor**, **Claude Code**, **Antigravity**, **Windsurf**, o **OpenAI Codex**) y envía este bloque en tu primer mensaje para activar la gobernanza:
 
 ```text
 Actúa como mi Coordinador de Operaciones y Gobernanza de Proyectos.
@@ -47,27 +47,11 @@ Por favor realiza lo siguiente de forma estricta:
 3. Aplica la regla de Cero Suposición y Cero Complacencia: si falta información crítica, formúlame una pregunta bloqueante en lugar de adivinar, y no des ninguna tarea por terminada sin antes verificarla físicamente.
 ```
 
-*(Disponible también en inglés y formato descargable en [`prompts/prompt-arranque-universal.md`](prompts/prompt-arranque-universal.md)).*
-
 ---
 
-### ¿Trabajas en Chat Web? Configúralo 1 Sola Vez y Olvídate
+### Instalación Permanente en tu Computadora (1 Solo Comando)
 
-Si utilizas las aplicaciones web de **ChatGPT**, **Claude.ai** o **Gemini** a diario, no necesitas copiar y pegar el prompt en cada conversación nueva. Puedes dejarlo guardado de forma permanente:
-
-* **En Claude.ai (Recomendado):** Ve a **Projects** en la barra lateral $\to$ crea un proyecto (ej. *"Operaciones y Estrategia"*) $\to$ pega el prompt en **Project Instructions**. Todo chat dentro de ese proyecto nacerá gobernado automáticamente.
-* **En ChatGPT (OpenAI):** Haz clic en tu perfil $\to$ **Personalizar ChatGPT** (*Custom Instructions*) $\to$ pega el prompt en el recuadro *"¿Cómo te gustaría que responda ChatGPT?"*. (O agrégalo en las instrucciones de un *Custom GPT* de tu equipo).
-* **En Google Gemini:** En el menú lateral abre **Gem Manager** $\to$ crea un **Gem** llamado *"Coordinador Agent Ops"* y pega el prompt en sus instrucciones del sistema.
-
-> [!NOTE]
-> **En tu Computadora (Cursor, Claude Code, Antigravity, Windsurf):**  
-> Si trabajas localmente abriendo carpetas en tu máquina, **no tienes que hacer nada de esto**. La IA lee automáticamente el archivo `AGENTS.md` ubicado en la raíz de tu proyecto.
-
----
-
-### (Opcional) Instalación Permanente en tu Computadora (1 Solo Comando)
-
-Si prefieres que todas tus sesiones locales de Claude Code, Antigravity o Codex compartan automáticamente las skills maestras sin tener que pegar el prompt cada vez:
+Para que todos los agentes de IA de tu equipo (**Claude Code**, **Antigravity**, **Gemini CLI** y **OpenAI Codex**) compartan automáticamente las 6 habilidades maestras en cualquier proyecto sin tener que configurar nada más, ejecuta este comando en tu terminal una sola vez:
 
 * **En Windows (PowerShell):**
   ```powershell
