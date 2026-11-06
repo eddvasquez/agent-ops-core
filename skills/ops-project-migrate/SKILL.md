@@ -19,10 +19,10 @@ triggers:
 
 ## PROCEDIMIENTO PASO A PASO:
 
-### 1. Rescate de Skills Locales y Eliminación de Duplicidad
-- Si el proyecto contiene una subcarpeta local `./skills/`:
-  - Si el usuario tiene una bóveda central (`_ai-skills-hub` o `~/.agent-ops`), asegurar que las skills locales estén respaldadas allí.
-  - Una vez confirmado el respaldo, **eliminar la carpeta local `./skills/`** y cualquier script local obsoleto (`sync_skills_hub.bat`) para prevenir discrepancias de versión.
+### 1. Rescate de Skills Locales e Ingesta Previa (Harvest-First)
+- Si el proyecto contiene una subcarpeta local `./skills/` o existen habilidades previas en arneses locales (`~/.claude/skills`, `~/.gemini/config/skills`, `~/.agents/skills`):
+  - Consolidar y rescatar primero esas skills hacia la bóveda central (`_ai-skills-hub` o `~/.agent-ops`) bajo el principio de *Cosechar Primero*.
+  - Una vez confirmado el respaldo en el hub central, **eliminar la carpeta local `./skills/`** del proyecto y cualquier script local obsoleto (`sync_skills_hub.bat`) para prevenir discrepancias de versión y duplicidad.
 
 ### 2. Verificación y Autorreparación de `.context/`
 - Asegurar la presencia de los 5 archivos en `.context/`:
