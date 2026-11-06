@@ -67,7 +67,10 @@ Para que todos los agentes de IA de tu equipo (**Claude Code**, **Antigravity**,
   ```
 
 > [!TIP]
-> El instalador detecta automáticamente si cuentas con Google Drive o almacenamiento cloud configurado, valida la sincronización y programa una actualización diaria silenciosa sin interrumpir tu trabajo.
+> **Aprovisionamiento Preventivo y Cero Pérdida de Habilidades:**
+> - **Listo para Nuevas IAs en el Futuro:** Aunque hoy utilices únicamente una sola herramienta (por ejemplo, Antigravity o Claude Code), el instalador deja preparadas preventivamente las rutas globales de los demás proveedores (`~/.gemini/config/skills`, `~/.claude/skills` y `~/.agents/skills`). Si dentro de semanas o meses instalas otra aplicación de IA, esta despertará de inmediato equipada con toda la gobernanza y habilidades sin requerir que reinstales ni reconfigures nada.
+> - **Protocolo de Cosecha Previa (*Harvest-First*):** Si ya tenías habilidades personalizadas creadas previamente en cualquiera de tus herramientas de IA, el sistema las detecta y absorbe de forma segura hacia tu bóveda central antes de sincronizar, garantizando que nunca se sobreescriba ni se pierda ninguna habilidad preexistente.
+> - **Sincronización Silenciosa:** Detecta automáticamente si cuentas con Google Drive o almacenamiento cloud configurado y programa una actualización diaria automática sin interrumpir tu jornada.
 
 ---
 
@@ -226,7 +229,7 @@ La IA comprueba qué tareas se completaron con evidencia real, anota los aprendi
 | :--- | :---: | :--- |
 | **`ops-project-init`** | Operación | Inicializa proyectos nuevos con arquitectura v2, Git protegido y auditoría preventiva de respaldo en Google Drive/Cloud. |
 | **`ops-session-handoff`** | Gobernanza | Ejecuta el protocolo de relevo diario (Modo Entrada y Modo Salida) con auto-actualización silenciosa cada 24 horas. |
-| **`ops-project-migrate`** | Operación | Convierte proyectos legados o desordenados a la arquitectura universal v2 sin destruir datos ni duplicar archivos. |
+| **`ops-project-migrate`** | Operación | Convierte proyectos legados a la arquitectura v2, rescatando y absorbiendo automáticamente skills preexistentes hacia la bóveda central (Protocolo Harvest-First) sin destruir datos ni duplicar archivos. |
 | **`ops-git-worktrees`** | Operación | Gestiona espacios de trabajo paralelos para abordar tareas simultáneas sin interferencias ni bloqueos. |
 | **`dev-tdd`** | Calidad | Implementa el principio de "revisar antes de publicar", garantizando que ningún entregable se apruebe sin pruebas de consistencia. |
 | **`dev-systematic-debugging`** | Resolución | Metodología de 4 fases para investigar y resolver incidencias de causa raíz sin parches a ciegas ni improvisación. |
@@ -325,7 +328,7 @@ flowchart TD
 2. **Capa 2: Bóveda Privada de Negocio (Almacenamiento Local Respaldado):**
    - Habilidades propietarias de la empresa: marcos de consultoría, ángulos de adquisición, guiones comerciales y credenciales.
    - Reside exclusivamente en tu almacenamiento respaldado y privado, sin exposición en repositorios públicos.
-   - Servicios de sincronización en segundo plano unifican ambas capas en tus aplicaciones de IA en tiempo real.
+   - **Protocolo de Cosecha Previa (*Harvest-First*):** Los servicios de sincronización inspeccionan de forma continua los directorios locales de Claude, OpenAI y Gemini. Si detectan una habilidad creada directamente en una herramienta específica, la rescatan de inmediato hacia la bóveda central (`_ai-skills-hub`) y la distribuyen simétricamente a todas las demás IAs, protegiéndola contra eliminaciones accidentales.
 
 ---
 
