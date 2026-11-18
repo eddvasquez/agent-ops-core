@@ -46,6 +46,8 @@ La última versión sincronizada permite distinguir cambios unilaterales de conf
 
 ## Operaciones manuales
 
+Para adaptar proyectos existentes, usar [Migración de proyectos](project-migration-windows.md). `-ImportSources` añade orígenes temporales que nunca se modifican ni se guardan como réplicas. `-Mode Rescue` guarda un manifiesto completo y los blobs sin propagar cambios ni aceptar nuevas versiones. Ambos reutilizan las validaciones del motor.
+
 `-Mode Plan -Json` devuelve acciones, conflictos y borrados pendientes. `-Mode Verify` verifica sin escribir y devuelve `2` si hay diferencias pendientes. `-Key` siempre es una ruta relativa, por ejemplo `mi-skill/scripts/calcular.py`. Los hashes disponibles se encuentran en `Conflicts[].Versions`, los manifiestos y los registros.
 
 ```powershell

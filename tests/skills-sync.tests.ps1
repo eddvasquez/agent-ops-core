@@ -25,6 +25,41 @@ function Test($name, [scriptblock]$body) {
     try { & $body; $script:Passed++; Write-Host "PASS $name" }
     catch { $script:Failed++; Write-Host "FAIL $name : $_" -ForegroundColor Red; Write-Host $_.ScriptStackTrace }
 }
+Test 'temporary imports rescue full trees without writing sources or retaining their baselines' {
+    $p=Fixture;$source=Join-Path (Split-Path $p.HubDir) 'legacy'
+    Put $source 'demo/SKILL.md' 'legacy'|Out-Null
+    Put $source 'demo/attachment.bin' 'payload'|Out-Null
+    Put $source 'demo/__pycache__/saved.pyc' 'cache'|Out-Null
+    $r=Invoke-SkillSync @p -ImportSources @($source) -Mode Plan
+    Assert ($r.Code -eq 0 -and -not (Test-Path (Join-Path $p.StateDir 'state.json'))) 'Import plan wrote state'
+    $r=Invoke-SkillSync @p -ImportSources @($source) -Mode Apply
+    Assert ($r.Code -eq 0 -and (Read $p.HubDir 'demo/attachment.bin') -eq 'payload') ($r|ConvertTo-Json -Depth 6)
+    Assert ((Read $source 'demo/__pycache__/saved.pyc') -eq 'cache') 'Source cache changed'
+    $manifest=Get-Content $r.RescueManifest -Raw|ConvertFrom-Json
+    Assert (@($manifest.Files|Where-Object {$_.Key -like '*.pyc'}).Count -eq 1) 'Cache not rescued'
+    $state=Get-Content (Join-Path $p.StateDir 'state.json') -Raw
+    Assert (-not $state.Contains('import:')) 'Import persisted in baseline'
+    Put $p.HubDir 'demo/new.txt' 'new hub file'|Out-Null
+    $r=Invoke-SkillSync @p -ImportSources @($source) -Mode Apply
+    Assert ($r.Code -eq 0 -and -not (Test-Path (Join-Path $source 'demo/new.txt'))) 'Import source was modified'
+    Put $source 'demo/SKILL.md' 'different legacy'|Out-Null
+    $r=Invoke-SkillSync @p -ImportSources @($source) -Mode Apply
+    Assert ($r.Code -eq 2 -and (Read $p.HubDir 'demo/SKILL.md') -eq 'legacy') 'Import replaced accepted content'
+    $r=Invoke-SkillSync @p -Mode Verify
+    Assert ($r.Code -eq 0) 'Omitted import was interpreted as deletion'
+}
+Test 'an explicitly resolved core import remains a reviewed customization' {
+    $p=Fixture;$parent=Split-Path $p.HubDir;$frame=Join-Path $parent 'framework';$legacy=Join-Path $parent 'legacy'
+    foreach($name in @('dev-systematic-debugging','dev-tdd','ops-git-worktrees','ops-project-init','ops-project-migrate','ops-session-handoff')){Put $frame ('skills/'+$name+'/SKILL.md') 'current public'|Out-Null}
+    $file=Put $legacy 'ops-session-handoff/SKILL.md' 'reviewed custom'
+    $hash=(Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+    $r=Invoke-SkillSync @p -FrameworkDir $frame -ImportSources @($legacy) -Mode Apply
+    Assert ($r.Code -eq 2) 'Unreviewed core import accepted'
+    $r=Invoke-SkillSync @p -FrameworkDir $frame -ImportSources @($legacy) -Mode Resolve -Key 'ops-session-handoff/SKILL.md' -VersionHash $hash
+    Assert ($r.Code -eq 0) 'Explicit resolution failed'
+    $r=Invoke-SkillSync @p -FrameworkDir $frame -ImportSources @($legacy) -Mode Verify
+    Assert ($r.Code -eq 0 -and (Read $p.HubDir 'ops-session-handoff/SKILL.md') -eq 'reviewed custom') 'Reviewed customization cannot be verified'
+}
 Test 'complete rescue; functional payload and binary bytes distributed; caches retained in rescue' {
     $p = Fixture
     Put $p.Targets[0] 'demo/SKILL.md' 'instructions' | Out-Null

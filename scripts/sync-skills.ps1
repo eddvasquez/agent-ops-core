@@ -4,8 +4,8 @@ param(
     [string[]]$Targets = @((Join-Path $env:USERPROFILE '.gemini/config/skills'), (Join-Path $env:USERPROFILE '.claude/skills'), (Join-Path $env:USERPROFILE '.agents/skills')),
     [string]$StateDir = (Join-Path $env:LOCALAPPDATA 'AgentOps'),
     [string]$FrameworkDir = '',
-    [ValidateSet('Plan','Apply','Verify','Resolve','Prune','Restore')][string]$Mode = 'Plan',
-    [string]$Key='', [string]$VersionHash='', [string[]]$SkillNames=@(), [switch]$Json
+    [ValidateSet('Plan','Apply','Verify','Resolve','Prune','Restore','Rescue')][string]$Mode = 'Plan',
+    [string]$Key='', [string]$VersionHash='', [string[]]$SkillNames=@(), [string[]]$ImportSources=@(), [switch]$Json
 )
 $ErrorActionPreference='Stop'
 if(-not $PSBoundParameters.ContainsKey('FrameworkDir')){$FrameworkDir=Split-Path -Parent $PSScriptRoot}
@@ -17,6 +17,7 @@ if(-not $PSBoundParameters.ContainsKey('FrameworkDir') -and [IO.File]::Exists((J
 }
 $syncEngine=Import-Module $enginePath -Force -PassThru
 $invoke=@{HubDir=$HubDir; Targets=$Targets; StateDir=$StateDir; FrameworkDir=$FrameworkDir; Mode=$Mode; Key=$Key; VersionHash=$VersionHash; SkillNames=$SkillNames; WhatIf=[bool]$WhatIfPreference}
+if($ImportSources.Count){$invoke.ImportSources=$ImportSources}
 $result=& $syncEngine {param($p) Invoke-SkillSync @p} $invoke
 if ($Json) { $result | ConvertTo-Json -Depth 30 }
 else {

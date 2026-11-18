@@ -13,11 +13,13 @@ function Assert($condition,$message){if(-not $condition){throw $message}}
 function Test($name,[scriptblock]$body){if($Filter -and $name -notmatch $Filter){return};try{& $body;$script:passed++;Write-Host "PASS $name"}catch{$script:failed++;Write-Host "FAIL $name : $_";Write-Host $_.ScriptStackTrace}}
 function Put($root,$key,$text){$path=Join-Path $root $key;[IO.Directory]::CreateDirectory((Split-Path -Parent $path))|Out-Null;[IO.File]::WriteAllText($path,$text)}
 function Fixture {
+    param([switch]$Templates)
     $root=Join-Path $script:base ('with spaces-'+[guid]::NewGuid().ToString('N'))
     $remote=Join-Path $root 'remote';$install=Join-Path $root 'bootstrap'
     [IO.Directory]::CreateDirectory($remote)|Out-Null
     Copy-Item -LiteralPath (Join-Path $source 'scripts') -Destination $remote -Recurse
     Copy-Item -LiteralPath (Join-Path $source 'release-contract.json') -Destination $remote
+    if($Templates){Copy-Item -LiteralPath (Join-Path $source 'templates') -Destination $remote -Recurse}
     foreach($name in @('dev-systematic-debugging','dev-tdd','ops-git-worktrees','ops-project-init','ops-project-migrate','ops-session-handoff')){Put $remote "skills/$name/SKILL.md" 'core v1'}
     Put $remote 'README.md' 'Fixture v1'
     & git init -q -b main $remote
@@ -281,6 +283,14 @@ Test 'a delayed worker cannot restore consent revoked before it starts' {
     $r=Invoke-AgentOpsUpdate -ConfigPath $f.ConfigPath -Action Prepare -Worker -SessionId A -CandidateSha $new -TaskController $script:tasks
     $after=Get-Content -LiteralPath $f.StatePath -Raw|ConvertFrom-Json
     Assert ($r.Code -eq 0 -and -not $after.Candidate.Approved -and $after.Candidate.Status -ne 'READY' -and $r.ActiveSha -eq $f.OldSha) 'Delayed worker restored revoked approval'
+}
+Test 'migration CLI runs from the verified active release with registered configuration' {
+    $f=Fixture -Templates;$project=Join-Path (Split-Path $f.Parameters.StateDir) 'client-project'
+    [IO.Directory]::CreateDirectory($project)|Out-Null
+    $state=Get-Content $f.StatePath -Raw|ConvertFrom-Json
+    $entry=Join-Path $state.Active.Path 'scripts/migrate-project.ps1'
+    $json=& (Get-Process -Id $PID).Path -NoProfile -ExecutionPolicy Bypass -File $entry -ProjectPath $project -ConfigPath $f.ConfigPath -Mode Apply|Out-String
+    Assert ($LASTEXITCODE -eq 0 -and ($json|ConvertFrom-Json).Status -eq 'MIGRATED') ('Managed CLI failed: '+$json)
 }
 Write-Host "Update results: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if($script:failed){exit 1}

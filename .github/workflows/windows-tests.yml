@@ -34,6 +34,11 @@ jobs:
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/update-coordinator.tests.ps1
           exit $LASTEXITCODE
+      - name: Project migration, readonly imports and recovery
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/project-migration.tests.ps1
+          exit $LASTEXITCODE
       - name: Public release policy regression cases
         shell: pwsh
         run: |

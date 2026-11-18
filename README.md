@@ -231,7 +231,7 @@ La IA comprueba qué tareas se completaron con evidencia real, anota los aprendi
 | :--- | :---: | :--- |
 | **`ops-project-init`** | Operación | Inicializa proyectos nuevos con arquitectura v2, Git protegido y auditoría preventiva de respaldo en Google Drive/Cloud. |
 | **`ops-session-handoff`** | Gobernanza | Ejecuta el relevo (Entrada y Salida) y ofrece actualizaciones verificadas, con activación inmediata o diferida según tu decisión. |
-| **`ops-project-migrate`** | Operación | Convierte proyectos legados a la arquitectura v2, rescatando y absorbiendo automáticamente skills preexistentes hacia la bóveda central (Protocolo Harvest-First) sin destruir datos ni duplicar archivos. |
+| **`ops-project-migrate`** | Operación | Evalúa y migra proyectos existentes en Windows con rescate completo, orígenes de solo lectura, reglas y memoria conservadas y commits opcionales limitados. [Procedimiento](docs/project-migration-windows.md). |
 | **`ops-git-worktrees`** | Operación | Gestiona espacios de trabajo paralelos para abordar tareas simultáneas sin interferencias ni bloqueos. |
 | **`dev-tdd`** | Calidad | Implementa el principio de "revisar antes de publicar", garantizando que ningún entregable se apruebe sin pruebas de consistencia. |
 | **`dev-systematic-debugging`** | Resolución | Metodología de 4 fases para investigar y resolver incidencias de causa raíz sin parches a ciegas ni improvisación. |

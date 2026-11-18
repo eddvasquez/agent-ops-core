@@ -241,9 +241,9 @@ function Invoke-SkillSync {
         [string[]]$Targets = @((Join-Path $env:USERPROFILE '.gemini/config/skills'), (Join-Path $env:USERPROFILE '.claude/skills'), (Join-Path $env:USERPROFILE '.agents/skills')),
         [string]$StateDir = (Join-Path $env:LOCALAPPDATA 'AgentOps'),
         [string]$FrameworkDir = '',
-        [ValidateSet('Plan','Apply','Verify','Resolve','Prune','Restore')][string]$Mode = 'Plan',
+        [ValidateSet('Plan','Apply','Verify','Resolve','Prune','Restore','Rescue')][string]$Mode = 'Plan',
         [string]$Key = '', [string]$VersionHash = '',
-        [string[]]$SkillNames = @()
+        [string[]]$SkillNames = @(), [string[]]$ImportSources = @()
     )
     $result = [ordered]@{Code=0; Mode=$Mode; Copied=0; Removed=0; DirectoriesCreated=0; Actions=@(); Conflicts=@(); Deletions=@(); Issues=@(); Backups=@(); RescueManifest=$null; Journal=$null}
     $mutex = $null; $locked = $false; $journal = $null; $journalPath = $null
@@ -251,6 +251,14 @@ function Invoke-SkillSync {
         foreach ($name in $SkillNames) { if ($name -match '[/\\:]|^\.{1,2}$' -or [string]::IsNullOrWhiteSpace($name)) { throw 'Invalid skill scope.' } }
         $configuration=Get-SkillSyncConfiguration -HubDir $HubDir -Targets $Targets -StateDir $StateDir -FrameworkDir $FrameworkDir
         $HubDir=$configuration.HubDir; $StateDir=$configuration.StateDir; $roots=$configuration.Roots
+        if($ImportSources.Count){
+            $validated=Get-SkillSyncConfiguration -HubDir $HubDir -Targets (@($configuration.Targets)+@($ImportSources)) -StateDir $StateDir -FrameworkDir $FrameworkDir
+            foreach($source in $ImportSources){
+                $source=Get-SyncRoot $source
+                if(-not [IO.Directory]::Exists($source)){throw 'Import source directory missing.'}
+                $roots+=@{Id=('import:'+(Get-SyncId $source));Path=$source;Role='import'}
+            }
+        }
         $identity = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
         $mutex = New-Object Threading.Mutex($false, ('Local\AgentOpsSkillsSync-' + $identity))
         try { $locked = $mutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $locked = $true }
@@ -271,7 +279,8 @@ function Invoke-SkillSync {
         $issues = New-Object 'Collections.Generic.List[string]'
         $inventories = @{}; $keys = @{}; $directories=New-Object 'Collections.Generic.List[object]'
         foreach ($root in $roots) {
-            $inventories[$root.Id] = Get-SyncInventory $root $known $issues $SkillNames $directories
+            $scopeKnown=if($root.Role -eq 'import'){@()}else{$known}
+            $inventories[$root.Id] = Get-SyncInventory $root $scopeKnown $issues $SkillNames $directories
             foreach ($fileKey in $inventories[$root.Id].Keys) { $keys[$fileKey]=$true }
         }
         foreach ($fileKey in $state.Entries.Keys) { if (-not $SkillNames.Count -or ($fileKey -split '/')[0] -in $SkillNames) { $keys[$fileKey]=$true } }
@@ -294,6 +303,7 @@ function Invoke-SkillSync {
             Write-SyncJson $result.RescueManifest $manifest
         } else { $writing=$false }
         if ($issues.Count) { $result.Code=1; $result.Issues=@($issues.ToArray()); return [pscustomobject]$result }
+        if($Mode -eq 'Rescue'){return [pscustomobject]$result}
         if ($Mode -in @('Resolve','Prune','Restore')) {
             if (-not $Key -or -not $keys.ContainsKey($Key)) { throw 'Operation requires an existing managed -Key.' }
             Get-SyncChild $HubDir $Key | Out-Null
@@ -306,11 +316,19 @@ function Invoke-SkillSync {
             if ($Mode -in @('Resolve','Prune','Restore') -and $fileKey -ne $Key) { continue }
             $reviewed[$fileKey]=$true
             $entry = if ($state.Entries.ContainsKey($fileKey)) { $state.Entries[$fileKey] } else { $null }
-            $observed = @{}; $versions = @{}; $changes = @{}; $missingChange=$false
+            $observed = @{}; $versions = @{}; $changes = @{}; $missingChange=$false;$importedCoreConflict=$false
             foreach ($root in $roots) {
                 $hash = if ($inventories[$root.Id].ContainsKey($fileKey)) { $inventories[$root.Id][$fileKey].Hash } else { $script:Missing }
                 $observed[$root.Id]=$hash
                 if ($hash -ne $script:Missing) { $versions[$hash]=$true }
+                if($root.Role -eq 'import' -and $hash -ne $script:Missing){
+                    if($entry -and $entry.Accepted -ne $script:Missing -and $hash -ne $entry.Accepted){$changes[$entry.Accepted]=$true}
+                    if(($fileKey -split '/')[0] -in $script:CoreSkills){
+                        $framework=@($roots|Where-Object {$_.Role -eq 'framework'})
+                        $alreadyAccepted=$entry -and $entry.Accepted -eq $hash
+                        if((-not $framework.Count -or -not $inventories[$framework[0].Id].ContainsKey($fileKey) -or $inventories[$framework[0].Id][$fileKey].Hash -ne $hash) -and -not $alreadyAccepted){$importedCoreConflict=$true}
+                    }
+                }
                 if ($entry) {
                     $base = if ($entry.Baselines.ContainsKey($root.Id)) { $entry.Baselines[$root.Id] } else { $script:Missing }
                     if ($base -ne $hash) {
@@ -344,6 +362,7 @@ function Invoke-SkillSync {
                 }
                 if (-not $associated) { throw 'Blob does not belong to the requested key.' }
                 $candidate=$VersionHash
+            } elseif ($importedCoreConflict) { $reason='ImportedCoreDivergence'
             } elseif ($missingChange) {
                 $deletions += @{Key=$fileKey; Versions=@($versions.Keys); Observed=$observed}; continue
             } elseif (-not $entry) {
@@ -359,6 +378,7 @@ function Invoke-SkillSync {
                 if ($inventories[$root.Id].ContainsKey($fileKey) -and $inventories[$root.Id][$fileKey].Hash -eq $candidate) { $attributes=$inventories[$root.Id][$fileKey].Attributes }
             }
             foreach ($root in $roots) {
+                if($root.Role -eq 'import'){continue}
                 if ($root.Role -eq 'framework') { $newBase[$root.Id]=$observed[$root.Id]; continue }
                 $newBase[$root.Id]=$candidate
                 if ($observed[$root.Id] -ne $candidate) { $plans += @{Key=$fileKey; Root=$root.Path; RootId=$root.Id; Before=$observed[$root.Id]; Hash=$candidate; Attributes=$attributes} }
@@ -388,7 +408,7 @@ function Invoke-SkillSync {
             if($Mode -notin @('Resolve','Prune','Restore')) {
                 foreach($directory in $directories) {
                     if(Test-SyncExcluded $directory.Key){continue}
-                    foreach($root in @($roots|Where-Object {$_.Role -ne 'framework'})) {
+                    foreach($root in @($roots|Where-Object {$_.Role -notin @('framework','import')})) {
                         $path=Get-SyncChild $root.Path $directory.Key
                         if(-not [IO.Directory]::Exists($path)){[IO.Directory]::CreateDirectory($path)|Out-Null;$result.DirectoriesCreated++}
                     }
@@ -398,13 +418,17 @@ function Invoke-SkillSync {
             # until every participating path still matches the planned version.
             foreach($fileKey in $updates.Keys) {
                 foreach($root in $roots) {
+                    if($root.Role -eq 'import'){continue}
                     $path=Get-SyncChild $root.Path $fileKey
                     $actual=if([IO.File]::Exists($path)){Get-SyncHash $path}else{$script:Missing}
                     if($actual -ne $updates[$fileKey].Baselines[$root.Id]){throw "File changed during reconciliation: $path"}
                 }
             }
             foreach ($fileKey in $updates.Keys) { $state.Entries[$fileKey]=$updates[$fileKey] }
-            foreach ($root in $roots) { $state.Roots[$root.Id]=@{Path=$root.Path; Role=$root.Role} }
+            foreach($root in @($roots|Where-Object {$_.Role -eq 'import'})){
+                foreach($file in $inventories[$root.Id].Values){if((Get-SyncHash $file.Path) -ne $file.Hash){throw 'Import source changed during reconciliation.'}}
+            }
+            foreach ($root in @($roots|Where-Object {$_.Role -ne 'import'})) { $state.Roots[$root.Id]=@{Path=$root.Path; Role=$root.Role} }
             # Retain reviews outside an incremental or manually selected scope.
             $previousConflicts=@($state.Reviews.Conflicts | Where-Object { -not $reviewed.ContainsKey($_.Key) })
             $previousDeletions=@($state.Reviews.Deletions | Where-Object { -not $reviewed.ContainsKey($_.Key) })
