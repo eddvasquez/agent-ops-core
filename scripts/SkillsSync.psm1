@@ -5,6 +5,9 @@ $script:Missing = '-'
 
 function ConvertTo-SyncMap($Value) {
     if ($null -eq $Value) { return $null }
+    # Pipeline-wrapped JSON strings can also satisfy -is [pscustomobject].
+    # Preserve scalar values before inspecting their PowerShell properties.
+    if ($Value -is [string] -or $Value.GetType().IsValueType) { return $Value }
     if ($Value -is [Collections.IDictionary]) {
         $map = @{}; foreach ($k in $Value.Keys) { $map[$k] = ConvertTo-SyncMap $Value[$k] }; return $map
     }
@@ -95,13 +98,24 @@ function Write-SyncJson([string]$Path, $Value) {
     [IO.Directory]::CreateDirectory((Split-Path -Parent $Path)) | Out-Null
     $tmp = $Path + '.aoc-' + [guid]::NewGuid().ToString('N') + '.tmp'
     try {
-        [IO.File]::WriteAllText($tmp, ($Value | ConvertTo-Json -Depth 40), (New-Object Text.UTF8Encoding $false))
+        $bytes=[Text.Encoding]::UTF8.GetBytes(($Value|ConvertTo-Json -Depth 40))
+        $stream=[IO.File]::Open($tmp,'CreateNew','Write','None')
+        try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}
         if ([IO.File]::Exists($Path)) {
             # PS 5.1 marshals $null string arguments as empty strings. Use a real
             # sibling backup rather than relying on a null File.Replace argument.
-            $previous = $Path + '.previous'
-            [IO.File]::Replace($tmp, $Path, $previous)
-            [IO.File]::Delete($previous)
+            $previous = $Path + '.previous-' + [guid]::NewGuid().ToString('N')
+            for($attempt=0;;$attempt++){
+                try{[IO.File]::Replace($tmp,$Path,$previous);break}
+                catch [IO.IOException]{
+                    $cause=$_.Exception;while($cause.InnerException){$cause=$cause.InnerException}
+                    if(($cause.HResult -band 65535) -notin @(32,33) -or $attempt -ge 19){throw}
+                    Start-Sleep -Milliseconds 25
+                }
+            }
+            # Replacement has committed. Cleanup failure must not turn that into
+            # a false write failure; retain an owned metadata backup if in use.
+            try{[IO.File]::Delete($previous)}catch [IO.IOException]{}
         }
         else { [IO.File]::Move($tmp, $Path) }
     } finally { if ([IO.File]::Exists($tmp)) { [IO.File]::Delete($tmp) } }

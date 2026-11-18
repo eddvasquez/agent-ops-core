@@ -1,6 +1,6 @@
 ---
 name: ops-session-handoff
-description: Protocolo de Recepción (MODO ENTRADA) y Cierre de Turno (MODO SALIDA) con auditoría Git, verificación de auto-actualización cada 24h y mandato anti-racionalización.
+description: Protocolo de Recepción (MODO ENTRADA) y Cierre de Turno (MODO SALIDA) con auditoría Git, actualizaciones verificadas al inicio de sesión y mandato anti-racionalización.
 triggers:
   - "ops-session-handoff"
   - "ops-gestion-relevo"
@@ -16,11 +16,20 @@ triggers:
 ## MODO A: RECEPCIÓN DE TURNO (`MODO ENTRADA`)
 **PROHIBIDO modificar archivos o escribir código antes de que el usuario apruebe este reporte.**
 
-### Paso 0: Verificación de Actualizaciones de Gobernanza (TTL 24 Horas)
-- Si existe el directorio global `~/.agent-ops` y el archivo `~/.agent-ops/.last_update_check`:
-  - Verificar si han transcurrido más de 24 horas desde la última verificación.
-  - Si es mayor a 24 horas o el archivo no existe, ejecutar silenciosamente `git -C ~/.agent-ops pull --ff-only` y registrar la fecha actual en `.last_update_check`.
-  - Si hubo cambios en el repositorio, las skills locales se sincronizan automáticamente.
+### Paso 0: Comprobación de Versiones Verificadas (Windows)
+La decisión de actualización de este paso autoriza únicamente los cambios del marco global; los archivos del proyecto siguen sujetos al reporte y autorización del turno.
+
+1. Si existe `~/.agent-ops/scripts/start-session.ps1`, ejecutarlo con `-Action Check` y leer su JSON. Usar siempre ese punto de entrada; no ejecutar `git pull`, no modificar timestamps y no activar versiones mediante otros atajos. La consulta remota tiene un presupuesto de cinco segundos.
+2. Conservar el `SessionId` devuelto durante este MODO ENTRADA. Si `NeedsUserChoice` es verdadero, mostrar versión actual, SHA candidato, resumen informativo y estimación. Cuando `Estimate.Measured` sea falso, explicar que todavía no hay mediciones fiables: la preparación de red tiene un presupuesto de dos minutos y la activación puede requerir tiempo adicional. Nunca presentar ese presupuesto como una duración total garantizada.
+3. Preguntar al usuario antes de comenzar su trabajo, ofreciendo:
+   - **Actualizar ahora:** ejecutar el punto de entrada con `-Action Apply -SessionId <id> -CandidateSha <sha>`.
+   - **Preparar en segundo plano para la próxima sesión:** usar `-Action Prepare -Background` con esos mismos identificadores. Esta elección aprueba esa candidata concreta para una sesión posterior; el trabajador solo descarga y verifica.
+   - **Posponer:** usar `-Action Defer` con esos identificadores y continuar con la versión actual. No repetir la pregunta para esa misma candidata y sesión.
+   Esperar una respuesta explícita; el silencio no elige ninguna opción. La interfaz y la pregunta pertenecen al asistente/anfitrión, no a un `Read-Host` oculto en un proceso.
+4. `UPDATED` permite releer las instrucciones del marco desde `ActivePath` antes de auditar el proyecto. `READY_NEXT_SESSION` o `PREPARING` conservan la versión de esta sesión. Una candidata preparada con consentimiento previo se aplica al comenzar otro MODO ENTRADA, no a mitad de una conversación o trabajo.
+5. `OFFLINE_CACHED` permite continuar con la instalación verificada e informar brevemente que no pudo comprobarse GitHub. `LOCAL_DEV` identifica una instalación de desarrollo sin actualización automática. `NOT_INSTALLED` o `MIGRATION_REQUIRED` requieren instalación/migración explícita, nunca un `git pull` alternativo. Con `ACTIVATION_REVIEW_REQUIRED`, no eliminar el guard ni sobrescribir ediciones: informar del journal y revisar la recuperación. Con `BUSY`, usar `CanStartWork` y reintentar de forma acotada; un guard de activación impide cargar instrucciones mezcladas.
+
+Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquier chat requiere soporte del anfitrión. La tarea diaria solo comprueba novedades y no sustituye la decisión del usuario. macOS/Linux conservan su mecanismo anterior, pendiente de revisión equivalente.
 
 ### Paso 1: Lectura de Contexto y Mandato Anti-Racionalización
 1. Lee `AGENTS.md` y los 5 archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`).

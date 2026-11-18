@@ -6,6 +6,7 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 
 ### Protocolo 1 (Inicio de Sesión y Auditoría Git - MODO ENTRADA)
 - Al iniciar cualquier turno sobre el proyecto, es mandatorio invocar la skill `ops-session-handoff` (o `ops-gestion-relevo`) bajo **MODO ENTRADA**.
+- En Windows, su Paso 0 comprueba el canal estable mediante el punto de entrada instalado. Si hay una candidata verificada, presentar versión, cambios y estimación y respetar la elección de actualizar ahora, preparar para la próxima sesión o posponer. Esta decisión autoriza únicamente la actualización del marco global, no cambios en los archivos del proyecto. No sustituir el mecanismo por un `git pull` directo.
 - Lee `AGENTS.md`, todos los archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`) y las skills disponibles en tus aplicaciones de IA.
 - Ejecuta una auditoría física en Git (`git status -s`, `git log -n 3 --oneline`, `git diff --stat`).
 - **Resolución de discrepancias:** En caso de existir cualquier contradicción entre el texto de `.context/activeContext.md` y el estado real del árbol de trabajo en Git, **prevalece siempre la evidencia física de Git**.

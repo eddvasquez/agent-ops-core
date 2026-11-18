@@ -36,7 +36,7 @@ triggers:
 ### 3. Actualización de `AGENTS.md` (Gobernanza Universal v2)
 - Respaldar el archivo previo si existe en `.context/AGENTS.bak`.
 - Inyectar el `AGENTS.md` estandarizado con los 6 Protocolos Universales:
-  1. Protocolo 1: Inicio de Turno (MODO ENTRADA con auditoría Git y TTL 24h).
+  1. Protocolo 1: Inicio de Turno (MODO ENTRADA con auditoría Git y comprobación del canal estable mediante el punto de entrada del marco, respetando la decisión del usuario).
   2. Protocolo 2: Cero Suposiciones y Memoria Cruda.
   3. Protocolo 3: Invocación Mandatoria y Anti-Racionalización (`dev-systematic-debugging` y `dev-tdd`).
   4. Protocolo 4: Destilación Controlada a Skill General.

@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param([string]$ConfigPath=(Join-Path $env:LOCALAPPDATA 'AgentOps/watch-config.json'),
-      [ValidateRange(0,86400)][int]$RunSeconds=0)
+      [ValidateRange(0,86400)][int]$RunSeconds=0,[string]$ReleaseSha='')
 $ErrorActionPreference='Stop'
-Import-Module (Join-Path $PSScriptRoot 'SkillsSync.psm1') -Force
+$watchLibrary=Import-Module (Join-Path $PSScriptRoot 'SkillsSync.psm1') -Force -PassThru
 $raw=Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
 $invoke=@{HubDir=[string]$raw.HubDir;Targets=[string[]]$raw.Targets;StateDir=[string]$raw.StateDir;FrameworkDir=[string]$raw.FrameworkDir}
 $validated=Get-SkillSyncConfiguration @invoke
@@ -21,6 +21,13 @@ function Write-WatchLog($r,$scope) {
 try {
     try {$owned=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$owned=$true}
     if(-not $owned){Write-Host 'A skills watcher is already running for this user.'; exit 3}
+    if($ReleaseSha){
+        if($ReleaseSha -notmatch '^[a-f0-9]{40}$'){throw 'Invalid watcher release SHA.'}
+        $verified=Get-AgentOpsActiveRelease -ConfigPath $ConfigPath -ForWatcher
+        if($verified.Sha -ne $ReleaseSha -or $verified.Path -ne $invoke.FrameworkDir){throw 'Watcher runtime/configuration mismatch.'}
+        $heartbeat=@{Sha=$ReleaseSha;FrameworkDir=$invoke.FrameworkDir;ProcessId=$PID;Utc=[datetime]::UtcNow.ToString('o')}
+        & $watchLibrary {param($d,$h) Write-SyncJson (Get-SyncChild $d 'watch-heartbeat.json') $h} $invoke.StateDir $heartbeat
+    }
     foreach($root in $validated.Roots) {
         if($root.Role -ne 'framework'){[IO.Directory]::CreateDirectory($root.Path)|Out-Null}
         if(-not [IO.Directory]::Exists($root.Path)){throw "Watcher source missing: $($root.Path)"}
@@ -36,6 +43,7 @@ try {
     $clock=[Diagnostics.Stopwatch]::StartNew(); $pending=@{}; $first=$null; $last=0
     $nextFull=0; $retryAt=$null; $retryScope=@(); $retryIndex=0; $lastCode=0
     while($RunSeconds -eq 0 -or $clock.Elapsed.TotalSeconds -lt $RunSeconds) {
+        if([IO.File]::Exists((Join-Path $invoke.StateDir 'activation-pending.json'))){Wait-Event -Timeout 1|Out-Null;continue}
         foreach($e in @(Get-Event|Where-Object {$_.SourceIdentifier.StartsWith($prefix)})) {
             if($e.SourceIdentifier.EndsWith('.Error')) {$nextFull=0}
             else {
@@ -57,6 +65,10 @@ try {
         elseif($null -ne $retryAt -and $now -ge $retryAt){$scope=@($retryScope);$retryAt=$null}
         elseif($pending.Count -and (($now-$last) -ge 1.5 -or ($now-$first) -ge 5)){$scope=@($pending.Keys);$pending=@{};$first=$null}
         if($null -ne $scope) {
+            if($ReleaseSha){
+                $verified=Get-AgentOpsActiveRelease -ConfigPath $ConfigPath
+                if($verified.Sha -ne $ReleaseSha -or $verified.Path -ne $invoke.FrameworkDir){throw 'Active runtime changed; restart the watcher before synchronization.'}
+            }
             $r=Invoke-SkillSync @invoke -Mode Apply -SkillNames $scope
             $lastCode=$r.Code; Write-WatchLog $r $scope
             if($r.Code -in @(1,3)) {

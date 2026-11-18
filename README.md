@@ -46,7 +46,7 @@ Actúa como mi Coordinador de Operaciones y Gobernanza de Proyectos.
 Quiero que gestionemos este proyecto bajo el estándar de AGENTS.md del repositorio público https://github.com/eddvasquez/agent-ops-core.
 
 Por favor realiza lo siguiente de forma estricta:
-1. Revisa las directrices de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/README.md y los 6 Protocolos de AGENTS.md.
+1. Revisa las directrices de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/stable/README.md y los 6 Protocolos de AGENTS.md.
 2. Adopta de inmediato el Protocolo 1 (MODO ENTRADA): audita el estado actual de nuestro proyecto y los archivos de memoria en .context/ y entrégame el Reporte de 5 Puntos antes de realizar cualquier cambio, propuesta o entregable.
 3. Aplica la regla de Cero Suposición y Cero Complacencia: si falta información crítica, formúlame una pregunta bloqueante en lugar de adivinar, y no des ninguna tarea por terminada sin antes verificarla físicamente.
 ```
@@ -55,13 +55,13 @@ Por favor realiza lo siguiente de forma estricta:
 
 ### Instalación Permanente en tu Computadora (1 Solo Comando)
 
-En Windows, el marco público, el hub personal y los respaldos se mantienen en ubicaciones separadas. La instalación activa un vigilante al iniciar sesión y una actualización diaria. Consulta las reglas de rescate íntegro, conflictos, borrados y recuperación en [Sincronización segura de skills en Windows](docs/skills-sync-windows.md). Los instaladores de macOS y Linux conservan su implementación anterior y están pendientes de una revisión equivalente.
+En Windows, el marco público, el hub personal y los respaldos se mantienen en ubicaciones separadas. La instalación usa el canal `stable`, activa un vigilante de archivos y una comprobación diaria. Al iniciar MODO ENTRADA, puedes elegir actualizar ahora, preparar en segundo plano para la próxima sesión o posponer. Consulta [Actualizaciones al inicio de sesión](docs/session-updates-windows.md) y [Sincronización y recuperación de skills](docs/skills-sync-windows.md). Los instaladores de macOS y Linux conservan su implementación anterior y están pendientes de una revisión equivalente.
 
 Para que todos los agentes de IA de tu equipo (**Claude Code**, **Antigravity**, **Gemini CLI** y **OpenAI Codex**) compartan automáticamente las 6 habilidades maestras en cualquier proyecto sin tener que configurar nada más, ejecuta este comando en tu terminal una sola vez:
 
 * **En Windows (PowerShell):**
   ```powershell
-  irm https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/install.ps1 | iex
+  irm https://raw.githubusercontent.com/eddvasquez/agent-ops-core/stable/install.ps1 | iex
   ```
 * **En macOS y Linux (Terminal):**
   ```bash
@@ -230,7 +230,7 @@ La IA comprueba qué tareas se completaron con evidencia real, anota los aprendi
 | Habilidad | Tipo | Función Crítica y Resultado Tangible |
 | :--- | :---: | :--- |
 | **`ops-project-init`** | Operación | Inicializa proyectos nuevos con arquitectura v2, Git protegido y auditoría preventiva de respaldo en Google Drive/Cloud. |
-| **`ops-session-handoff`** | Gobernanza | Ejecuta el protocolo de relevo diario (Modo Entrada y Modo Salida) con auto-actualización silenciosa cada 24 horas. |
+| **`ops-session-handoff`** | Gobernanza | Ejecuta el relevo (Entrada y Salida) y ofrece actualizaciones verificadas, con activación inmediata o diferida según tu decisión. |
 | **`ops-project-migrate`** | Operación | Convierte proyectos legados a la arquitectura v2, rescatando y absorbiendo automáticamente skills preexistentes hacia la bóveda central (Protocolo Harvest-First) sin destruir datos ni duplicar archivos. |
 | **`ops-git-worktrees`** | Operación | Gestiona espacios de trabajo paralelos para abordar tareas simultáneas sin interferencias ni bloqueos. |
 | **`dev-tdd`** | Calidad | Implementa el principio de "revisar antes de publicar", garantizando que ningún entregable se apruebe sin pruebas de consistencia. |

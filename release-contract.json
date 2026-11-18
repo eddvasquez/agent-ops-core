@@ -1,0 +1,12 @@
+{
+  "ProtocolVersion": 1,
+  "SyncStateSchema": 1,
+  "CoreSkills": [
+    "dev-systematic-debugging",
+    "dev-tdd",
+    "ops-git-worktrees",
+    "ops-project-init",
+    "ops-project-migrate",
+    "ops-session-handoff"
+  ]
+}

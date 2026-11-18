@@ -6,7 +6,7 @@ Requiere Git y Windows PowerShell 5.1 o PowerShell 7. El instalador registra las
 
 | Ubicación predeterminada | Contenido |
 |---|---|
-| `%USERPROFILE%\.agent-ops` | Checkout del marco público y código de sincronización |
+| `%USERPROFILE%\.agent-ops` | Bootstrap del marco público; las versiones activas se seleccionan por SHA |
 | `%USERPROFILE%\.agent-ops-hub` | Skills personales y generales, fuera del checkout |
 | `%LOCALAPPDATA%\AgentOps` | Estado, respaldos, manifiestos, configuración y registros |
 | `.gemini/config/skills`, `.claude/skills`, `.agents/skills` del usuario | Copias utilizadas por las herramientas |
@@ -28,7 +28,7 @@ Desde la raíz de este repositorio:
 .\scripts\sync-skills.ps1 -Mode Apply -Json
 ```
 
-`install.ps1` instala/actualiza un checkout separado, adopta skills existentes, sincroniza, registra el vigilante al iniciar sesión y la actualización diaria a las 09:00, hora local de Windows. `-SkipTask` omite ambas tareas; `-DisableWatcher` conserva la tarea diaria y desactiva el vigilante. `-RepoUrl`, `-TargetDir`, `-HubDir`, `-Targets` y `-StateDir` permiten personalizar la instalación. Los destinos y el estado deben estar fuera del checkout, ser distintos y no estar anidados.
+`install.ps1` instala desde `stable`, registra el vigilante al iniciar sesión y una comprobación diaria a las 09:00, hora local de Windows. Las actualizaciones se ofrecen al iniciar MODO ENTRADA; la tarea diaria no las activa. Consulta [Actualizaciones verificadas](session-updates-windows.md) para decisiones, versiones aisladas y recuperación. `-SkipTask` omite ambas tareas; `-DisableWatcher` conserva la consulta diaria y desactiva el vigilante. `-RepoUrl`, `-TargetDir`, `-HubDir`, `-Targets`, `-StateDir` y `-RuntimeDir` permiten personalizar la instalación. Los destinos, el runtime y el estado deben estar fuera del checkout, ser distintos y no estar anidados.
 
 Una instalación con el motor nuevo requiere que ese código exista en la rama que se clona. Una carpeta existente sin Git nunca se elimina para instalar. Las ediciones rastreadas o preparadas en Git detienen la actualización automática. No se hace stash ni reset.
 

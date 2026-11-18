@@ -15,6 +15,13 @@ function Config {
     return @{HubDir=(Join-Path $root 'hub'); Targets=@((Join-Path $root 'target')); StateDir=(Join-Path $root 'state'); FrameworkDir=''}
 }
 function Seed($p){[IO.Directory]::CreateDirectory((Join-Path $p.HubDir 'demo'))|Out-Null; [IO.File]::WriteAllText((Join-Path $p.HubDir 'demo/SKILL.md'),'base')}
+Test 'standalone CLIs resolve default framework paths before doing any work' {
+    $p=Config;$engine=(Get-Process -Id $PID).Path
+    $json=& $engine -NoProfile -ExecutionPolicy Bypass -File $cli -HubDir $p.HubDir -Targets $p.Targets[0] -StateDir $p.StateDir -Mode Plan -WhatIf -Json|Out-String
+    Assert ($LASTEXITCODE -eq 0 -and ($json|ConvertFrom-Json).Code -eq 0) 'Standalone sync default path failed'
+    & $engine -NoProfile -ExecutionPolicy Bypass -File $task -HubDir $p.HubDir -Targets $p.Targets[0] -StateDir $p.StateDir -Action Status -WhatIf|Out-Null
+    Assert ($LASTEXITCODE -eq 0 -and -not [IO.Directory]::Exists($p.StateDir)) 'Standalone task manager default path failed or wrote state'
+}
 Test 'CLI failure exits 1; WhatIf is read-only; repeated application copies nothing' {
     $p=Config; Seed $p
     $json=& $cli @p -Mode Apply -WhatIf -Json | Out-String
@@ -84,6 +91,13 @@ Test 'task lifecycle uses hidden logon action and refuses an unrelated task (moc
         Assert ($global:AocFakeTask.Actions[0].Arguments.Contains('-WindowStyle Hidden')) 'Visible watcher configured'
         Assert $global:AocFakeTask.Trigger.AtLogOn 'Not a logon task'
         Assert ([timespan]$global:AocFakeTask.Settings.ExecutionTimeLimit -eq [timespan]::Zero) 'Watcher expires after default task limit'
+        Import-Module (Join-Path $repo 'scripts/UpdateCoordinator.psm1') -Force
+        Initialize-AgentOpsUpdate -InstallRoot $repo -RepoUrl 'https://github.com/eddvasquez/agent-ops-core' -StateDir $p.StateDir -HubDir $p.HubDir -Targets $p.Targets -WatcherEnabled $false -LocalDevelopment|Out-Null
+        # No explicit FrameworkDir: the task manager must resolve the registered
+        # runtime without losing its own helper commands during module reload.
+        & $task -StateDir $p.StateDir -Action Enable
+        $registered=Get-Content -LiteralPath (Join-Path $p.StateDir 'watch-config.json') -Raw|ConvertFrom-Json
+        Assert ($registered.HubDir -eq $p.HubDir -and $registered.FrameworkDir -eq $repo) 'Registered paths were replaced by defaults'
         & $task @p -Action Disable
         & $task @p -Action Remove
         Assert ($global:AocTaskCalls -contains 'disable' -and $global:AocTaskCalls -contains 'remove') 'Lifecycle incomplete'
@@ -92,9 +106,9 @@ Test 'task lifecycle uses hidden logon action and refuses an unrelated task (moc
         Assert $refused 'Foreign task touched'
     }finally{foreach($name in $functions){Remove-Item -LiteralPath ('Function:\'+$name) -ErrorAction SilentlyContinue};Remove-Variable AocFakeTask,AocTaskCalls -Scope Global -ErrorAction SilentlyContinue}
 }
-Test 'installer and updater use local Git fixture; skip tasks; preserve existing non-Git folder' {
+Test 'explicit local development install never auto-pulls; existing non-Git folder preserved' {
     $remote=Join-Path $base 'remote';[IO.Directory]::CreateDirectory($remote)|Out-Null
-    foreach($name in @('install.ps1','update.ps1','scripts')){Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $remote -Recurse}
+    foreach($name in @('install.ps1','update.ps1','scripts','release-contract.json')){Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $remote -Recurse}
     foreach($name in @('dev-systematic-debugging','dev-tdd','ops-git-worktrees','ops-project-init','ops-project-migrate','ops-session-handoff')){
         $dir=Join-Path $remote "skills/$name";[IO.Directory]::CreateDirectory($dir)|Out-Null
         [IO.File]::WriteAllText((Join-Path $dir 'SKILL.md'),'upstream v1')
@@ -104,18 +118,24 @@ Test 'installer and updater use local Git fixture; skip tasks; preserve existing
     & git -C $remote -c user.name=Tests -c user.email=tests@localhost commit -q -m fixture
     Assert ($LASTEXITCODE -eq 0) 'Fixture Git commit failed'
     $p=Config;$installed=Join-Path (Split-Path $p.HubDir -Parent) 'installed'
-    & (Join-Path $repo 'install.ps1') -RepoUrl $remote -TargetDir $installed -HubDir $p.HubDir -Targets $p.Targets -StateDir $p.StateDir -SkipTask
+    & (Join-Path $repo 'install.ps1') -RepoUrl $remote -TargetDir $installed -HubDir $p.HubDir -Targets $p.Targets -StateDir $p.StateDir -SkipTask -LocalDevelopment
     Assert ($LASTEXITCODE -eq 0) 'Installation failed'
     Assert ([IO.File]::Exists((Join-Path $p.Targets[0] 'dev-tdd/SKILL.md'))) 'Installer did not distribute core'
+    $settingsPath=Join-Path $p.StateDir 'update-state.json'
+    $settings=Get-Content -LiteralPath $settingsPath -Raw|ConvertFrom-Json
+    $settings.Config.WatcherEnabled=$true
+    [IO.File]::WriteAllText($settingsPath,($settings|ConvertTo-Json -Depth 40))
+    & (Join-Path $repo 'install.ps1') -RepoUrl $remote -TargetDir $installed -HubDir $p.HubDir -Targets $p.Targets -StateDir $p.StateDir -SkipTask -LocalDevelopment
+    Assert ($LASTEXITCODE -eq 0 -and (Get-Content -LiteralPath $settingsPath -Raw|ConvertFrom-Json).Config.WatcherEnabled) 'Skipping task registration changed the saved watcher preference'
     [IO.File]::WriteAllText((Join-Path $remote 'skills/dev-tdd/SKILL.md'),'upstream v2')
     & git -C $remote -c core.autocrlf=false add .
     & git -C $remote -c user.name=Tests -c user.email=tests@localhost commit -q -m update
     & (Join-Path $installed 'update.ps1') -ConfigPath (Join-Path $p.StateDir 'watch-config.json') -Force
     Assert ($LASTEXITCODE -eq 0) 'Update failed'
-    Assert ([IO.File]::ReadAllText((Join-Path $p.Targets[0] 'dev-tdd/SKILL.md')) -eq 'upstream v2') 'Update bypassed shared motor'
+    Assert ([IO.File]::ReadAllText((Join-Path $p.Targets[0] 'dev-tdd/SKILL.md')) -eq 'upstream v1') 'Development install was updated without a decision'
     $occupied=Join-Path $base 'occupied';[IO.Directory]::CreateDirectory($occupied)|Out-Null
     [IO.File]::WriteAllText((Join-Path $occupied 'keep.txt'),'keep')
-    & (Join-Path $repo 'install.ps1') -RepoUrl $remote -TargetDir $occupied -HubDir $p.HubDir -Targets $p.Targets -StateDir $p.StateDir -SkipTask
+    & (Join-Path $repo 'install.ps1') -RepoUrl $remote -TargetDir $occupied -HubDir $p.HubDir -Targets $p.Targets -StateDir $p.StateDir -SkipTask -LocalDevelopment
     Assert ($LASTEXITCODE -eq 1 -and [IO.File]::ReadAllText((Join-Path $occupied 'keep.txt')) -eq 'keep') 'Installer removed existing folder'
 }
 Write-Host "Integration results: $passed passed, $failures failed. Fixtures: $base"

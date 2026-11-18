@@ -1,9 +1,13 @@
 name: Windows skills synchronization
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 permissions:
   contents: read
 jobs:
   test:
+    name: test (${{ matrix.shell }})
     runs-on: windows-latest
     timeout-minutes: 10
     strategy:
@@ -19,3 +23,43 @@ jobs:
       - name: CLI, watcher, mocked scheduler and local Git integration
         shell: ${{ matrix.shell }}
         run: ./tests/windows-integration.tests.ps1
+      - name: Session decisions, background preparation and crash recovery
+        shell: ${{ matrix.shell }}
+        run: ./tests/update-coordinator.tests.ps1
+      - name: Public release policy regression cases
+        shell: ${{ matrix.shell }}
+        run: ./tests/release-policy.tests.ps1
+      - name: Check the exact committed public package
+        shell: ${{ matrix.shell }}
+        run: ./scripts/check-release.ps1 -Commit $env:GITHUB_SHA
+  promote:
+    needs: test
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    concurrency:
+      group: promote-stable
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Promote only this tested SHA without forcing the channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          current="$(git ls-remote origin refs/heads/stable | awk '{print $1}')"
+          if [ -n "$current" ]; then
+            [[ "$current" =~ ^[a-f0-9]{40}$ ]]
+            git fetch origin refs/heads/stable
+            if git merge-base --is-ancestor "$GITHUB_SHA" "$current"; then
+              echo 'Stable already contains this tested commit; no downgrade.'
+              exit 0
+            fi
+            git merge-base --is-ancestor "$current" "$GITHUB_SHA"
+          fi
+          git push origin "$GITHUB_SHA:refs/heads/stable"
