@@ -13,25 +13,37 @@ jobs:
     strategy:
       matrix:
         shell: [powershell, pwsh]
+    env:
+      AGENT_OPS_TEST_SHELL: ${{ matrix.shell }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Engine, full rescue and filesystem safety
-        shell: ${{ matrix.shell }}
-        run: ./tests/skills-sync.tests.ps1 -IncludeLinkTest
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/skills-sync.tests.ps1 -IncludeLinkTest
+          exit $LASTEXITCODE
       - name: CLI, watcher, mocked scheduler and local Git integration
-        shell: ${{ matrix.shell }}
-        run: ./tests/windows-integration.tests.ps1
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/windows-integration.tests.ps1
+          exit $LASTEXITCODE
       - name: Session decisions, background preparation and crash recovery
-        shell: ${{ matrix.shell }}
-        run: ./tests/update-coordinator.tests.ps1
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/update-coordinator.tests.ps1
+          exit $LASTEXITCODE
       - name: Public release policy regression cases
-        shell: ${{ matrix.shell }}
-        run: ./tests/release-policy.tests.ps1
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/release-policy.tests.ps1
+          exit $LASTEXITCODE
       - name: Check the exact committed public package
-        shell: ${{ matrix.shell }}
-        run: ./scripts/check-release.ps1 -Commit $env:GITHUB_SHA
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-release.ps1 -Commit $env:GITHUB_SHA
+          exit $LASTEXITCODE
   promote:
     needs: test
     if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
