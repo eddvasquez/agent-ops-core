@@ -9,3 +9,19 @@ desktop.ini
 .last_sync
 .tmp/
 scratch/
+
+# Public framework allowlist. Personal skills stay local, outside the package.
+/skills/*
+!/skills/dev-systematic-debugging/
+!/skills/dev-tdd/
+!/skills/ops-git-worktrees/
+!/skills/ops-project-init/
+!/skills/ops-project-migrate/
+!/skills/ops-session-handoff/
+!/skills/scripts/
+!/skills/pull_replica_to_hub.bat
+!/skills/setup_ai_skills_machine.bat
+!/skills/setup_antigravity_machine.bat
+!/skills/sync_antigravity_junctions.bat
+__pycache__/
+*.py[cod]

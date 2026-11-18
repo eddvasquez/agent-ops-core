@@ -1,70 +1,36 @@
-# update.ps1 - Actualizador de Agent Ops Core (Windows)
-[CmdletBinding()]
-param(
-    [switch]$Force
-)
-
-$ErrorActionPreference = "Stop"
-$RepoDir = Join-Path $HOME ".agent-ops"
-$TimestampFile = Join-Path $RepoDir ".last_update_check"
-
-if (-not (Test-Path $RepoDir)) {
-    Write-Host "[!] No se encontro el directorio $RepoDir. Ejecute primero install.ps1." -ForegroundColor Yellow
-    exit 0
-}
-
-# Verificacion de intervalo de 24 horas a menos que se use -Force
-if (-not $Force -and (Test-Path $TimestampFile)) {
-    $LastCheck = Get-Item $TimestampFile | Select-Object -ExpandProperty LastWriteTime
-    if ((Get-Date) - $LastCheck -lt [TimeSpan]::FromHours(24)) {
-        Write-Host "[-] Verificacion omitida: ya se actualizo hace menos de 24h ($LastCheck)." -ForegroundColor Gray
-        exit 0
-    }
-}
-
-Write-Host "[*] Comprobando actualizaciones de Agent Ops Core desde GitHub..." -ForegroundColor Cyan
-
+[CmdletBinding(SupportsShouldProcess=$true)]
+param([switch]$Force,[string]$ConfigPath=(Join-Path $env:LOCALAPPDATA 'AgentOps/watch-config.json'))
+$ErrorActionPreference='Stop'
+$updateMutex=$null;$ownsUpdateMutex=$false
 try {
-    Push-Location $RepoDir
-    $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    git pull --ff-only
-    $exitCode = $LASTEXITCODE
-    $ErrorActionPreference = $prevEAP
-    Pop-Location
-
-    if ($exitCode -ne 0) {
-        throw "git pull finalizo con codigo de error $exitCode"
+    $cfg=Get-Content -LiteralPath $ConfigPath -Raw|ConvertFrom-Json
+    $repoDir=[IO.Path]::GetFullPath([string]$cfg.FrameworkDir)
+    if(-not $PSCmdlet.ShouldProcess($repoDir,'Update framework and reconcile skills')){exit 0}
+    Import-Module (Join-Path $repoDir 'scripts/SkillsSync.psm1') -Force
+    $invoke=@{HubDir=[string]$cfg.HubDir;Targets=[string[]]$cfg.Targets;StateDir=[string]$cfg.StateDir;FrameworkDir=$repoDir}
+    Get-SkillSyncConfiguration @invoke|Out-Null
+    $updateMutex=New-Object Threading.Mutex($false,('Local\AgentOpsSkillsSync-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
+    try{$ownsUpdateMutex=$updateMutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$ownsUpdateMutex=$true}
+    if(-not $ownsUpdateMutex){Write-Host 'Another skills operation is running.';exit 3}
+    $timestamp=Join-Path $repoDir '.last_update_check';$checkGit=$true
+    if(-not $Force -and (Test-Path -LiteralPath $timestamp)) {
+        $last=[datetime]::Parse([IO.File]::ReadAllText($timestamp),[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::RoundtripKind)
+        $checkGit=([datetime]::UtcNow-$last.ToUniversalTime()).TotalHours -ge 24
     }
-
-    # Registrar timestamp de verificacion
-    Set-Content -Path $TimestampFile -Value (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ") -Encoding UTF8
-
-    $SkillsSource = Join-Path $RepoDir "skills"
-    if (-not (Test-Path $SkillsSource)) {
-        Write-Host "[-] No hay skills en $SkillsSource." -ForegroundColor Yellow
-        exit 0
+    if($checkGit) {
+        & git -C $repoDir diff --quiet
+        if($LASTEXITCODE -ne 0){throw 'Tracked local edits found. Refusing automatic Git update.'}
+        & git -C $repoDir diff --cached --quiet
+        if($LASTEXITCODE -ne 0){throw 'Staged local edits found. Refusing automatic Git update.'}
+        & git -C $repoDir pull --ff-only
+        if($LASTEXITCODE -ne 0){throw 'Git pull failed; update not marked successful.'}
+        Import-Module (Join-Path $repoDir 'scripts/SkillsSync.psm1') -Force
     }
-
-    $Targets = @(
-        (Join-Path $HOME ".gemini\config\skills"),
-        (Join-Path $HOME ".claude\skills"),
-        (Join-Path $HOME ".agents\skills")
-    )
-
-    $Skills = Get-ChildItem -Directory $SkillsSource
-    foreach ($target in $Targets) {
-        if (-not (Test-Path $target)) {
-            New-Item -ItemType Directory -Path $target -Force | Out-Null
-        }
-        foreach ($skill in $Skills) {
-            $dest = Join-Path $target $skill.Name
-            robocopy $skill.FullName $dest /MIR /XO /R:1 /W:1 /NJH /NJS /NDL /NC /NS | Out-Null
-        }
-    }
-
-    Write-Host "[+] Agent Ops Core verificado y sincronizado correctamente." -ForegroundColor Green
-}
-catch {
-    Write-Host "[!] Advertencia: No se pudo conectar a GitHub o falló la actualizacion: $($_.Exception.Message)" -ForegroundColor Yellow
-}
+    # Always reconcile local edits, even if the Git interval has not elapsed.
+    $r=Invoke-SkillSync @invoke -Mode Apply
+    if($r.Code -eq 0 -and $checkGit){[IO.File]::WriteAllText($timestamp,[datetime]::UtcNow.ToString('o'))}
+    Write-Host ("Update: code={0}; copies={1}; conflicts={2}; pending deletions={3}" -f $r.Code,$r.Copied,$r.Conflicts.Count,$r.Deletions.Count)
+    foreach($issue in $r.Issues){Write-Host $issue -ForegroundColor Red}
+    exit $r.Code
+}catch{Write-Host ('Update failed: '+$_.Exception.Message) -ForegroundColor Red;exit 1}
+finally{if($ownsUpdateMutex){$updateMutex.ReleaseMutex()};if($updateMutex){$updateMutex.Dispose()}}

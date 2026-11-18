@@ -1,0 +1,21 @@
+name: Windows skills synchronization
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        shell: [powershell, pwsh]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Engine, full rescue and filesystem safety
+        shell: ${{ matrix.shell }}
+        run: ./tests/skills-sync.tests.ps1 -IncludeLinkTest
+      - name: CLI, watcher, mocked scheduler and local Git integration
+        shell: ${{ matrix.shell }}
+        run: ./tests/windows-integration.tests.ps1

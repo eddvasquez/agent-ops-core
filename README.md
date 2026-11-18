@@ -55,6 +55,8 @@ Por favor realiza lo siguiente de forma estricta:
 
 ### Instalación Permanente en tu Computadora (1 Solo Comando)
 
+En Windows, el marco público, el hub personal y los respaldos se mantienen en ubicaciones separadas. La instalación activa un vigilante al iniciar sesión y una actualización diaria. Consulta las reglas de rescate íntegro, conflictos, borrados y recuperación en [Sincronización segura de skills en Windows](docs/skills-sync-windows.md). Los instaladores de macOS y Linux conservan su implementación anterior y están pendientes de una revisión equivalente.
+
 Para que todos los agentes de IA de tu equipo (**Claude Code**, **Antigravity**, **Gemini CLI** y **OpenAI Codex**) compartan automáticamente las 6 habilidades maestras en cualquier proyecto sin tener que configurar nada más, ejecuta este comando en tu terminal una sola vez:
 
 * **En Windows (PowerShell):**
@@ -70,7 +72,7 @@ Para que todos los agentes de IA de tu equipo (**Claude Code**, **Antigravity**,
 > **Aprovisionamiento Preventivo y Cero Pérdida de Habilidades:**
 > - **Listo para Nuevas IAs en el Futuro:** Aunque hoy utilices únicamente una sola herramienta (por ejemplo, Antigravity o Claude Code), el instalador deja preparadas preventivamente las rutas globales de los demás proveedores (`~/.gemini/config/skills`, `~/.claude/skills` y `~/.agents/skills`). Si dentro de semanas o meses instalas otra aplicación de IA, esta despertará de inmediato equipada con toda la gobernanza y habilidades sin requerir que reinstales ni reconfigures nada.
 > - **Protocolo de Cosecha Previa (*Harvest-First*):** Si ya tenías habilidades personalizadas creadas previamente en cualquiera de tus herramientas de IA, el sistema las detecta y absorbe de forma segura hacia tu bóveda central antes de sincronizar, garantizando que nunca se sobreescriba ni se pierda ninguna habilidad preexistente.
-> - **Sincronización Silenciosa:** Detecta automáticamente si cuentas con Google Drive o almacenamiento cloud configurado y programa una actualización diaria automática sin interrumpir tu jornada.
+> - **Sincronización en Windows:** El vigilante y la tarea diaria usan un motor común con comparación SHA-256, respaldos verificables y conflictos explícitos. Los respaldos son locales; configura por separado el respaldo externo o en la nube.
 
 ---
 
