@@ -13,7 +13,10 @@ $ErrorActionPreference='Stop';$updateLock=$null;$syncLock=$null;$updateOwned=$fa
 try{
     if(-not $RuntimeDir){$RuntimeDir=$StateDir+'-runtime'}
     $TargetDir=[IO.Path]::GetFullPath($TargetDir).TrimEnd('\','/')
-    if(-not $PSCmdlet.ShouldProcess($TargetDir,'Install stable bootstrap and verified runtime')){exit 0}
+    # Invoke-Expression does not bind an advanced-script cmdlet context.
+    if($PSCmdlet){
+        if(-not $PSCmdlet.ShouldProcess($TargetDir,'Install stable bootstrap and verified runtime')){exit 0}
+    }elseif($WhatIfPreference){Write-Host ('What if: install verified runtime at '+$TargetDir);exit 0}
     if($RepoUrl -match '^https://'){$uri=[uri]$RepoUrl;if($uri.UserInfo -or $uri.Query -or $uri.Fragment){throw 'Do not embed credentials in repository URLs.'}}
     elseif(-not $LocalDevelopment -or -not [IO.Path]::IsPathRooted($RepoUrl)){throw 'Managed installs require HTTPS; local sources require explicit -LocalDevelopment.'}
     $paths=@($TargetDir,$StateDir,$RuntimeDir,$HubDir)+@($Targets)

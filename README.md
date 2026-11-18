@@ -61,7 +61,7 @@ Para que todos los agentes de IA de tu equipo (**Claude Code**, **Antigravity**,
 
 * **En Windows (PowerShell):**
   ```powershell
-  irm https://raw.githubusercontent.com/eddvasquez/agent-ops-core/stable/install.ps1 | iex
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/eddvasquez/agent-ops-core/stable/install.ps1 | iex"
   ```
 * **En macOS y Linux (Terminal):**
   ```bash

@@ -15,6 +15,17 @@ function Config {
     return @{HubDir=(Join-Path $root 'hub'); Targets=@((Join-Path $root 'target')); StateDir=(Join-Path $root 'state'); FrameworkDir=''}
 }
 function Seed($p){[IO.Directory]::CreateDirectory((Join-Path $p.HubDir 'demo'))|Out-Null; [IO.File]::WriteAllText((Join-Path $p.HubDir 'demo/SKILL.md'),'base')}
+Test 'downloaded installer via IEX reaches URL validation without a null cmdlet' {
+    # Invalid source stops before Git, task registration or profile writes.
+    $sourcePath=(Join-Path $repo 'install.ps1').Replace("'","''")
+    $body="Invoke-Expression ([IO.File]::ReadAllText('$sourcePath').Replace('https://github.com/eddvasquez/agent-ops-core.git','invalid-fixture'))"
+    $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
+    $output=& (Get-Process -Id $PID).Path -NoProfile -EncodedCommand $encoded 2>&1|Out-String
+    Assert ($LASTEXITCODE -eq 1 -and $output -match 'Managed installs require HTTPS' -and $output -notmatch 'NULL') ('IEX entry failed before URL validation: '+$output)
+    $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes(('$WhatIfPreference=$true;'+$body)))
+    $output=& (Get-Process -Id $PID).Path -NoProfile -EncodedCommand $encoded 2>&1|Out-String
+    Assert ($LASTEXITCODE -eq 0 -and $output -match 'What if:' -and $output -notmatch 'Managed installs require HTTPS') 'IEX ignored inherited WhatIf preference'
+}
 Test 'standalone CLIs resolve default framework paths before doing any work' {
     $p=Config;$engine=(Get-Process -Id $PID).Path
     $json=& $engine -NoProfile -ExecutionPolicy Bypass -File $cli -HubDir $p.HubDir -Targets $p.Targets[0] -StateDir $p.StateDir -Mode Plan -WhatIf -Json|Out-String
