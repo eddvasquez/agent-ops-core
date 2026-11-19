@@ -2,7 +2,7 @@
 Set-StrictMode -Version 2
 $script:engine=Import-Module (Join-Path $PSScriptRoot 'SkillsSync.psm1') -Force -PassThru
 $script:coordinator=Import-Module (Join-Path $PSScriptRoot 'UpdateCoordinator.psm1') -Force -PassThru
-$script:keys=@('AGENTS.md','.context/projectbrief.md','.context/systemPatterns.md','.context/activeContext.md','.context/progress.md','.context/lessons_learned.md','CHANGELOG.md')
+$script:keys=@('AGENTS.md','.context/projectbrief.md','.context/systemPatterns.md','.context/activeContext.md','.context/progress.md','.context/lessons_learned.md','.context/reglas_proyecto.md','CHANGELOG.md')
 function Pm-Root($p){& $script:engine {param($p) Get-SyncRoot $p} $p}
 function Pm-Child($p,$k){& $script:engine {param($p,$k) Get-SyncChild $p $k} $p $k}
 function Pm-Hash($p){if([IO.File]::Exists($p)){& $script:engine {param($p) Get-SyncHash $p} $p}else{'-'}}

@@ -1,13 +1,13 @@
 # Protocolo de Operación de Agentes (Arquitectura v2 Universal)
 
-Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini, OpenAI Codex, ChatGPT Desktop) que opere en este repositorio debe cumplir de forma estricta e innegociable con los siguientes protocolos:
+Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini, OpenAI Codex, ChatGPT Desktop, Hermes o cualquier otro arnés que trabaje con proyectos locales) que opere en este repositorio debe cumplir de forma estricta e innegociable con los siguientes protocolos:
 
 ---
 
 ### Protocolo 1 (Inicio de Sesión y Auditoría Git - MODO ENTRADA)
 - Al iniciar cualquier turno sobre el proyecto, es mandatorio invocar la skill `ops-session-handoff` (o `ops-gestion-relevo`) bajo **MODO ENTRADA**.
 - En Windows, su Paso 0 comprueba el canal estable mediante el punto de entrada instalado. Si hay una candidata verificada, presentar versión, cambios y estimación y respetar la elección de actualizar ahora, preparar para la próxima sesión o posponer. Esta decisión autoriza únicamente la actualización del marco global, no cambios en los archivos del proyecto. No sustituir el mecanismo por un `git pull` directo.
-- Lee `AGENTS.md`, todos los archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`) y las skills disponibles en tus aplicaciones de IA.
+- Lee `AGENTS.md`, todos los archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`, `reglas_proyecto.md`) y las skills disponibles en tus aplicaciones de IA.
 - Ejecuta una auditoría física en Git (`git status -s`, `git log -n 3 --oneline`, `git diff --stat`).
 - **Resolución de discrepancias:** En caso de existir cualquier contradicción entre el texto de `.context/activeContext.md` y el estado real del árbol de trabajo en Git, **prevalece siempre la evidencia física de Git**.
 - Emite el reporte de sincronización de 5 puntos y **detente a esperar la confirmación explícita del usuario** antes de tocar archivos o escribir código.
@@ -17,7 +17,9 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 ### Protocolo 2 (Cero Suposiciones y Memoria Cruda)
 - Está terminantemente prohibido adivinar requerimientos, suponer dependencias o inventar credenciales.
 - Cuando falte información crítica o existan ambigüedades, formula preguntas concisas y bloqueantes.
-- Toda corrección, rechazo de enfoque o directriz permanente expresada por el usuario debe registrarse de inmediato en `.context/lessons_learned.md` con fecha, error original y regla corregida.
+- Toda corrección, rechazo de enfoque o directriz permanente expresada por el usuario se registra de inmediato:
+  - como regla aplicable en `.context/reglas_proyecto.md` (Protocolo 8);
+  - y, si aporta contexto útil, como entrada histórica en `.context/lessons_learned.md`, con fecha, error original y regla corregida.
 
 ---
 
@@ -62,3 +64,17 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 - **Despliegues fuera de Git** (WordPress en vivo, GTM, Google Ads, Kiral…): registrar en `CHANGELOG.md` la versión desplegada, el destino, la fecha y la verificación. Sin entrada no hay despliegue.
 - **Lectura del changelog:** solo al editar el artefacto (`[Unreleased]` y la última versión) o al auditar diferencias entre versiones. No forma parte de MODO ENTRADA.
 - **Verificación:** `& "$ActivePath/scripts/check-versioning.ps1" -RepositoryPath <repo>` debe devolver código `0` antes de cada commit; en CI, con `-Base <commit anterior> -Head <commit>`.
+
+---
+
+### Protocolo 8 (Reglas del Proyecto y Compuerta de Cumplimiento)
+- **Fuente de verdad:** `.context/reglas_proyecto.md` reúne las correcciones, prohibiciones y requisitos del proyecto y de su cliente. Prevalece sobre las skills, sobre ejemplos anteriores y sobre lo que se recuerde de la conversación. `lessons_learned.md` es solo el historial.
+- **Captura inmediata:** cuando el usuario corrija, rechace o pida eliminar algo, registrar la regla **en ese mismo turno, antes de continuar**, y confirmarlo en una línea ("Registrada R-NNN: …"). Si no queda escrita, la corrección no existe para la próxima conversación.
+- **Nivel correcto:** redactar la regla para el proyecto, no para el entregable. "No afirmar X" en lugar de "quitar X del hero". El ámbito por defecto es `todas`; restringirlo (`landing`, `anuncios`…) solo cuando el usuario lo indique.
+- **Cambios por delta:** añadir, modificar o retirar reglas por su ID (`[estado: retirada]`). Nunca reescribir ni resumir el archivo entero, porque se perderían detalles.
+- **Inyección en el momento de uso:** releer `reglas_proyecto.md` justo antes de producir cualquier entregable (copy, anuncios, landing, guion, código, contenido) y de nuevo antes de entregarlo. También tras una compactación o un resumen de la conversación.
+- **Compuerta antes de entregar:**
+  1. Ejecutar `& "$ActivePath/scripts/check-rules.ps1" -RulesPath .context/reglas_proyecto.md -Path <entregable o carpeta> -Scope <ámbito>` y corregir hasta obtener código `0`.
+  2. Revisar a mano las reglas que el verificador devuelve en `ReviewRules`, las que no se pueden comprobar con un patrón.
+  3. Indicar al entregar que la compuerta pasó.
+- **Universal:** este protocolo se basa solo en archivos del proyecto y en un script de terminal. Se aplica igual en cualquier arnés de IA.

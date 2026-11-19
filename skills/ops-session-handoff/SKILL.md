@@ -1,6 +1,6 @@
 ---
 name: ops-session-handoff
-version: 1.0.0
+version: 1.1.0
 description: Protocolo de Recepción (MODO ENTRADA) y Cierre de Turno (MODO SALIDA) con auditoría Git, actualizaciones verificadas al inicio de sesión y mandato anti-racionalización.
 triggers:
   - "ops-session-handoff"
@@ -33,7 +33,7 @@ La decisión de actualización de este paso autoriza únicamente los cambios del
 Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquier chat requiere soporte del anfitrión. La tarea diaria solo comprueba novedades y no sustituye la decisión del usuario. macOS/Linux conservan su mecanismo anterior, pendiente de revisión equivalente.
 
 ### Paso 1: Lectura de Contexto y Mandato Anti-Racionalización
-1. Lee `AGENTS.md` y los 5 archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`).
+1. Lee `AGENTS.md` y los archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`, `reglas_proyecto.md`). Lee `reglas_proyecto.md` completo: sus reglas activas gobiernan todo entregable de la sesión (Protocolo 8).
 2. Revisa las skills disponibles en tu arnés activo (`.gemini`, `.claude`, `.agents`). Aplica el **Principio Anti-Racionalización**:
    - Si la tarea involucra investigar o corregir un error: es **mandatorio** invocar `dev-systematic-debugging` (prohibido parchar a ciegas).
    - Si involucra diseñar o construir componentes de software: es **mandatorio** invocar `dev-tdd` (Red-Green-Refactor).
@@ -47,7 +47,7 @@ Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquie
 ### Paso 3: Entrega del Reporte de 5 Puntos
 Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explícito del usuario**:
 1. **Auditoría Git vs. Contexto:** Estado real del repositorio frente a `activeContext.md`.
-2. **Reglas Activas:** Restricciones clave de `systemPatterns.md` y `lessons_learned.md`.
+2. **Reglas Activas:** Las reglas activas de `reglas_proyecto.md`, por ID y en una línea cada una (si son muchas, las que afectan al trabajo previsto y el total), más las restricciones clave de `systemPatterns.md`.
 3. **Skills Aplicables:** Qué skills gobernarán la sesión (declarando explícitamente `dev-systematic-debugging` o `dev-tdd` si corresponde).
 4. **Siguiente Paso Ejecutable:** Qué acción exacta y archivo tocarás inmediatamente tras recibir el "OK".
 5. **Dudas Bloqueantes:** Preguntas concisas si falta información crítica.
@@ -55,7 +55,10 @@ Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explíc
 ---
 
 ## MODO B: CIERRE DE TURNO (`MODO SALIDA`)
-1. **Registrar Lecciones:** Escribir cualquier corrección o aprendizaje en `.context/lessons_learned.md`.
+1. **Registrar Correcciones y Lecciones:**
+   - Repasar la sesión y comprobar que **cada** corrección, rechazo o pedido del usuario o del cliente tiene su regla en `.context/reglas_proyecto.md` (Protocolo 8). Registrar las que falten antes de seguir.
+   - Escribir en `.context/lessons_learned.md` el contexto histórico que aporte valor.
+   - Si en la sesión se produjeron entregables, confirmar que pasaron `check-rules.ps1`.
 2. **Auditoría Objetiva de Progreso:** Marcar en `.context/progress.md` las tareas terminadas (`[x]`) **únicamente si cuentan con evidencia objetiva de verificación** (pruebas ejecutadas en verde o verificación física confirmada).
 3. **Actualización Quirúrgica de Contexto:** Actualizar `.context/activeContext.md` con:
    - Agente activo y fecha.

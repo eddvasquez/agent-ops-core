@@ -28,7 +28,8 @@ Test 'missing configuration never creates a fallback hub' {
 }
 Test 'plan and WhatIf leave project and state unchanged; apply is repeatable' {
     $f=Fixture;$r=Invoke-ProjectMigration @f
-    Assert ($r.Code -eq 0 -and $r.Actions.Count -eq 7 -and -not (Test-Path (Join-Path $f.ProjectPath 'AGENTS.md'))) 'Plan wrote files'
+    Assert ($r.Code -eq 0 -and $r.Actions.Count -eq 8 -and -not (Test-Path (Join-Path $f.ProjectPath 'AGENTS.md'))) 'Plan wrote files'
+    Assert (@($r.Actions|Where-Object {$_.Key -eq '.context/reglas_proyecto.md'}).Count -eq 1) 'Plan does not create the project rules registry'
     Assert (@($r.Actions|Where-Object {$_.Key -eq 'CHANGELOG.md'}).Count -eq 1) 'Plan does not create CHANGELOG.md'
     Invoke-ProjectMigration @f -Mode Apply -WhatIf|Out-Null
     Assert (-not (Test-Path (Join-Path (Split-Path $f.ConfigPath) 'migrations'))) 'WhatIf wrote private state'
@@ -42,6 +43,13 @@ Test 'an existing CHANGELOG.md is preserved byte for byte' {
     $r=Invoke-ProjectMigration @f -Mode Apply
     Assert ($r.Code -eq 0 -and @($r.Actions|Where-Object {$_.Key -eq 'CHANGELOG.md'}).Count -eq 0) ($r|ConvertTo-Json -Depth 5)
     Assert (([BitConverter]::ToString([IO.File]::ReadAllBytes($log))) -eq '23-0D-0A-58') 'Existing changelog changed'
+}
+Test 'an existing project rules registry is preserved byte for byte' {
+    $f=Fixture;$context=Join-Path $f.ProjectPath '.context';[IO.Directory]::CreateDirectory($context)|Out-Null
+    $rules=Join-Path $context 'reglas_proyecto.md';[IO.File]::WriteAllBytes($rules,[byte[]](82,13,10,49))
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    Assert ($r.Code -eq 0 -and @($r.Actions|Where-Object {$_.Key -eq '.context/reglas_proyecto.md'}).Count -eq 0) ($r|ConvertTo-Json -Depth 5)
+    Assert (([BitConverter]::ToString([IO.File]::ReadAllBytes($rules))) -eq '52-0D-0A-31') 'Existing rules changed'
 }
 Test 'existing rules require a reviewed candidate and an unchanged original hash' {
     $f=Fixture;$agents=Join-Path $f.ProjectPath 'AGENTS.md';[IO.File]::WriteAllText($agents,'My particular rules')

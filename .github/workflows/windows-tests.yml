@@ -45,6 +45,11 @@ jobs:
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/release-policy.tests.ps1
           exit $LASTEXITCODE
+      - name: Project rules compliance gate
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/rules-check.tests.ps1
+          exit $LASTEXITCODE
       - name: Hub reconfiguration
         shell: pwsh
         run: |
