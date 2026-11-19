@@ -10,6 +10,11 @@ desktop.ini
 .tmp/
 scratch/
 
+# Gobernanza local de este checkout: no forma parte del paquete público del marco
+# (la política de publicación la rechazaría). La plantilla pública vive en templates/.
+/AGENTS.md
+/.context/
+
 # Public framework allowlist. Personal skills stay local, outside the package.
 /skills/*
 !/skills/dev-systematic-debugging/

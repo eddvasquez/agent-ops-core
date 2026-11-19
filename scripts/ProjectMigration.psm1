@@ -2,7 +2,7 @@
 Set-StrictMode -Version 2
 $script:engine=Import-Module (Join-Path $PSScriptRoot 'SkillsSync.psm1') -Force -PassThru
 $script:coordinator=Import-Module (Join-Path $PSScriptRoot 'UpdateCoordinator.psm1') -Force -PassThru
-$script:keys=@('AGENTS.md','.context/projectbrief.md','.context/systemPatterns.md','.context/activeContext.md','.context/progress.md','.context/lessons_learned.md')
+$script:keys=@('AGENTS.md','.context/projectbrief.md','.context/systemPatterns.md','.context/activeContext.md','.context/progress.md','.context/lessons_learned.md','CHANGELOG.md')
 function Pm-Root($p){& $script:engine {param($p) Get-SyncRoot $p} $p}
 function Pm-Child($p,$k){& $script:engine {param($p,$k) Get-SyncChild $p $k} $p $k}
 function Pm-Hash($p){if([IO.File]::Exists($p)){& $script:engine {param($p) Get-SyncHash $p} $p}else{'-'}}
@@ -126,10 +126,13 @@ function Invoke-ProjectMigration {
             $texts['AGENTS.md']=$text.TrimEnd()+"`n`n"+$marker+"`n"
         }elseif($r.AgentsHash -eq '-'){$texts['AGENTS.md']=[IO.File]::ReadAllText($template).TrimEnd()+"`n`n"+$marker+"`n"}
         elseif(-not [IO.File]::ReadAllText($agents).Contains($marker)){$r.Code=2;$r.Status='AGENTS_REVIEW_REQUIRED';return [pscustomobject]$r}
-        foreach($key in $script:keys|Where-Object {$_ -ne 'AGENTS.md'}){
+        foreach($key in $script:keys|Where-Object {$_ -like '.context/*'}){
             $path=Pm-Child $project $key
             if(-not [IO.File]::Exists($path)){$texts[$key]=[IO.File]::ReadAllText((Pm-Child $frame ('templates/context/'+[IO.Path]::GetFileName($key))))}
         }
+        # Protocol 7: every project keeps a changelog; an existing one is never touched.
+        $changelogTemplate=Pm-Child $frame 'templates/CHANGELOG.md'
+        if([IO.File]::Exists($changelogTemplate) -and -not [IO.File]::Exists((Pm-Child $project 'CHANGELOG.md'))){$texts['CHANGELOG.md']=[IO.File]::ReadAllText($changelogTemplate)}
         $patterns=Pm-Child $project '.context/systemPatterns.md'
         if([IO.File]::Exists($patterns)){
             $text=[IO.File]::ReadAllText($patterns)

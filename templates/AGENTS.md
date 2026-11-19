@@ -46,5 +46,19 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 - Actualizar `.context/lessons_learned.md` si hubo aprendizajes o correcciones.
 - Actualizar `.context/progress.md` marcando con `[x]` **únicamente hitos comprobados objetivamente** mediante pruebas ejecutadas en verde o verificación física.
 - Actualizar `.context/activeContext.md` indicando con precisión quirúrgica: último archivo modificado, estado de revisión/errores y el siguiente paso ejecutable inmediato para el próximo relevo.
-- Realizar el commit atómico de relevo: `git add .` -> esperar 1 segundo para liberar bloqueos en nube -> `git commit -m "chore(relevo): actualizar activeContext y progreso de sesion"`.
+- Ejecutar el verificador de versionado (Protocolo 7) y corregir cualquier fallo antes de commitear.
+- **Commits separados:** primero los cambios funcionales, con su entrada de changelog y un mensaje Conventional Commits; después el commit de relevo, que solo contiene `.context/`. Prohibido `git add .` o `git add -A`: añadir rutas explícitas (`git add -- <rutas>`).
+- Commit de relevo: `git add -- .context` -> esperar 1 segundo para liberar bloqueos en nube -> `git commit -m "chore(relevo): actualizar activeContext y progreso de sesion"`.
 - *Una vez actualizado activeContext y efectuado el commit, el agente no debe ejecutar código adicional en ese turno.*
+
+---
+
+### Protocolo 7 (Versionado Semántico y Trazabilidad de Cambios)
+- **Unidad versionable:** todo artefacto entregable (proyecto, tema o plugin de WordPress, skill, script independiente) declara su versión SemVer `MAJOR.MINOR.PATCH` en su lugar natural: `VERSION` o `package.json`/`pyproject.toml` (proyecto), cabecera `Version:` de `style.css` o del archivo principal (WordPress), `version:` en el frontmatter de `SKILL.md` (skill). Nunca en el nombre del archivo (Protocolo 5).
+- **SemVer:** MAJOR rompe un contrato (flags, formato de salida, API, comportamiento esperado del agente); MINOR añade capacidad compatible; PATCH corrige sin cambiar el contrato.
+- **Changelog:** formato Keep a Changelog. Proyecto: `CHANGELOG.md` en la raíz. Skills: `changelogs/<skill>.md` en la raíz del repositorio que las versiona, **nunca dentro de la carpeta de la skill** ni enlazado desde `SKILL.md`, para no consumir contexto al usarla. Todo cambio entregable añade una línea orientada a impacto en `## [Unreleased]` **en el mismo commit**. Conservar como máximo 10 versiones publicadas; las anteriores pasan a `changelogs/archive/`.
+- **Commits:** Conventional Commits con ámbito del artefacto (`feat(<artefacto>): …`, `fix(<artefacto>): …`). `BREAKING CHANGE:` obliga a subir MAJOR.
+- **Publicación:** mover `[Unreleased]` a `## [X.Y.Z] - AAAA-MM-DD`, actualizar la versión declarada y crear un tag anotado: `vX.Y.Z` (proyecto) o `<skill>@vX.Y.Z` (repositorio de skills).
+- **Despliegues fuera de Git** (WordPress en vivo, GTM, Google Ads, Kiral…): registrar en `CHANGELOG.md` la versión desplegada, el destino, la fecha y la verificación. Sin entrada no hay despliegue.
+- **Lectura del changelog:** solo al editar el artefacto (`[Unreleased]` y la última versión) o al auditar diferencias entre versiones. No forma parte de MODO ENTRADA.
+- **Verificación:** `& "$ActivePath/scripts/check-versioning.ps1" -RepositoryPath <repo>` debe devolver código `0` antes de cada commit; en CI, con `-Base <commit anterior> -Head <commit>`.

@@ -6,4 +6,4 @@ Registro inmutable y cronológico de correcciones, directrices del usuario y err
 
 ### [YYYY-MM-DD] Inicialización de Proyecto
 - **Contexto:** Creación del proyecto bajo la arquitectura de gobernanza universal.
-- **Regla Establecida:** Mantener fidelidad a los 6 protocolos de `AGENTS.md`.
+- **Regla Establecida:** Mantener fidelidad a los 7 protocolos de `AGENTS.md`.

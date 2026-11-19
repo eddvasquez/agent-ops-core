@@ -1,5 +1,6 @@
 ---
 name: ops-git-worktrees
+version: 1.0.0
 description: Procedimiento para crear, gestionar y limpiar directorios de trabajo paralelos con git worktree de forma segura en Windows, macOS y Linux sin colisiones ni bloqueos de ramas.
 triggers:
   - "ops-git-worktrees"

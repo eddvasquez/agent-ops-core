@@ -146,7 +146,8 @@ function Up-AllowedFile([string]$path){
         return ($path -match '^skills/scripts/(rescue_local_edits|sync_hub_to_gemini|watch_skills_hub)\.ps1$')
     }
     if($path -match '^skills/'){return $path -match '^skills/(pull_replica_to_hub|setup_ai_skills_machine|setup_antigravity_machine|sync_antigravity_junctions)\.bat$'}
-    return ($path -match '^(scripts|templates|tests|docs|\.github)/' -or $path -in @('.gitignore','README.md','LICENSE','install.ps1','install.sh','update.ps1','update.sh','release-contract.json'))
+    if($path -match '^changelogs/'){return $path -match '^changelogs/(archive/)?[A-Za-z0-9._-]+\.md$'}
+    return ($path -match '^(scripts|templates|tests|docs|\.github)/' -or $path -in @('.gitignore','README.md','LICENSE','install.ps1','install.sh','update.ps1','update.sh','release-contract.json','CHANGELOG.md','VERSION'))
 }
 function Up-ValidateRelease($s,$record){
     if($record.Sha -notmatch '^[a-f0-9]{40}$'){throw 'Invalid release SHA.'}
@@ -577,4 +578,52 @@ function Get-AgentOpsReleasePolicy {
     }catch{$result.Code=1;$result.Issues=@($_.Exception.Message)}
     return [pscustomobject]$result
 }
-Export-ModuleMember -Function Initialize-AgentOpsUpdate,Invoke-AgentOpsUpdate,Get-AgentOpsActiveRelease,Get-AgentOpsReleasePolicy
+function Set-AgentOpsHubDir {
+    # Supported way to move the hub: both watch-config.json and update-state.json change together,
+    # only after a read-only synchronization plan against the new hub reports no conflicts.
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    param([string]$ConfigPath=(Join-Path $env:LOCALAPPDATA 'AgentOps/watch-config.json'),[Parameter(Mandatory=$true)][string]$HubDir)
+    $r=[ordered]@{Code=0;Status='';HubDir=$null;PreviousHubDir=$null;Backup=$null;Conflicts=@();Issues=@()}
+    $update=$null;$sync=$null;$updateOwned=$false;$syncOwned=$false
+    try{
+        $HubDir=[IO.Path]::GetFullPath($HubDir).TrimEnd('\','/');$r.HubDir=$HubDir
+        $configPath=[IO.Path]::GetFullPath($ConfigPath);$stateDir=Split-Path -Parent $configPath
+        $statePath=Join-Path $stateDir 'update-state.json'
+        $syncConfig=Up-Read $configPath
+        # A switch interrupted between both files is resumable, but only towards the same hub.
+        try{$s=Up-State $configPath}catch{
+            if($_.Exception.Message -notmatch 'Synchronization configuration changed'){throw}
+            if($syncConfig.HubDir -ne $HubDir){throw 'watch-config.json already points to a different hub; review it before switching.'}
+            $s=Up-Read $statePath
+        }
+        $r.PreviousHubDir=$s.Config.HubDir
+        if($s.Config.HubDir -eq $HubDir -and $syncConfig.HubDir -eq $HubDir){$r.Status='UNCHANGED';return [pscustomobject]$r}
+        if(-not [IO.Directory]::Exists($HubDir)){throw "Hub directory does not exist: $HubDir"}
+        $candidate=@{}+$s.Config;$candidate.HubDir=$HubDir;Up-Paths $candidate
+        if([IO.File]::Exists((Join-Path $stateDir 'activation-pending.json'))){$r.Code=2;$r.Status='ACTIVATION_REVIEW_REQUIRED';return [pscustomobject]$r}
+        $update=Up-Mutex 'Update';$updateOwned=Up-Lock $update 10000
+        $sync=Up-Mutex 'SkillsSync';$syncOwned=Up-Lock $sync 10000
+        if(-not $updateOwned -or -not $syncOwned){$r.Code=3;$r.Status='BUSY';return [pscustomobject]$r}
+        $framework=if($syncConfig.FrameworkDir){[string]$syncConfig.FrameworkDir}else{$s.Config.InstallRoot}
+        $plan=& $script:library {param($h,$t,$d,$f) Invoke-SkillSync -HubDir $h -Targets $t -StateDir $d -FrameworkDir $f -Mode Plan -WhatIf} $HubDir ([string[]]$s.Config.Targets) $stateDir $framework
+        if($plan.Code -ne 0 -or @($plan.Conflicts).Count -or @($plan.Issues).Count){
+            $r.Code=2;$r.Status='REVIEW_REQUIRED';$r.Conflicts=@($plan.Conflicts);$r.Issues=@($plan.Issues);return [pscustomobject]$r
+        }
+        if(-not $PSCmdlet.ShouldProcess($HubDir,'Switch the skills hub')){$r.Status='WHAT_IF';return [pscustomobject]$r}
+        $backup=Join-Path $stateDir ('hub-switch/'+(Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssfff')+'-'+[guid]::NewGuid().ToString('N').Substring(0,8))
+        [IO.Directory]::CreateDirectory($backup)|Out-Null
+        Copy-Item -LiteralPath $configPath -Destination (Join-Path $backup 'watch-config.json')
+        Copy-Item -LiteralPath $statePath -Destination (Join-Path $backup 'update-state.json')
+        $r.Backup=$backup
+        & $script:library {param($h,$t,$d,$f) Save-SkillSyncConfiguration -HubDir $h -Targets $t -StateDir $d -FrameworkDir $f} $HubDir ([string[]]$s.Config.Targets) $stateDir $framework|Out-Null
+        $s.Config.HubDir=$HubDir;Up-Save $s
+        Up-State $configPath|Out-Null
+        $r.Status='RECONFIGURED'
+    }catch{$r.Code=1;$r.Status='FAILED';$r.Issues=@($_.Exception.Message)}
+    finally{
+        if($syncOwned){$sync.ReleaseMutex()};if($sync){$sync.Dispose()}
+        if($updateOwned){$update.ReleaseMutex()};if($update){$update.Dispose()}
+    }
+    return [pscustomobject]$r
+}
+Export-ModuleMember -Function Initialize-AgentOpsUpdate,Invoke-AgentOpsUpdate,Get-AgentOpsActiveRelease,Get-AgentOpsReleasePolicy,Set-AgentOpsHubDir

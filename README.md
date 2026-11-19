@@ -108,7 +108,7 @@ Cuando la IA arranca tu proyecto mediante `ops-project-init`, genera automática
 ```text
 📁 Tu-Carpeta-Cloud/ (Google Drive / OneDrive / Dropbox)
   └── 📁 nombre-del-proyecto/              <- Carpeta raíz aislada de tu proyecto o cliente
-      ├── 📄 AGENTS.md                     <- Para la IA: el reglamento operativo (los 6 protocolos innegociables)
+      ├── 📄 AGENTS.md                     <- Para la IA: el reglamento operativo (los 7 protocolos innegociables)
       │
       ├── 📁 .context/                     <- Exclusivo de la IA: el archivador inteligente (las 5 libretas que no debes tocar a mano)
       │   ├── 📄 projectbrief.md           <- Misión, cliente, objetivos del negocio y requerimientos

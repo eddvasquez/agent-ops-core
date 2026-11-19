@@ -41,4 +41,22 @@ $blob=('outside-fixture'|git -C $root hash-object -w --stdin)
 & git -C $root -c user.name=Tests -c user.email=tests@localhost commit -q -m link
 if((Get-AgentOpsReleasePolicy -RepositoryPath $root -Commit HEAD).Code -eq 0){throw 'Symbolic link accepted'}
 Write-Host 'PASS release policy rejects links without following them'
-Write-Host "Release policy: 5 passed. Fixture: $root"
+& git -C $root checkout -q -b versioning-test $good
+[IO.File]::WriteAllText((Join-Path $root 'CHANGELOG.md'),"# Changelog`n`n## [Unreleased]`n")
+[IO.File]::WriteAllText((Join-Path $root 'VERSION'),'1.0.0')
+[IO.Directory]::CreateDirectory((Join-Path $root 'changelogs/archive'))|Out-Null
+[IO.File]::WriteAllText((Join-Path $root 'changelogs/dev-tdd.md'),"# Changelog`n`n## [Unreleased]`n")
+[IO.File]::WriteAllText((Join-Path $root 'changelogs/archive/dev-tdd.md'),"# Archive`n")
+& git -C $root add -- CHANGELOG.md VERSION changelogs
+& git -C $root -c user.name=Tests -c user.email=tests@localhost commit -q -m versioning
+$v=Get-AgentOpsReleasePolicy -RepositoryPath $root -Commit HEAD
+if($v.Code -ne 0){throw ('Versioning files rejected: '+($v.Issues -join '; '))}
+Write-Host 'PASS release policy accepts CHANGELOG.md, VERSION and changelogs/'
+& git -C $root checkout -q -b private-changelog-test $good
+[IO.Directory]::CreateDirectory((Join-Path $root 'changelogs'))|Out-Null
+[IO.File]::WriteAllText((Join-Path $root 'changelogs/private-token.json'),'{}')
+& git -C $root add -- changelogs
+& git -C $root -c user.name=Tests -c user.email=tests@localhost commit -q -m badlog
+if((Get-AgentOpsReleasePolicy -RepositoryPath $root -Commit HEAD).Code -eq 0){throw 'Non-markdown changelog file accepted'}
+Write-Host 'PASS release policy rejects non-markdown files under changelogs/'
+Write-Host "Release policy: 7 passed. Fixture: $root"

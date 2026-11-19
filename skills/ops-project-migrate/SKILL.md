@@ -1,5 +1,6 @@
 ---
 name: ops-project-migrate
+version: 1.0.0
 description: Evalúa y migra proyectos existentes a Agent Ops Core mediante un ejecutor verificable en Windows. Conserva memoria, reglas particulares y skills completas; rescata orígenes sin modificarlos, identifica conflictos y deja los cambios locales por defecto.
 triggers:
   - "ops-project-migrate"
@@ -40,10 +41,11 @@ El rescate abarca el árbol completo de cada skill reconocida: instrucciones, sc
 
 ## 3. Conservar reglas y memoria
 
-- Si existe `AGENTS.md` y necesita adaptación, preparar una fusión con los seis protocolos de `templates/AGENTS.md` de la versión activa. Conservar reglas particulares y revisar contradicciones explícitamente. Guardar el candidato fuera del proyecto, preferentemente en el estado privado de la instalación, sin sobrescribir archivos anteriores.
+- Si existe `AGENTS.md` y necesita adaptación, preparar una fusión con los siete protocolos de `templates/AGENTS.md` de la versión activa. Conservar reglas particulares y revisar contradicciones explícitamente. Guardar el candidato fuera del proyecto, preferentemente en el estado privado de la instalación, sin sobrescribir archivos anteriores.
 - Presentar el diff concreto de esa fusión. Si el usuario ya autorizó una adaptación compatible, continuar; si una contradicción requiere elegir una política, esperar esa decisión.
 - Pasar `-AgentsCandidatePath` y el `-ExpectedAgentsHash` devuelto por la evaluación. Si el original cambió, evaluar nuevamente; nunca forzar el hash anterior. El ejecutor verifica integración mínima y concurrencia; la revisión semántica y la conservación de reglas corresponden al asistente, no a una comparación automática de textos.
 - Si falta `AGENTS.md`, el ejecutor usa la plantilla activa. Crea únicamente archivos ausentes de `.context/`. Conserva íntegros los existentes; la incorporación de referencias de ingeniería a `systemPatterns.md` es aditiva y aplicable al trabajo de software.
+- **Protocolo 7:** si falta `CHANGELOG.md`, el ejecutor lo crea desde `templates/CHANGELOG.md`; uno existente nunca se modifica. Tras migrar, declarar la versión actual del artefacto (`VERSION`, manifiesto del stack o cabecera de WordPress) y, para skills, `version:` en el frontmatter con su `changelogs/<skill>.md`. Validar con `scripts/check-versioning.ps1` de `ActivePath`. Un `AGENTS.md` migrado con la plantilla anterior devuelve `AGENTS_REVIEW_REQUIRED`: preparar la fusión con el Protocolo 7 como cualquier otra adaptación.
 
 ## 4. Aplicar y verificar
 

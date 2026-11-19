@@ -1,5 +1,6 @@
 ---
 name: dev-systematic-debugging
+version: 1.0.0
 description: Metodología determinista de 4 fases para investigar y resolver bugs, fallos y comportamientos inesperados sin conjeturas, parches a ciegas ni modificaciones especulativas.
 triggers:
   - "dev-systematic-debugging"

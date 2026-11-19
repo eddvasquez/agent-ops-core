@@ -1,5 +1,6 @@
 ---
 name: ops-project-init
+version: 1.0.0
 description: Inicializa un nuevo proyecto con arquitectura de gobernanza universal, .context/, docs/, AGENTS.md, Git local protegido y validación de respaldo en Google Drive o nube.
 triggers:
   - "ops-project-init"
@@ -59,9 +60,11 @@ Antes de inicializar, validar la seguridad ante pérdida de hardware:
   - `systemPatterns.md`: Con los mandatos de TDD (`dev-tdd`) y Depuración Sistemática (`dev-systematic-debugging`). Si la Pregunta 3 fue "Por definir", marcar `[BLOQUEO ACTIVO]`.
   - `activeContext.md`: Con el agente actual y el siguiente paso ejecutable.
   - `progress.md`: Con el hito de inicialización marcado.
-  - `lessons_learned.md`: Con la regla de fidelidad a los 6 protocolos.
+  - `lessons_learned.md`: Con la regla de fidelidad a los 7 protocolos.
 - Inyectar `docs/README.md` (desde plantilla) para guiar al equipo sobre qué guardar en esa carpeta y permitir a Git versionarla de inmediato.
-- Inyectar `AGENTS.md` con los 6 Protocolos Universales. Si la Pregunta 4 fue "Sí", generar `docs/sop_gtm_governance.md`.
+- Inyectar `AGENTS.md` con los 7 Protocolos Universales. Si la Pregunta 4 fue "Sí", generar `docs/sop_gtm_governance.md`.
+- Inyectar `CHANGELOG.md` desde `templates/CHANGELOG.md` y un archivo `VERSION` con `0.1.0` (o declarar la versión en el manifiesto natural del stack: `package.json`, `pyproject.toml`, cabecera `Version:` de WordPress). Añadir en `[Unreleased]` la línea `### Added` / `- Inicialización del proyecto con gobernanza Agent Ops Core.`
 
 ### 6. Commit Atómico Inicial
-- `git add .` -> esperar 1 segundo (higiene cloud) -> `git commit -m "chore: initialize project with universal agent governance"`.
+- Ejecutar `check-versioning.ps1 -RepositoryPath $ProjectPath` desde la versión activa y confirmar código `0`.
+- `git add -- .gitignore AGENTS.md CHANGELOG.md VERSION .context docs` -> esperar 1 segundo (higiene cloud) -> `git commit -m "chore: initialize project with universal agent governance"`.

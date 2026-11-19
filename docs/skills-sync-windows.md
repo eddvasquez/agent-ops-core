@@ -74,6 +74,21 @@ Para recuperar un árbol íntegro, incluidas sus cachés y carpetas vacías, eli
 
 Repite sin `-WhatIf` para recuperar. El destino debe ser nuevo y estar fuera de las ubicaciones activas y del estado. Se verifican todos los blobs antes de escribir; los archivos existentes nunca se sobrescriben. Los manifiestos incrementales indican `SkillScope`: abarcan las skills afectadas, no necesariamente todas las skills instaladas.
 
+## Cambiar el hub de una instalación existente
+
+El hub figura en dos archivos: `watch-config.json` (sincronización) y `update-state.json` (coordinador de actualizaciones). Si solo cambia uno, el vigilante se detiene con `Synchronization configuration changed; review before updating.` Usa siempre el comando dedicado; no edites esos archivos a mano ni reinstales para cambiar el hub:
+
+```powershell
+# Usar la versión activa (ActivePath que devuelve start-session.ps1 -Action Check).
+$ActivePath = (& "$env:USERPROFILE\.agent-ops\scripts\start-session.ps1" -Action Check | ConvertFrom-Json).ActivePath
+# Evaluar sin escribir: valida rutas y ejecuta un plan de sincronización contra el nuevo hub.
+& "$ActivePath\scripts\set-hub.ps1" -HubDir 'C:\ruta\al\hub-canonico' -WhatIf
+# Aplicar: respalda ambos archivos en <StateDir>\hub-switch\, los actualiza juntos y reinicia el vigilante.
+& "$ActivePath\scripts\set-hub.ps1" -HubDir 'C:\ruta\al\hub-canonico'
+```
+
+El hub debe existir y no solaparse con perfiles, estado ni runtime. Si el plan detecta conflictos entre el nuevo hub y los perfiles, devuelve `REVIEW_REQUIRED` (código 2) sin escribir; resuélvelos y repite. Una activación pendiente devuelve `ACTIVATION_REVIEW_REQUIRED`. Un cambio interrumpido entre ambos archivos se completa al repetir el comando con el mismo hub. El hub anterior no se borra. Retira cualquier otro sincronizador (por ejemplo, un espejo `robocopy` heredado) antes del cambio: dos escritores sobre los mismos perfiles no son compatibles.
+
 ## Vigilante, fallos y recuperación
 
 ```powershell

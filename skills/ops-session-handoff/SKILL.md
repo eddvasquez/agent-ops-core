@@ -1,5 +1,6 @@
 ---
 name: ops-session-handoff
+version: 1.0.0
 description: Protocolo de Recepción (MODO ENTRADA) y Cierre de Turno (MODO SALIDA) con auditoría Git, actualizaciones verificadas al inicio de sesión y mandato anti-racionalización.
 triggers:
   - "ops-session-handoff"
@@ -61,7 +62,13 @@ Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explíc
    - Último archivo modificado.
    - Estado de pruebas/errores.
    - Siguiente paso ejecutable inmediato para el próximo relevo.
-4. **Commit Atómico de Relevo:**
-   - Ejecutar en el proyecto: `git add .` -> esperar 1 segundo (liberar bloqueos de sincronización cloud) -> `git commit -m "chore(relevo): actualizar activeContext y progreso de sesion"`.
+4. **Verificación de Versionado (Protocolo 7):**
+   - Si hay cambios entregables, confirmar que cada artefacto tocado tiene su línea en `[Unreleased]` de su changelog (`CHANGELOG.md` del proyecto o `changelogs/<skill>.md`) y que su versión declarada es SemVer válida.
+   - Ejecutar `& "$ActivePath/scripts/check-versioning.ps1" -RepositoryPath <proyecto>`. Si devuelve código distinto de `0`, corregir las incidencias que lista antes de commitear; no debilitar el verificador ni omitirlo. Las advertencias de rotación indican mover versiones antiguas a `changelogs/archive/`.
+   - Leer el changelog solo en este paso (sección `[Unreleased]` y última versión), nunca completo ni en MODO ENTRADA.
+5. **Commits separados y selectivos:**
+   - Prohibido `git add .` y `git add -A`. Añadir siempre rutas explícitas.
+   - Primero, si hay cambios funcionales: `git add -- <rutas del cambio> <changelog>` -> `git commit -m "<tipo>(<artefacto>): <resumen>"` (Conventional Commits; `BREAKING CHANGE:` exige subir MAJOR).
+   - Después, el relevo: `git add -- .context` -> esperar 1 segundo (liberar bloqueos de sincronización cloud) -> `git commit -m "chore(relevo): actualizar activeContext y progreso de sesion"`.
    - Si el proyecto cuenta con un repositorio remoto configurado (`origin`), ejecutar `git push` para respaldo en la nube.
-5. *Una vez actualizado activeContext y efectuado el commit, el agente no debe ejecutar código adicional en ese turno.*
+6. *Una vez actualizado activeContext y efectuado el commit, el agente no debe ejecutar código adicional en ese turno.*
