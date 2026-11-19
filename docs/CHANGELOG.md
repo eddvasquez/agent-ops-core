@@ -2,10 +2,14 @@
 
 Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 
-El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `changelogs/<skill>.md`.
+El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [1.1.1] - 2026-11-19
 ### Fixed
+- Las instalaciones existentes rechazaban la 1.1.0 («Unexpected/private file in public release: CHANGELOG.md»): el arranque instalado verifica cada versión con una lista de rutas fija. `CHANGELOG.md`, `VERSION` y `changelogs/` pasan a `docs/`, y el verificador de versionado acepta también esa ubicación.
+- Nueva prueba de regresión: todo archivo publicado debe pasar la lista de rutas del arranque instalado más antiguo soportado.
 - Las pruebas de versionado crean sus tags con una identidad de Git de prueba; en CI, donde no hay identidad global, fallaban con «Committer identity unknown».
 
 ## [1.1.0] - 2026-11-19

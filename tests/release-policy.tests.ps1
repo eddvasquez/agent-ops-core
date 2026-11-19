@@ -59,4 +59,21 @@ Write-Host 'PASS release policy accepts CHANGELOG.md, VERSION and changelogs/'
 & git -C $root -c user.name=Tests -c user.email=tests@localhost commit -q -m badlog
 if((Get-AgentOpsReleasePolicy -RepositoryPath $root -Commit HEAD).Code -eq 0){throw 'Non-markdown changelog file accepted'}
 Write-Host 'PASS release policy rejects non-markdown files under changelogs/'
-Write-Host "Release policy: 7 passed. Fixture: $root"
+# Installed bootstraps never update and verify every new release with their own frozen allowlist.
+# This copy is the allowlist of the oldest supported bootstrap (c34512f). Every file the repository
+# publishes must pass it, or existing installations reject the update ("Unexpected/private file").
+$legacyCore=@('dev-systematic-debugging','dev-tdd','ops-git-worktrees','ops-project-init','ops-project-migrate','ops-session-handoff')
+function Test-LegacyAllowed([string]$path){
+    if($path -match '(^|/)[^/]*\.env($|\.)|(^|/)(credentials|secrets)(\.|/)|(^|/)[^/]*(token|credential|secret)[^/]*\.(json|toml|ya?ml|key|pem|pfx|p12)$|\.py[co]$|(^|/)__pycache__/'){return $false}
+    if($path -match '^skills/([^/]+)/'){
+        if($Matches[1] -in $legacyCore){return $true}
+        return ($path -match '^skills/scripts/(rescue_local_edits|sync_hub_to_gemini|watch_skills_hub)\.ps1$')
+    }
+    if($path -match '^skills/'){return $path -match '^skills/(pull_replica_to_hub|setup_ai_skills_machine|setup_antigravity_machine|sync_antigravity_junctions)\.bat$'}
+    return ($path -match '^(scripts|templates|tests|docs|\.github)/' -or $path -in @('.gitignore','README.md','LICENSE','install.ps1','install.sh','update.ps1','update.sh','release-contract.json'))
+}
+$published=@(& git -C $source -c core.quotepath=false ls-files)
+$rejected=@($published|Where-Object {-not (Test-LegacyAllowed $_)})
+if($rejected.Count){throw ('Installed bootstraps would reject this release: '+($rejected -join ', '))}
+Write-Host "PASS every published file ($($published.Count)) passes the frozen bootstrap allowlist"
+Write-Host "Release policy: 8 passed. Fixture: $root"

@@ -131,6 +131,27 @@ Set-File $rf 'skills/fold/SKILL.md' "---`nname: fold`nversion: 1.0.0`ndescriptio
 Save-Commit $rf 'fix fold'
 Assert-Code (Test-AgentOpsVersioning -RepositoryPath $rf) 0 'version beside a folded description is accepted'
 
+# 12d. docs/ layout (used by the framework itself): docs/CHANGELOG.md, docs/VERSION, docs/changelogs/<skill>.md.
+$rd=New-Fixture
+Set-File $rd 'docs/CHANGELOG.md' (Log @('2.0.0'))
+Set-File $rd 'docs/VERSION' '2.0.0'
+Set-File $rd 'skills/dl/SKILL.md' ((Skill '1.0.0') -replace 'name: demo','name: dl')
+Set-File $rd 'docs/changelogs/dl.md' (Log @('1.0.0'))
+Set-File $rd 'src/a.ps1' 'v1'
+Save-Commit $rd 'docs layout'
+& git -C $rd -c user.name=Tests -c user.email=tests@localhost tag -a v2.0.0 -m 'v2.0.0'
+& git -C $rd -c user.name=Tests -c user.email=tests@localhost tag -a dl@v1.0.0 -m 'dl'
+$r=Test-AgentOpsVersioning -RepositoryPath $rd
+Assert-Code $r 0 'docs/ layout is accepted with tags'
+if(@($r.Artifacts|Where-Object {$_.Kind -eq 'project' -and $_.Version -eq '2.0.0' -and $_.Changelog -eq 'docs/CHANGELOG.md'}).Count -ne 1){throw 'docs/ project changelog not detected'};$script:passed++;Write-Host 'PASS docs/ project changelog and VERSION are detected'
+Set-File $rd 'src/a.ps1' 'v2'
+Assert-Issue (Test-AgentOpsVersioning -RepositoryPath $rd) 'docs/CHANGELOG\.md' 'docs/ layout still requires a changelog entry'
+Set-File $rd 'src/a.ps1' 'v1'
+Set-File $rd 'skills/dl/notes.md' 'x'
+Assert-Issue (Test-AgentOpsVersioning -RepositoryPath $rd) 'dl.*docs/changelogs/dl\.md' 'docs/ layout requires the skill changelog entry'
+Set-File $rd 'docs/VERSION' '3.0.0'
+Assert-Issue (Test-AgentOpsVersioning -RepositoryPath $rd) 'VERSION.*3\.0\.0.*2\.0\.0' 'docs/VERSION mismatch is rejected'
+
 # 13. Repositories without versioned artifacts are not penalised.
 $r5=New-Fixture
 Set-File $r5 'notes.txt' 'x'

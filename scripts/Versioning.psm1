@@ -76,8 +76,10 @@ function Test-AgentOpsVersioning {
                 $skills[$Matches[2]]=$dir
             }
         }
+        # Files may live at the root or under docs/ (the framework uses docs/ so old bootstraps accept it).
+        $first={param([string[]]$candidates) foreach($c in $candidates){if(Test-Path -LiteralPath (Join-Path $root $c) -PathType Leaf){return $c}};return $candidates[0]}
         foreach($name in ($skills.Keys|Sort-Object)){
-            $dir=$skills[$name];$log="changelogs/$name.md"
+            $dir=$skills[$name];$log=& $first @("changelogs/$name.md","docs/changelogs/$name.md")
             $skillText=[IO.File]::ReadAllText((Join-Path $root "$dir/SKILL.md"))
             $declared=Get-SkillVersion $skillText
             $yaml=Get-FrontmatterIssue $skillText
@@ -97,20 +99,22 @@ function Test-AgentOpsVersioning {
         }
 
         # Root project: CHANGELOG.md (and optional VERSION) cover everything except handoff metadata.
-        $rootLog=Join-Path $root 'CHANGELOG.md'
+        $rootLogKey=& $first @('CHANGELOG.md','docs/CHANGELOG.md')
+        $rootLog=Join-Path $root $rootLogKey
         if(Test-Path -LiteralPath $rootLog -PathType Leaf){
             $info=Get-ChangelogInfo ([IO.File]::ReadAllText($rootLog))
-            $versionFile=Join-Path $root 'VERSION'
+            $versionKey=& $first @('VERSION','docs/VERSION')
+            $versionFile=Join-Path $root $versionKey
             $declared=$(if(Test-Path -LiteralPath $versionFile){([IO.File]::ReadAllText($versionFile)).Trim()}else{$null})
-            $artifacts+=[pscustomobject]@{Name='(project)';Kind='project';Path='.';Version=$declared;Changelog='CHANGELOG.md'}
-            if(-not $info.HasUnreleased){$issues.Add("CHANGELOG.md must keep a '## [Unreleased]' section.")}
+            $artifacts+=[pscustomobject]@{Name='(project)';Kind='project';Path='.';Version=$declared;Changelog=$rootLogKey}
+            if(-not $info.HasUnreleased){$issues.Add("$rootLogKey must keep a '## [Unreleased]' section.")}
             if($null -ne $declared){
-                if(-not (Test-SemVer $declared)){$issues.Add("VERSION must contain a SemVer value (found '$declared').")}
-                elseif($info.Latest -and $declared -ne $info.Latest){$issues.Add("VERSION declares $declared but the latest released entry in CHANGELOG.md is $($info.Latest).")}
+                if(-not (Test-SemVer $declared)){$issues.Add("$versionKey must contain a SemVer value (found '$declared').")}
+                elseif($info.Latest -and $declared -ne $info.Latest){$issues.Add("$versionKey declares $declared but the latest released entry in $rootLogKey is $($info.Latest).")}
             }
-            if($info.Released.Count -gt $script:maxReleased){$warnings.Add("CHANGELOG.md keeps $($info.Released.Count) released sections; archive older ones to changelogs/archive/project.md.")}
-            $touched=@($changed|Where-Object {$_ -ne 'CHANGELOG.md' -and $_ -notmatch '^(\.context|changelogs)/'})
-            if($touched.Count -and $changed -notcontains 'CHANGELOG.md'){$issues.Add("Changes outside .context/ ($($touched -join ', ')) require an entry in CHANGELOG.md.")}
+            if($info.Released.Count -gt $script:maxReleased){$warnings.Add("$rootLogKey keeps $($info.Released.Count) released sections; archive older ones to changelogs/archive/project.md.")}
+            $touched=@($changed|Where-Object {$_ -ne $rootLogKey -and $_ -notmatch '^(\.context|changelogs|docs/changelogs)/'})
+            if($touched.Count -and $changed -notcontains $rootLogKey){$issues.Add("Changes outside .context/ ($($touched -join ', ')) require an entry in $rootLogKey.")}
         }
 
         # Tags: vX.Y.Z (project) and <skill>@vX.Y.Z must match the files at the tagged commit.
@@ -118,12 +122,15 @@ function Test-AgentOpsVersioning {
             if($tag -match ('^v('+$script:semver+')$')){
                 $v=$Matches[1]
                 $log=Vr-Git $root @('show',"$tag^{commit}:CHANGELOG.md") -AllowFailure
+                if($null -eq $log){$log=Vr-Git $root @('show',"$tag^{commit}:docs/CHANGELOG.md") -AllowFailure}
                 if($null -eq $log -or (Get-ChangelogInfo $log).Released -notcontains $v){$issues.Add("Tag $tag has no '## [$v]' entry in CHANGELOG.md at that commit.");continue}
                 $ver=Vr-Git $root @('show',"$tag^{commit}:VERSION") -AllowFailure
+                if($null -eq $ver){$ver=Vr-Git $root @('show',"$tag^{commit}:docs/VERSION") -AllowFailure}
                 if($null -ne $ver -and $ver.Trim() -ne $v){$issues.Add("Tag $tag points to a commit whose VERSION is $($ver.Trim()).")}
             }elseif($tag -match ('^([^@]+)@v('+$script:semver+')$')){
                 $name=$Matches[1];$v=$Matches[2]
                 $log=Vr-Git $root @('show',"$tag^{commit}:changelogs/$name.md") -AllowFailure
+                if($null -eq $log){$log=Vr-Git $root @('show',"$tag^{commit}:docs/changelogs/$name.md") -AllowFailure}
                 $tree=Vr-Paths (Vr-Git $root @('ls-tree','-r','-z','--name-only',"$tag^{commit}"))
                 $def=@($tree|Where-Object {$_ -match ('(^|/)'+[regex]::Escape($name)+'/SKILL\.md$')})|Select-Object -First 1
                 $ver=$(if($def){Get-SkillVersion (Vr-Git $root @('show',"$tag^{commit}:$def"))}else{$null})
