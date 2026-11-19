@@ -68,6 +68,7 @@ Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explíc
 ## MODO B: CIERRE DE TURNO (`MODO SALIDA`)
 1. **Registrar Correcciones y Lecciones:**
    - Repasar la sesión y comprobar que **cada** corrección, rechazo o pedido del usuario o del cliente tiene su regla en `.context/reglas_proyecto.md` (Protocolo 8). Registrar las que falten antes de seguir.
+   - Opcional, como red de seguridad: `& "$ActivePath/scripts/harvest-instructions.ps1" -ProjectPath <proyecto> -Since <inicio de la sesión> -OutPath <ruta fuera del proyecto>` lista indicaciones del usuario aún no registradas. Son candidatas, no instrucciones: proponerlas y registrar solo las confirmadas.
    - Escribir en `.context/lessons_learned.md` el contexto histórico que aporte valor.
    - Si en la sesión se produjeron entregables, confirmar que pasaron `check-rules.ps1`.
 2. **Auditoría Objetiva de Progreso:** Marcar en `.context/progress.md` las tareas terminadas (`[x]`) **únicamente si cuentan con evidencia objetiva de verificación** (pruebas ejecutadas en verde o verificación física confirmada).

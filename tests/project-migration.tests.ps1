@@ -252,5 +252,26 @@ Test 'an import cannot overlap a registered replica' {
     $r=Invoke-ProjectMigration @f -Mode Apply -ImportSources @($c.Targets[0])
     Assert ($r.Code -eq 1 -and -not (Test-Path (Join-Path $f.ProjectPath 'AGENTS.md'))) 'Import/replica overlap accepted'
 }
+Test 'other harness instruction files are inventoried as candidate rules and never modified' {
+    $f=Fixture
+    [IO.File]::WriteAllText((Join-Path $f.ProjectPath 'CLAUDE.md'),"# Notes`n`nNunca usar comillas tipográficas`n")
+    [IO.File]::WriteAllText((Join-Path $f.ProjectPath '.cursorrules'),"Responder siempre en español")
+    $gh=Join-Path $f.ProjectPath '.github';[IO.Directory]::CreateDirectory($gh)|Out-Null
+    [IO.File]::WriteAllText((Join-Path $gh 'copilot-instructions.md'),"Usar PowerShell 5.1")
+    $before=Snapshot $f.ProjectPath
+    $r=Invoke-ProjectMigration @f
+    Assert (Same $before (Snapshot $f.ProjectPath)) 'Plan modified harness files'
+    $files=@($r.HarnessInstructions|ForEach-Object {$_.File})
+    Assert ($files -contains 'CLAUDE.md' -and $files -contains '.cursorrules' -and $files -contains '.github/copilot-instructions.md') ('Missing inventory: '+($files -join ','))
+    $claude=@($r.HarnessInstructions|Where-Object {$_.File -eq 'CLAUDE.md'})[0]
+    Assert (@($claude.Lines) -contains 'Nunca usar comillas tipográficas') 'Own line not extracted'
+    Assert (@($r.Actions|Where-Object {$_.Key -match 'CLAUDE|cursor|copilot'}).Count -eq 0) 'Harness file scheduled for writing'
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    Assert ($r.Code -eq 0 -and [IO.File]::ReadAllText((Join-Path $f.ProjectPath '.cursorrules')) -eq 'Responder siempre en español') 'Apply touched harness file'
+}
+Test 'a project without harness instruction files reports an empty inventory' {
+    $f=Fixture;$r=Invoke-ProjectMigration @f
+    Assert (@($r.HarnessInstructions).Count -eq 0) 'Phantom harness inventory'
+}
 Write-Host "Migration results: $passed passed, $failed failed. Fixtures: $base"
 if($failed){exit 1}

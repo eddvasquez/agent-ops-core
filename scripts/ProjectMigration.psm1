@@ -7,6 +7,8 @@ $script:keys=@('AGENTS.md','.context/projectbrief.md','.context/systemPatterns.m
 $script:blockBegin='<!-- agent-ops:begin version=(?<v>\S*) hash=(?<h>[a-f0-9]{64}) -->'
 $script:blockEnd='<!-- agent-ops:end -->'
 $script:ownHeading='## Reglas particulares del proyecto'
+# Instruction files of other AI harnesses: inventoried read-only as candidate rules, never written.
+$script:harnessFiles=@('CLAUDE.md','GEMINI.md','.cursorrules','.windsurfrules','.github/copilot-instructions.md')
 function Pm-Root($p){& $script:engine {param($p) Get-SyncRoot $p} $p}
 function Pm-Child($p,$k){& $script:engine {param($p,$k) Get-SyncChild $p $k} $p $k}
 function Pm-Hash($p){if([IO.File]::Exists($p)){& $script:engine {param($p) Get-SyncHash $p} $p}else{'-'}}
@@ -120,7 +122,7 @@ function Invoke-ProjectMigration {
           [string]$AgentsCandidatePath='',[string]$ExpectedAgentsHash='',[string]$ApprovedRemovalsPath='',
           [string]$Journal='',[switch]$Commit,
           [scriptblock]$ReleaseResolver,[scriptblock]$FaultHook)
-    $r=[ordered]@{Code=0;Status='PLANNED';Project=$null;Actions=@();ImportSources=@();AgentsHash=$null;AgentsProposal=$null;MissingLines=@();UpToDate=$false;Deferred=$false;Issues=@();Conflicts=@();RescueManifest=$null;Journal=$null;JournalId=$null;RestoreRef=$null;Commit=$null}
+    $r=[ordered]@{Code=0;Status='PLANNED';Project=$null;Actions=@();ImportSources=@();AgentsHash=$null;AgentsProposal=$null;MissingLines=@();HarnessInstructions=@();UpToDate=$false;Deferred=$false;Issues=@();Conflicts=@();RescueManifest=$null;Journal=$null;JournalId=$null;RestoreRef=$null;Commit=$null}
     $updateLock=$null;$syncLock=$null;$u=$false;$l=$false;$pending=$null;$project=$null;$cfg=$null;$applying=$false;$metadataComplete=$false
     try{
         if(-not [IO.File]::Exists($ConfigPath)){$r.Code=2;$r.Status='INSTALLATION_REQUIRED';return [pscustomobject]$r}
@@ -189,6 +191,10 @@ function Invoke-ProjectMigration {
         $templateHash=Pm-TextHash $templateText
         $newBlock=Pm-NewBlock $templateText $frameworkVersion
         $framework=Pm-FrameworkLines $frame $templateText
+        foreach($name in $script:harnessFiles){
+            $hp=Pm-Child $project $name
+            if([IO.File]::Exists($hp)){$hl=Pm-ProjectLines ([IO.File]::ReadAllText($hp)) $framework;if($hl.Count){$r.HarnessInstructions+=@([pscustomobject]@{File=$name;Lines=@($hl)})}}
+        }
         $agents=Pm-Child $project 'AGENTS.md';$r.AgentsHash=Pm-Hash $agents
         $current=$(if([IO.File]::Exists($agents)){[IO.File]::ReadAllText($agents)}else{$null})
         $texts=@{};$automatic=$null;$proposal=$null
