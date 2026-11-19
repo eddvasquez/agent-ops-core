@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param()
 $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
@@ -28,7 +28,8 @@ Test 'missing configuration never creates a fallback hub' {
 }
 Test 'plan and WhatIf leave project and state unchanged; apply is repeatable' {
     $f=Fixture;$r=Invoke-ProjectMigration @f
-    Assert ($r.Code -eq 0 -and $r.Actions.Count -eq 8 -and -not (Test-Path (Join-Path $f.ProjectPath 'AGENTS.md'))) 'Plan wrote files'
+    Assert ($r.Code -eq 0 -and $r.Actions.Count -eq 9 -and -not (Test-Path (Join-Path $f.ProjectPath 'AGENTS.md'))) 'Plan wrote files'
+    Assert (@($r.Actions|Where-Object {$_.Key -eq '.context/agent-ops.json'}).Count -eq 1) 'Plan does not record the framework version'
     Assert (@($r.Actions|Where-Object {$_.Key -eq '.context/reglas_proyecto.md'}).Count -eq 1) 'Plan does not create the project rules registry'
     Assert (@($r.Actions|Where-Object {$_.Key -eq 'CHANGELOG.md'}).Count -eq 1) 'Plan does not create CHANGELOG.md'
     Invoke-ProjectMigration @f -Mode Apply -WhatIf|Out-Null
@@ -55,13 +56,117 @@ Test 'existing rules require a reviewed candidate and an unchanged original hash
     $f=Fixture;$agents=Join-Path $f.ProjectPath 'AGENTS.md';[IO.File]::WriteAllText($agents,'My particular rules')
     $p=Invoke-ProjectMigration @f
     Assert ($p.Code -eq 2 -and $p.Status -eq 'AGENTS_REVIEW_REQUIRED') 'Rules replaced without review'
-    $candidate=Join-Path (Split-Path $f.ConfigPath) 'candidate.md';[IO.File]::WriteAllText($candidate,"My particular rules`nops-session-handoff MODO ENTRADA start-session.ps1")
+    Assert ($p.AgentsProposal -and $p.AgentsProposal.Contains('My particular rules') -and $p.AgentsProposal.Contains('agent-ops:begin')) 'No proposal that keeps the project rules'
+    $candidate=Join-Path (Split-Path $f.ConfigPath) 'candidate.md';[IO.File]::WriteAllText($candidate,$p.AgentsProposal)
     [IO.File]::WriteAllText($agents,'Later user edit')
     $r=Invoke-ProjectMigration @f -Mode Apply -AgentsCandidatePath $candidate -ExpectedAgentsHash $p.AgentsHash
     Assert ($r.Code -eq 2 -and [IO.File]::ReadAllText($agents) -eq 'Later user edit') 'Stale candidate overwrote later edit'
+    [IO.File]::WriteAllText($agents,'My particular rules')
     $p=Invoke-ProjectMigration @f
     $r=Invoke-ProjectMigration @f -Mode Apply -AgentsCandidatePath $candidate -ExpectedAgentsHash $p.AgentsHash
     Assert ($r.Code -eq 0 -and [IO.File]::ReadAllText($agents).Contains('My particular rules')) ($r|ConvertTo-Json -Depth 5)
+}
+function Block([string]$body,[string]$version='0.9.0'){
+    $b=($body -replace "`r",'').TrimEnd()
+    $h=[Security.Cryptography.SHA256]::Create();try{$hash=([BitConverter]::ToString($h.ComputeHash([Text.Encoding]::UTF8.GetBytes($b)))).Replace('-','').ToLowerInvariant()}finally{$h.Dispose()}
+    return "<!-- agent-ops:begin version=$version hash=$hash -->`n$b`n<!-- agent-ops:end -->"
+}
+function Snapshot($root){
+    $map=@{};foreach($file in Get-ChildItem -LiteralPath $root -Recurse -File -Force|Where-Object {$_.FullName -notmatch '\\\.git\\'}){$map[$file.FullName.Substring($root.Length)]=(Get-FileHash -LiteralPath $file.FullName).Hash};return $map
+}
+function Same($a,$b){(@($a.Keys)+@($b.Keys)|Sort-Object -Unique|Where-Object {$a[$_] -ne $b[$_]}).Count -eq 0}
+Test 'a new AGENTS.md is a managed block and the framework version is recorded' {
+    $f=Fixture;$r=Invoke-ProjectMigration @f -Mode Apply
+    $text=[IO.File]::ReadAllText((Join-Path $f.ProjectPath 'AGENTS.md'))
+    Assert ($r.Code -eq 0 -and $text -match '<!-- agent-ops:begin version=\S* hash=[a-f0-9]{64} -->' -and $text.Contains('<!-- agent-ops:end -->')) $text
+    $reg=Get-Content (Join-Path $f.ProjectPath '.context/agent-ops.json') -Raw|ConvertFrom-Json
+    Assert ($reg.FrameworkSha -eq ('a'*40) -and $reg.TemplateHash -match '^[a-f0-9]{64}$') ($reg|ConvertTo-Json)
+}
+Test 'an unedited managed block is updated automatically and the text outside it is kept byte for byte' {
+    $f=Fixture;$agents=Join-Path $f.ProjectPath 'AGENTS.md'
+    $before="# Reglas de Kavan`r`n- No afirmar rentabilidad garantizada.`r`n`r`n"
+    $after="`r`n`r`n## Notas propias`r`n- Tutear siempre.`r`n"
+    [IO.File]::WriteAllText($agents,$before+(Block 'Protocolos antiguos del marco')+$after)
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    $text=[IO.File]::ReadAllText($agents)
+    Assert ($r.Code -eq 0 -and $text.StartsWith($before) -and $text.EndsWith($after)) ($r|ConvertTo-Json -Depth 4)
+    Assert ($text.Contains('Protocolo 8') -and -not $text.Contains('Protocolos antiguos del marco')) 'Block not updated'
+}
+Test 'an edited managed block requires review and writes nothing' {
+    $f=Fixture;$agents=Join-Path $f.ProjectPath 'AGENTS.md'
+    $edited=(Block 'Protocolos antiguos').Replace('Protocolos antiguos','Protocolos antiguos con una regla mia')
+    [IO.File]::WriteAllText($agents,$edited);$hash=(Get-FileHash $agents).Hash
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    Assert ($r.Code -eq 2 -and $r.Status -eq 'AGENTS_REVIEW_REQUIRED' -and (Get-FileHash $agents).Hash -eq $hash) ($r|ConvertTo-Json -Depth 4)
+    Assert ($r.AgentsProposal.Contains('Protocolos antiguos con una regla mia')) 'Proposal dropped the edit'
+}
+Test 'a legacy AGENTS.md made only of framework template text is converted automatically' {
+    $f=Fixture;$agents=Join-Path $f.ProjectPath 'AGENTS.md'
+    $legacy=(& git -C $source show '57172b5:templates/AGENTS.md') -join "`n"
+    [IO.File]::WriteAllText($agents,$legacy+"`n`n<!-- AgentOps migration: "+('b'*64)+" -->`n")
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    $text=[IO.File]::ReadAllText($agents)
+    Assert ($r.Code -eq 0 -and $text.Contains('agent-ops:begin') -and -not $text.Contains('AgentOps migration:')) ($r|ConvertTo-Json -Depth 4)
+}
+Test 'a candidate that drops a project rule is refused unless the removal was approved' {
+    $f=Fixture;$agents=Join-Path $f.ProjectPath 'AGENTS.md'
+    [IO.File]::WriteAllText($agents,"Regla propia: nunca mencionar la piscina.`nOtra regla propia.")
+    $p=Invoke-ProjectMigration @f
+    $block=$p.AgentsProposal.Substring(0,$p.AgentsProposal.IndexOf('<!-- agent-ops:end -->')+'<!-- agent-ops:end -->'.Length)
+    $candidate=Join-Path (Split-Path $f.ConfigPath) 'drop.md';[IO.File]::WriteAllText($candidate,$block+"`n`nOtra regla propia.`n")
+    $r=Invoke-ProjectMigration @f -Mode Apply -AgentsCandidatePath $candidate -ExpectedAgentsHash $p.AgentsHash
+    Assert ($r.Code -eq 2 -and $r.Status -eq 'AGENTS_RULES_MISSING' -and ($r.MissingLines -join '|') -match 'piscina') ($r|ConvertTo-Json -Depth 4)
+    Assert ([IO.File]::ReadAllText($agents).Contains('piscina')) 'File changed after refusal'
+    $approved=Join-Path (Split-Path $f.ConfigPath) 'approved.txt';[IO.File]::WriteAllText($approved,'Regla propia: nunca mencionar la piscina.')
+    $r=Invoke-ProjectMigration @f -Mode Apply -AgentsCandidatePath $candidate -ExpectedAgentsHash $p.AgentsHash -ApprovedRemovalsPath $approved
+    Assert ($r.Code -eq 0 -and -not [IO.File]::ReadAllText($agents).Contains('piscina')) ($r|ConvertTo-Json -Depth 4)
+}
+Test 'a candidate without the current managed block is refused' {
+    $f=Fixture;$agents=Join-Path $f.ProjectPath 'AGENTS.md';[IO.File]::WriteAllText($agents,'Regla propia.')
+    $p=Invoke-ProjectMigration @f
+    $candidate=Join-Path (Split-Path $f.ConfigPath) 'noblock.md';[IO.File]::WriteAllText($candidate,"Regla propia.`nops-session-handoff MODO ENTRADA start-session.ps1")
+    $r=Invoke-ProjectMigration @f -Mode Apply -AgentsCandidatePath $candidate -ExpectedAgentsHash $p.AgentsHash
+    Assert ($r.Code -ne 0 -and [IO.File]::ReadAllText($agents) -eq 'Regla propia.') ($r|ConvertTo-Json -Depth 4)
+}
+Test 'Plan says whether the project is up to date, and Defer silences the offer for this template only' {
+    $f=Fixture
+    $p=Invoke-ProjectMigration @f
+    Assert ($p.UpToDate -eq $false -and $p.Deferred -eq $false) ($p|ConvertTo-Json -Depth 3)
+    $d=Invoke-ProjectMigration @f -Mode Defer
+    Assert ($d.Code -eq 0 -and $d.Status -eq 'DEFERRED') ($d|ConvertTo-Json -Depth 3)
+    Assert (-not (Test-Path (Join-Path $f.ProjectPath 'AGENTS.md')) -and -not (Test-Path (Join-Path $f.ProjectPath '.context'))) 'Defer wrote into the project'
+    Assert ((Invoke-ProjectMigration @f).Deferred -eq $true) 'Deferral not remembered'
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    $p=Invoke-ProjectMigration @f
+    Assert ($r.Code -eq 0 -and $p.UpToDate -eq $true -and $p.Actions.Count -eq 0) ($p|ConvertTo-Json -Depth 3)
+}
+Test 'git projects get a restore point at the pre-migration HEAD' {
+    $f=Fixture;& git init -q -b main $f.ProjectPath
+    & git -C $f.ProjectPath config user.name Tests;& git -C $f.ProjectPath config user.email tests@localhost
+    [IO.File]::WriteAllText((Join-Path $f.ProjectPath 'code.txt'),'v1');& git -C $f.ProjectPath add -- code.txt;& git -C $f.ProjectPath commit -q -m base
+    $head=(& git -C $f.ProjectPath rev-parse HEAD).Trim()
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    Assert ($r.Code -eq 0 -and $r.RestoreRef -match '^refs/agent-ops/pre-migration/') ($r|ConvertTo-Json -Depth 4)
+    Assert ((& git -C $f.ProjectPath rev-parse $r.RestoreRef).Trim() -eq $head) 'Restore point does not match HEAD'
+}
+Test 'rollback returns every file of the project to its exact previous state' {
+    $f=Fixture;$ctx=Join-Path $f.ProjectPath '.context';[IO.Directory]::CreateDirectory($ctx)|Out-Null
+    [IO.File]::WriteAllText((Join-Path $ctx 'systemPatterns.md'),'patrones propios')
+    [IO.File]::WriteAllText((Join-Path $f.ProjectPath 'landing.html'),'<h1>Kavan</h1>')
+    $before=Snapshot $f.ProjectPath
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    Assert ($r.Code -eq 0 -and $r.JournalId) ($r|ConvertTo-Json -Depth 4)
+    $back=Invoke-ProjectMigration @f -Mode Rollback -Journal $r.JournalId
+    Assert ($back.Code -eq 0 -and $back.Status -eq 'ROLLED_BACK') ($back|ConvertTo-Json -Depth 4)
+    Assert (Same $before (Snapshot $f.ProjectPath)) 'Project not restored byte for byte'
+}
+Test 'rollback refuses when a migrated file was edited afterwards and changes nothing' {
+    $f=Fixture;$r=Invoke-ProjectMigration @f -Mode Apply
+    $rules=Join-Path $f.ProjectPath '.context/reglas_proyecto.md';[IO.File]::AppendAllText($rules,"`n### R-001 [tono] [ámbito: todas] [estado: activa]`n- Regla: nueva")
+    $snap=Snapshot $f.ProjectPath
+    $back=Invoke-ProjectMigration @f -Mode Rollback -Journal $r.JournalId
+    Assert ($back.Code -eq 2 -and $back.Status -eq 'ROLLBACK_REVIEW_REQUIRED') ($back|ConvertTo-Json -Depth 4)
+    Assert (Same $snap (Snapshot $f.ProjectPath)) 'Rollback changed files despite a later edit'
 }
 Test 'project skills import preserves sources and existing context byte for byte' {
     $f=Fixture;$skill=Join-Path $f.ProjectPath 'skills/personal';[IO.Directory]::CreateDirectory($skill)|Out-Null

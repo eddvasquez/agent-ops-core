@@ -4,6 +4,10 @@ Cambios relevantes de la skill `ops-project-migrate`. Formato [Keep a Changelog]
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-19
+### Changed
+- BREAKING: AGENTS.md con bloque gestionado, AgentsProposal, compuerta de conservación con eliminaciones aprobadas, reversión por journal y Defer.
+
 ## [1.1.0] - 2026-11-19
 ### Added
 - Siembra de reglas: propone reglas candidatas a partir de correcciones pasadas y registra solo las confirmadas en `reglas_proyecto.md` (Protocolo 8).

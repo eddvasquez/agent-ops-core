@@ -2,7 +2,11 @@
 Set-StrictMode -Version 2
 $script:engine=Import-Module (Join-Path $PSScriptRoot 'SkillsSync.psm1') -Force -PassThru
 $script:coordinator=Import-Module (Join-Path $PSScriptRoot 'UpdateCoordinator.psm1') -Force -PassThru
-$script:keys=@('AGENTS.md','.context/projectbrief.md','.context/systemPatterns.md','.context/activeContext.md','.context/progress.md','.context/lessons_learned.md','.context/reglas_proyecto.md','CHANGELOG.md')
+$script:keys=@('AGENTS.md','.context/projectbrief.md','.context/systemPatterns.md','.context/activeContext.md','.context/progress.md','.context/lessons_learned.md','.context/reglas_proyecto.md','.context/agent-ops.json','CHANGELOG.md')
+# AGENTS.md keeps the framework protocols inside a managed block; everything outside belongs to the project.
+$script:blockBegin='<!-- agent-ops:begin version=(?<v>\S*) hash=(?<h>[a-f0-9]{64}) -->'
+$script:blockEnd='<!-- agent-ops:end -->'
+$script:ownHeading='## Reglas particulares del proyecto'
 function Pm-Root($p){& $script:engine {param($p) Get-SyncRoot $p} $p}
 function Pm-Child($p,$k){& $script:engine {param($p,$k) Get-SyncChild $p $k} $p $k}
 function Pm-Hash($p){if([IO.File]::Exists($p)){& $script:engine {param($p) Get-SyncHash $p} $p}else{'-'}}
@@ -21,6 +25,35 @@ function Pm-Blob($state,$bytes){
         }finally{if([IO.File]::Exists($temp)){[IO.File]::Delete($temp)}}
     }
     if((Pm-Hash $path) -ne $hash){throw 'Corrupt migration blob.'};return $hash
+}
+function Pm-Norm([string]$s){([regex]::Replace($s,'\s+',' ')).Trim()}
+function Pm-TextHash([string]$t){Pm-BytesHash ([Text.Encoding]::UTF8.GetBytes(($t -replace "`r",'').TrimEnd()))}
+function Pm-NewBlock([string]$body,[string]$version){
+    $b=($body -replace "`r",'').TrimEnd()
+    return ('<!-- agent-ops:begin version='+$version+' hash='+(Pm-TextHash $b)+" -->`n"+$b+"`n"+$script:blockEnd)
+}
+function Pm-SplitBlock([string]$text){
+    $m=[regex]::Match($text,'(?s)'+$script:blockBegin+'\r?\n(?<body>.*?)\r?\n'+[regex]::Escape($script:blockEnd))
+    if(-not $m.Success){return $null}
+    return [pscustomobject]@{Before=$text.Substring(0,$m.Index);After=$text.Substring($m.Index+$m.Length);Body=$m.Groups['body'].Value
+        Hash=$m.Groups['h'].Value;Version=$m.Groups['v'].Value;Edited=((Pm-TextHash $m.Groups['body'].Value) -ne $m.Groups['h'].Value)}
+}
+function Pm-FrameworkLines($frame,[string]$templateText){
+    $set=New-Object 'Collections.Generic.HashSet[string]'
+    foreach($l in ($templateText -split "\r?\n")){$n=Pm-Norm $l;if($n){[void]$set.Add($n)}}
+    $legacy=Pm-Child $frame 'templates/agents-legacy-lines.txt'
+    if([IO.File]::Exists($legacy)){foreach($l in [IO.File]::ReadAllLines($legacy,[Text.Encoding]::UTF8)){$n=Pm-Norm $l;if($n){[void]$set.Add($n)}}}
+    return ,$set
+}
+function Pm-ProjectLines([string]$text,$framework){
+    # Project content: every non-blank line that is not official framework text or a migration marker.
+    $own=New-Object Collections.Generic.List[string]
+    foreach($l in ($text -split "\r?\n")){
+        $n=Pm-Norm $l
+        if(-not $n -or $n -match '^<!-- (agent-ops:(begin|end)|AgentOps migration:)' -or $n -eq $script:ownHeading -or $framework.Contains($n)){continue}
+        $own.Add($l.TrimEnd())
+    }
+    return ,$own
 }
 function Pm-Set($action,$state){
     $backups=New-Object 'Collections.Generic.List[object]'
@@ -56,14 +89,38 @@ function Pm-Recover($pending,$project,$state){
     foreach($a in $j.Actions){if([IO.File]::Exists($a.BackupPath)){if((Pm-Hash $a.BackupPath) -ne $a.Before){throw 'Atomic backup requires review.'};[IO.File]::Delete($a.BackupPath)}}
     $archive=Pm-Child (Split-Path $pending) ($j.Id+'.json');Pm-Write $archive $j;[IO.File]::Delete($pending)
 }
+function Pm-Rollback($project,$private,[string]$id,$state,$r){
+    # Undo a completed migration only if no migrated file was edited afterwards; otherwise change nothing.
+    if($id -notmatch '^[a-f0-9]{32}$'){throw 'Invalid journal id.'}
+    $path=Pm-Child $private ($id+'.json')
+    if(-not [IO.File]::Exists($path)){throw "Migration journal not found: $id"}
+    $j=Pm-Read $path
+    if($j.SchemaVersion -ne 1 -or $j.Project -ne $project){throw 'Invalid migration journal.'}
+    if($j.Status -ne 'Complete'){$r.Code=2;$r.Status='ROLLBACK_REVIEW_REQUIRED';$r.Issues=@("Journal status is $($j.Status); only completed migrations can be rolled back.");return}
+    $changed=@()
+    foreach($a in @($j.Actions)){
+        if($a.Root -ne $project -or $a.Key -notin $script:keys){throw 'Invalid migration journal action.'}
+        if((Pm-Hash (Pm-Child $project $a.Key)) -ne $a.Hash){$changed+=$a.Key}
+    }
+    if($changed.Count){$r.Code=2;$r.Status='ROLLBACK_REVIEW_REQUIRED';$r.Issues=@('Edited after the migration (nothing was changed): '+($changed -join ', '));return}
+    foreach($a in @($j.Actions)){
+        $file=Pm-Child $project $a.Key
+        $capture=(Pm-BytesHash ([Text.Encoding]::UTF8.GetBytes('rollback/'+$id+'/'+$a.Key))).Substring(0,32)
+        $inverse=@{Root=$project;Key=$a.Key;Before=$a.Hash;Hash=$a.Before;BackupPath=(Join-Path (Split-Path $file) ('.aoc-'+$capture+'.tmp'))}
+        Pm-Set $inverse $state
+    }
+    $j.Status='RolledBack';Pm-Write $path $j
+    $r.Status='ROLLED_BACK';$r.JournalId=$id
+}
 function Invoke-ProjectMigration {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param([Parameter(Mandatory=$true)][string]$ProjectPath,
           [string]$ConfigPath=(Join-Path $env:LOCALAPPDATA 'AgentOps/watch-config.json'),
-          [ValidateSet('Plan','Apply')][string]$Mode='Plan',[string[]]$ImportSources=@(),
-          [string]$AgentsCandidatePath='',[string]$ExpectedAgentsHash='',[switch]$Commit,
+          [ValidateSet('Plan','Apply','Rollback','Defer')][string]$Mode='Plan',[string[]]$ImportSources=@(),
+          [string]$AgentsCandidatePath='',[string]$ExpectedAgentsHash='',[string]$ApprovedRemovalsPath='',
+          [string]$Journal='',[switch]$Commit,
           [scriptblock]$ReleaseResolver,[scriptblock]$FaultHook)
-    $r=[ordered]@{Code=0;Status='PLANNED';Project=$null;Actions=@();ImportSources=@();AgentsHash=$null;Issues=@();Conflicts=@();RescueManifest=$null;Journal=$null;Commit=$null}
+    $r=[ordered]@{Code=0;Status='PLANNED';Project=$null;Actions=@();ImportSources=@();AgentsHash=$null;AgentsProposal=$null;MissingLines=@();UpToDate=$false;Deferred=$false;Issues=@();Conflicts=@();RescueManifest=$null;Journal=$null;JournalId=$null;RestoreRef=$null;Commit=$null}
     $updateLock=$null;$syncLock=$null;$u=$false;$l=$false;$pending=$null;$project=$null;$cfg=$null;$applying=$false;$metadataComplete=$false
     try{
         if(-not [IO.File]::Exists($ConfigPath)){$r.Code=2;$r.Status='INSTALLATION_REQUIRED';return [pscustomobject]$r}
@@ -98,6 +155,19 @@ function Invoke-ProjectMigration {
             if($write -and $PSCmdlet.ShouldProcess($project,'Recover interrupted project migration')){Pm-Recover $pending $project $cfg.StateDir;$r.Code=0;$r.Status='RECOVERED'}
             return [pscustomobject]$r
         }
+        # "Not for this version": remembered in private state (never in the project) for this template only.
+        $deferredPath=Pm-Child $private 'deferred.json'
+        $currentTemplateHash=Pm-TextHash ([IO.File]::ReadAllText((Pm-Child $frame 'templates/AGENTS.md')))
+        if($Mode -eq 'Defer'){
+            if(-not $WhatIfPreference){Pm-Write $deferredPath @{SchemaVersion=1;TemplateHash=$currentTemplateHash}}
+            $r.Status='DEFERRED';$r.Deferred=$true;return [pscustomobject]$r
+        }
+        if([IO.File]::Exists($deferredPath)){$r.Deferred=((Pm-Read $deferredPath).TemplateHash -eq $currentTemplateHash)}
+        if($Mode -eq 'Rollback'){
+            if(-not $Journal){throw 'Rollback requires -Journal <id> (the JournalId returned by Apply).'}
+            if(-not $WhatIfPreference -and $PSCmdlet.ShouldProcess($project,'Roll back project migration '+$Journal)){Pm-Rollback $project $private $Journal $cfg.StateDir $r}
+            return [pscustomobject]$r
+        }
         $sources=@($ImportSources)
         foreach($key in @('skills','_ai-skills-hub')){$p=Pm-Child $project $key;if([IO.Directory]::Exists($p)){$sources+=@($p)}}
         $sources=@($sources|ForEach-Object {Pm-Root $_}|Sort-Object -Unique)
@@ -113,20 +183,51 @@ function Invoke-ProjectMigration {
             }
             return [pscustomobject]$r
         }
-        $template=Pm-Child $frame 'templates/AGENTS.md';$marker='<!-- AgentOps migration: '+(Pm-Hash $template)+' -->'
+        $templateText=[IO.File]::ReadAllText((Pm-Child $frame 'templates/AGENTS.md'))
+        $versionFile=Pm-Child $frame 'docs/VERSION'
+        $frameworkVersion=$(if([IO.File]::Exists($versionFile)){([IO.File]::ReadAllText($versionFile)).Trim()}else{''})
+        $templateHash=Pm-TextHash $templateText
+        $newBlock=Pm-NewBlock $templateText $frameworkVersion
+        $framework=Pm-FrameworkLines $frame $templateText
         $agents=Pm-Child $project 'AGENTS.md';$r.AgentsHash=Pm-Hash $agents
-        $texts=@{}
+        $current=$(if([IO.File]::Exists($agents)){[IO.File]::ReadAllText($agents)}else{$null})
+        $texts=@{};$automatic=$null;$proposal=$null
+        if($null -eq $current){$automatic=$newBlock+"`n"}
+        else{
+            $split=Pm-SplitBlock $current
+            if($split -and -not $split.Edited){
+                # Unedited managed block: replace only the block; text outside is kept byte for byte.
+                if($split.Hash -ne $templateHash){$automatic=$split.Before+$newBlock+$split.After}
+            }else{
+                $own=Pm-ProjectLines $(if($split){$split.Body}else{$current}) $framework
+                $section=$(if($own.Count){"`n`n"+$script:ownHeading+"`n`n"+($own -join "`n")+"`n"}else{"`n"})
+                $candidateText=$(if($split){$split.Before+$newBlock+$split.After.TrimEnd()+$section}else{$newBlock+$section})
+                # Legacy file made only of official template text: nothing of the project can be lost.
+                if(-not $split -and -not $own.Count){$automatic=$candidateText}else{$proposal=$candidateText}
+            }
+        }
         if($AgentsCandidatePath){
             if($ExpectedAgentsHash -ne $r.AgentsHash){$r.Code=2;$r.Status='PROJECT_CHANGED';return [pscustomobject]$r}
             $candidate=[IO.Path]::GetFullPath($AgentsCandidatePath)
             & $script:engine {param($p) Assert-SyncNoLink $p} $candidate
             if($candidate.StartsWith($project+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Store reviewed candidates outside the project.'}
             $text=[IO.File]::ReadAllText($candidate)
-            if($text -notmatch 'ops-session-handoff' -or $text -notmatch 'MODO ENTRADA' -or $text -notmatch 'start-session\.ps1'){throw 'Candidate is missing the session entry integration.'}
-            $texts['AGENTS.md']=$text.TrimEnd()+"`n`n"+$marker+"`n"
-        }elseif($r.AgentsHash -eq '-'){$texts['AGENTS.md']=[IO.File]::ReadAllText($template).TrimEnd()+"`n`n"+$marker+"`n"}
-        elseif(-not [IO.File]::ReadAllText($agents).Contains($marker)){$r.Code=2;$r.Status='AGENTS_REVIEW_REQUIRED';return [pscustomobject]$r}
-        foreach($key in $script:keys|Where-Object {$_ -like '.context/*'}){
+            $cs=Pm-SplitBlock $text
+            if(-not $cs -or $cs.Edited -or $cs.Hash -ne $templateHash){throw 'Candidate must contain the current agent-ops managed block unchanged; start from AgentsProposal.'}
+            # Conservation gate: no project line of the original may disappear without explicit approval.
+            $approved=New-Object 'Collections.Generic.HashSet[string]'
+            if($ApprovedRemovalsPath){foreach($l in [IO.File]::ReadAllLines([IO.Path]::GetFullPath($ApprovedRemovalsPath),[Text.Encoding]::UTF8)){$n=Pm-Norm $l;if($n){[void]$approved.Add($n)}}}
+            $present=New-Object 'Collections.Generic.HashSet[string]'
+            foreach($l in ($text -split "\r?\n")){$n=Pm-Norm $l;if($n){[void]$present.Add($n)}}
+            $required=Pm-ProjectLines $(if($null -ne $current){$current}else{''}) $framework
+            $missing=@($required|Where-Object {-not $present.Contains((Pm-Norm $_)) -and -not $approved.Contains((Pm-Norm $_))})
+            if($missing.Count){$r.Code=2;$r.Status='AGENTS_RULES_MISSING';$r.MissingLines=$missing;$r.AgentsProposal=$proposal;return [pscustomobject]$r}
+            $texts['AGENTS.md']=$text.TrimEnd()+"`n"
+        }elseif($proposal){$r.Code=2;$r.Status='AGENTS_REVIEW_REQUIRED';$r.AgentsProposal=$proposal;return [pscustomobject]$r}
+        elseif($automatic){$texts['AGENTS.md']=$automatic}
+        # Record which framework version this project follows (no timestamps: repeats stay idempotent).
+        $texts['.context/agent-ops.json']=([ordered]@{SchemaVersion=1;FrameworkVersion=$frameworkVersion;FrameworkSha=[string]$release.Sha;TemplateHash=$templateHash}|ConvertTo-Json)+"`n"
+        foreach($key in $script:keys|Where-Object {$_ -like '.context/*.md'}){
             $path=Pm-Child $project $key
             if(-not [IO.File]::Exists($path)){$texts[$key]=[IO.File]::ReadAllText((Pm-Child $frame ('templates/context/'+[IO.Path]::GetFileName($key))))}
         }
@@ -145,6 +246,8 @@ function Invoke-ProjectMigration {
             if($before -ne $hash){$payload[$key]=$bytes;$actions+=@{Root=$project;Key=$key;Before=$before;Hash=$hash;BackupPath=(Join-Path (Split-Path $path) ('.aoc-'+$capture+'.tmp'))}}
         }
         $r.Actions=@($actions);$canCommit=$false
+        $registry=Pm-Child $project '.context/agent-ops.json'
+        if(-not $actions.Count -and [IO.File]::Exists($registry)){$r.UpToDate=((Pm-Read $registry).TemplateHash -eq $templateHash)}
         if($Commit){
             $top=(& $script:coordinator {param($p) Up-GitOk @('-C',$p,'rev-parse','--show-toplevel') 5 $null} $project).Trim()
             if((Pm-Root $top) -ne $project){throw 'Commit requires the project Git root.'}
@@ -164,14 +267,25 @@ function Invoke-ProjectMigration {
             if($a.Before -ne '-') {& $script:engine {param($s,$p,$h) Save-SyncBlob $s $p $h} $cfg.StateDir (Pm-Child $project $a.Key) $a.Before|Out-Null}
             if((Pm-Blob $cfg.StateDir $payload[$a.Key]) -ne $a.Hash){throw 'Payload changed.'}
         }
-        $journal=@{SchemaVersion=1;Id=$id;Project=$project;Status='Applying';Actions=$actions;RescueManifest=$r.RescueManifest}
-        $r.Journal=$pending;Pm-Write $pending $journal
+        # Restore point for Git projects: a hidden ref at the pre-migration HEAD (no branch moves).
+        $top=& $script:coordinator {param($p) Up-Git @('-C',$p,'rev-parse','--show-toplevel') 5 $null} $project
+        if($top.ExitCode -eq 0 -and (Pm-Root ([string]$top.Output).Trim()) -eq $project){
+            $head=& $script:coordinator {param($p) Up-Git @('-C',$p,'rev-parse','--verify','-q','HEAD') 5 $null} $project
+            if($head.ExitCode -eq 0){
+                $ref='refs/agent-ops/pre-migration/'+$id
+                & $script:coordinator {param($p,$f,$h) Up-GitOk @('-C',$p,'update-ref',$f,$h) 5 $null} $project $ref ([string]$head.Output).Trim()|Out-Null
+                $r.RestoreRef=$ref
+            }
+        }
+        $journalRecord=@{SchemaVersion=1;Id=$id;Project=$project;Status='Applying';Actions=$actions;RescueManifest=$r.RescueManifest}
+        if($r.RestoreRef){$journalRecord.RestoreRef=$r.RestoreRef}
+        $r.Journal=$pending;Pm-Write $pending $journalRecord
         foreach($a in $actions){Pm-Set $a $cfg.StateDir;if($FaultHook){& $FaultHook $a}}
         foreach($a in $actions){if((Pm-Hash (Pm-Child $project $a.Key)) -ne $a.Hash){throw 'Project changed during verification.'}}
         $verified=& $script:engine {param($p) Invoke-SkillSync @p -Mode Verify} $sync
         if($verified.Code -ne 0){throw 'Import changed after rescue; metadata migration requires recovery.'}
-        $journal.Status='Complete';Pm-Write $pending $journal;Pm-Recover $pending $project $cfg.StateDir
-        $r.Status='MIGRATED';$r.Journal=Pm-Child $private ($id+'.json')
+        $journalRecord.Status='Complete';Pm-Write $pending $journalRecord;Pm-Recover $pending $project $cfg.StateDir
+        $r.Status='MIGRATED';$r.Journal=Pm-Child $private ($id+'.json');$r.JournalId=$id
         $metadataComplete=$true
         if($canCommit -and $actions.Count){
             foreach($a in $actions){if((Pm-Hash (Pm-Child $project $a.Key)) -ne $a.Hash){throw 'Project changed before staging; commit refused.'}}

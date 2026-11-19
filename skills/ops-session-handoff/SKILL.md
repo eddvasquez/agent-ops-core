@@ -1,6 +1,6 @@
 ---
 name: ops-session-handoff
-version: 1.2.0
+version: 1.3.0
 description: Protocolo de Recepción (MODO ENTRADA) y Cierre de Turno (MODO SALIDA) con auditoría Git, actualizaciones verificadas al inicio de sesión y mandato anti-racionalización.
 triggers:
   - "ops-session-handoff"
@@ -29,6 +29,17 @@ La decisión de actualización de este paso autoriza únicamente los cambios del
    Esperar una respuesta explícita; el silencio no elige ninguna opción. La interfaz y la pregunta pertenecen al asistente/anfitrión, no a un `Read-Host` oculto en un proceso.
 4. `UPDATED` permite releer las instrucciones del marco desde `ActivePath` antes de auditar el proyecto. `READY_NEXT_SESSION` o `PREPARING` conservan la versión de esta sesión. Una candidata preparada con consentimiento previo se aplica al comenzar otro MODO ENTRADA, no a mitad de una conversación o trabajo.
 5. `OFFLINE_CACHED` permite continuar con la instalación verificada e informar brevemente que no pudo comprobarse GitHub. `LOCAL_DEV` identifica una instalación de desarrollo sin actualización automática. `NOT_INSTALLED` o `MIGRATION_REQUIRED` requieren instalación/migración explícita, nunca un `git pull` alternativo. Con `ACTIVATION_REVIEW_REQUIRED`, no eliminar el guard ni sobrescribir ediciones: informar del journal y revisar la recuperación. Con `BUSY`, usar `CanStartWork` y reintentar de forma acotada; un guard de activación impide cargar instrucciones mezcladas.
+
+### Paso 0b: ¿El proyecto está al día con la versión activa?
+Se ejecuta también al retomar un chat antiguo, porque MODO ENTRADA corre en cada turno nuevo sobre el proyecto.
+1. Ejecutar `& "$ActivePath/scripts/migrate-project.ps1" -ProjectPath <proyecto> -Mode Plan`. Es solo lectura: no escribe en el proyecto ni en el estado.
+2. Si devuelve `UpToDate: true` o `Deferred: true`, continuar sin preguntar.
+3. Si no, presentar al usuario un resumen breve antes de empezar su trabajo:
+   - qué archivos se crearían o actualizarían (`Actions`), que siempre son solo de gobernanza;
+   - si `AGENTS.md` se actualiza solo (bloque gestionado sin editar) o necesita revisión (`AGENTS_REVIEW_REQUIRED`, con `AgentsProposal`);
+   - la garantía: nada fuera de esos archivos cambia, el contenido previo queda respaldado y se puede revertir con `-Mode Rollback -Journal <JournalId>`.
+4. Preguntar: **Migrar ahora**, **Más tarde** (se volverá a ofrecer en la próxima sesión) o **No para esta versión** (`-Mode Defer`, que se recuerda en el estado privado, nunca en el proyecto). Esperar respuesta explícita; el silencio no elige.
+5. "Migrar ahora" sigue `ops-project-migrate`. Al terminar, informar del `JournalId` y, si el proyecto usa Git, del `RestoreRef`.
 
 Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquier chat requiere soporte del anfitrión. La tarea diaria solo comprueba novedades y no sustituye la decisión del usuario. macOS/Linux conservan su mecanismo anterior, pendiente de revisión equivalente.
 

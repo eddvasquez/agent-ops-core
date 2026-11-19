@@ -1,6 +1,6 @@
 ---
 name: ops-project-migrate
-version: 1.1.0
+version: 2.0.0
 description: Evalúa y migra proyectos existentes a Agent Ops Core mediante un ejecutor verificable en Windows. Conserva memoria, reglas particulares y skills completas; rescata orígenes sin modificarlos, identifica conflictos y deja los cambios locales por defecto.
 triggers:
   - "ops-project-migrate"
@@ -41,11 +41,16 @@ El rescate abarca el árbol completo de cada skill reconocida: instrucciones, sc
 
 ## 3. Conservar reglas y memoria
 
-- Si existe `AGENTS.md` y necesita adaptación, preparar una fusión con los ocho protocolos de `templates/AGENTS.md` de la versión activa. Conservar reglas particulares y revisar contradicciones explícitamente. Guardar el candidato fuera del proyecto, preferentemente en el estado privado de la instalación, sin sobrescribir archivos anteriores.
-- Presentar el diff concreto de esa fusión. Si el usuario ya autorizó una adaptación compatible, continuar; si una contradicción requiere elegir una política, esperar esa decisión.
-- Pasar `-AgentsCandidatePath` y el `-ExpectedAgentsHash` devuelto por la evaluación. Si el original cambió, evaluar nuevamente; nunca forzar el hash anterior. El ejecutor verifica integración mínima y concurrencia; la revisión semántica y la conservación de reglas corresponden al asistente, no a una comparación automática de textos.
+- **`AGENTS.md` con bloque gestionado:** los protocolos del marco viven entre `<!-- agent-ops:begin version=… hash=… -->` y `<!-- agent-ops:end -->`. Todo lo que está fuera es del proyecto y la migración nunca lo toca.
+  - Si el bloque no se editó, se actualiza solo en cada versión y el texto exterior se conserva byte a byte.
+  - Si se editó dentro del bloque, o el archivo es de un formato antiguo con reglas propias, devuelve `AGENTS_REVIEW_REQUIRED` con `AgentsProposal`: el bloque nuevo y, debajo de `## Reglas particulares del proyecto`, cada línea propia del original. Un archivo antiguo hecho solo con texto de plantillas oficiales se convierte solo, porque no hay nada del proyecto que perder.
+- **Revisión con el usuario:** guardar `AgentsProposal` fuera del proyecto (por ejemplo, en el scratchpad) y mostrarle las líneas de "Reglas particulares". Si alguna es texto obsoleto de una plantilla antigua que quiere quitar, ajustar el candidato y escribir esas líneas, una por línea, en un archivo de **eliminaciones aprobadas**. No quitar ninguna línea sin su aprobación explícita.
+- Aplicar con `-AgentsCandidatePath <candidato> -ExpectedAgentsHash <AgentsHash> [-ApprovedRemovalsPath <archivo>]`.
+  - El ejecutor exige que el candidato contenga el bloque gestionado vigente sin modificar.
+  - **Compuerta de conservación:** comprueba mecánicamente que cada línea propia del original siga en el candidato o figure en las eliminaciones aprobadas. Si falta alguna, devuelve `AGENTS_RULES_MISSING` con `MissingLines` y no escribe nada.
+  - Si el original cambió desde la evaluación, devuelve `PROJECT_CHANGED`: volver a evaluar, nunca forzar.
 - Si falta `AGENTS.md`, el ejecutor usa la plantilla activa. Crea únicamente archivos ausentes de `.context/`. Conserva íntegros los existentes; la incorporación de referencias de ingeniería a `systemPatterns.md` es aditiva y aplicable al trabajo de software.
-- **Protocolo 7:** si falta `CHANGELOG.md`, el ejecutor lo crea desde `templates/CHANGELOG.md`; uno existente nunca se modifica. Tras migrar, declarar la versión actual del artefacto (`VERSION`, manifiesto del stack o cabecera de WordPress) y, para skills, `version:` en el frontmatter con su `changelogs/<skill>.md`. Validar con `scripts/check-versioning.ps1` de `ActivePath`. Un `AGENTS.md` migrado con la plantilla anterior devuelve `AGENTS_REVIEW_REQUIRED`: preparar la fusión con el Protocolo 7 como cualquier otra adaptación.
+- **Protocolo 7:** si falta `CHANGELOG.md`, el ejecutor lo crea desde `templates/CHANGELOG.md`; uno existente nunca se modifica. Tras migrar, declarar la versión actual del artefacto (`VERSION`, manifiesto del stack o cabecera de WordPress) y, para skills, `version:` en el frontmatter con su `changelogs/<skill>.md`. Validar con `scripts/check-versioning.ps1` de `ActivePath`. Un `AGENTS.md` de plantillas anteriores se convierte al bloque gestionado como se describe arriba.
 - **Protocolo 8 – siembra de reglas:** el ejecutor crea `.context/reglas_proyecto.md` si falta y nunca modifica uno existente. Las correcciones pasadas no se adivinan:
   1. Revisar `lessons_learned.md`, `docs/`, los briefs y los entregables previos en busca de correcciones, prohibiciones y requisitos del cliente.
   2. Presentarlos al usuario como **reglas candidatas** (tipo, ámbito y texto, con el origen de cada una).
@@ -56,7 +61,16 @@ El rescate abarca el árbol completo de cada skill reconocida: instrucciones, sc
 
 Ejecutar `-Mode Apply` con las mismas rutas y el candidato revisado si corresponde. La aplicación realiza rescate íntegro previo y guarda un journal privado. Ante conflictos de skills, respalda las versiones sin propagarlas y devuelve revisión necesaria. Resolver únicamente versiones elegidas explícitamente mediante `scripts/sync-skills.ps1` de `ActivePath`, pasando `HubDir`, `Targets`, `StateDir`, `FrameworkDir` e `ImportSources` de la misma evaluación/configuración, junto con `-Mode Resolve -Key <archivo> -VersionHash <hash>`. Después volver a evaluar.
 
-`MIGRATED` confirma la migración. Una repetición no debe duplicar protocolos ni reescribir archivos sin cambios. `RECOVERY_REQUIRED` indica una operación interrumpida: un `Apply` posterior intenta recuperar primero y devuelve `RECOVERED`; revisar ese resultado antes de repetir la migración. `RECOVERY_REVIEW_REQUIRED` conserva ediciones posteriores y requiere revisar el journal. No eliminar guards, respaldos ni archivos temporales para aparentar éxito.
+`MIGRATED` confirma la migración y devuelve:
+- `JournalId`;
+- `RestoreRef`, una referencia oculta de Git `refs/agent-ops/pre-migration/<id>` al `HEAD` previo, que no mueve ramas;
+- el registro `.context/agent-ops.json`, con la versión del marco que sigue el proyecto.
+
+**Deshacer:** `-Mode Rollback -Journal <JournalId>` devuelve cada archivo migrado a su contenido exacto anterior y elimina los que la migración creó. Si alguno se editó después, no toca nada y devuelve `ROLLBACK_REVIEW_REQUIRED`.
+
+**No para esta versión:** `-Mode Defer` lo recuerda en el estado privado de la instalación, solo para la plantilla vigente.
+
+Una repetición no debe duplicar protocolos ni reescribir archivos sin cambios (`UpToDate: true`). `RECOVERY_REQUIRED` indica una operación interrumpida: un `Apply` posterior intenta recuperar primero y devuelve `RECOVERED`; revisar ese resultado antes de repetir la migración. `RECOVERY_REVIEW_REQUIRED` conserva ediciones posteriores y requiere revisar el journal. No eliminar guards, respaldos ni archivos temporales para aparentar éxito.
 
 Los respaldos duraderos y borradores están fuera del proyecto. La sustitución atómica puede dejar capturas temporales locales tras una interrupción; deben resolverse antes de preparar un commit. Un rescate completo ya realizado se conserva incluso si se revierten los metadatos del proyecto. No existe una transacción atómica que abarque todos los perfiles y el proyecto.
 
