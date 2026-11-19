@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [2.1.0] - 2026-11-19
 ### Added
 - Compuerta de reglas con **revisión semántica verificable**: `check-rules.ps1 -ReviewOut` genera la lista de reglas sin patrón para que la revise un contexto limpio, y `-ReviewVerdictPath` bloquea la entrega si alguna queda `PENDIENTE` o `FALLA`, o si el entregable o las reglas cambiaron después de revisarlos (`Huella`).
 - Campo `- Ejemplo:` en las reglas: guarda el texto que se rechazó y el verificador comprueba que `Detectar` lo detecta, para que ninguna regla deje de dispararse.

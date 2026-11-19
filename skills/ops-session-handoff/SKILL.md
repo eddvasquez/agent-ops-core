@@ -1,6 +1,6 @@
 ---
 name: ops-session-handoff
-version: 1.3.0
+version: 1.4.0
 description: Protocolo de Recepción (MODO ENTRADA) y Cierre de Turno (MODO SALIDA) con auditoría Git, actualizaciones verificadas al inicio de sesión y mandato anti-racionalización.
 triggers:
   - "ops-session-handoff"

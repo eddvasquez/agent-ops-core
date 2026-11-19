@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [1.4.0] - 2026-11-19
 ### Added
 - MODO SALIDA: los entregables deben existir como archivos y pasar la revisión semántica cuando hay reglas sin patrón.
 - MODO SALIDA: red de seguridad opcional con `harvest-instructions.ps1` para detectar indicaciones de la sesión que no se registraron.

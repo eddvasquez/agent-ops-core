@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-project-migrate`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [2.1.0] - 2026-11-19
 ### Added
 - La siembra de reglas (Protocolo 8) incluye las instrucciones de otros arneses del proyecto y las indicaciones extraídas de conversaciones con `harvest-instructions.ps1`, siempre como candidatas que el usuario confirma.
 
