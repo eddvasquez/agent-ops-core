@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `changelogs/<skill>.md`.
 
 ## [Unreleased]
+### Fixed
+- Las pruebas de versionado crean sus tags con una identidad de Git de prueba; en CI, donde no hay identidad global, fallaban con «Committer identity unknown».
 
 ## [1.1.0] - 2026-11-19
 ### Added

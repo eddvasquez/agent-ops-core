@@ -92,14 +92,14 @@ Assert-Issue (Test-AgentOpsVersioning -RepositoryPath $r3) 'VERSION.*2\.0\.0.*1\
 Set-File $r3 'VERSION' '1.0.0'
 
 # 11. Tags must match the changelog and declared version at the tagged commit.
-& git -C $r3 tag -a v1.0.0 -m 'v1.0.0'
+& git -C $r3 -c user.name=Tests -c user.email=tests@localhost tag -a v1.0.0 -m 'v1.0.0'
 Assert-Code (Test-AgentOpsVersioning -RepositoryPath $r3) 0 'matching root tag is accepted'
-& git -C $r3 tag -a v3.0.0 -m 'v3.0.0'
+& git -C $r3 -c user.name=Tests -c user.email=tests@localhost tag -a v3.0.0 -m 'v3.0.0'
 Assert-Issue (Test-AgentOpsVersioning -RepositoryPath $r3) 'v3\.0\.0' 'root tag without changelog version is rejected'
 & git -C $r3 tag -d v3.0.0|Out-Null
-& git -C $r1 tag -a demo@v1.0.0 -m 'demo 1.0.0'
+& git -C $r1 -c user.name=Tests -c user.email=tests@localhost tag -a demo@v1.0.0 -m 'demo 1.0.0'
 Assert-Code (Test-AgentOpsVersioning -RepositoryPath $r1) 0 'matching skill tag is accepted'
-& git -C $r1 tag -a demo@v9.9.9 -m 'bad'
+& git -C $r1 -c user.name=Tests -c user.email=tests@localhost tag -a demo@v9.9.9 -m 'bad'
 Assert-Issue (Test-AgentOpsVersioning -RepositoryPath $r1) 'demo@v9\.9\.9' 'skill tag without matching version is rejected'
 
 # 12. Rotation: more than ten released sections in the active changelog is a warning, not an error.
@@ -118,7 +118,7 @@ $rb=New-Fixture
 [IO.File]::WriteAllText((Join-Path $rb 'skills/bom/SKILL.md'),((Skill '2.0.0') -replace 'name: demo','name: bom'),(New-Object Text.UTF8Encoding($true)))
 Set-File $rb 'changelogs/bom.md' (Log @('2.0.0'))
 Save-Commit $rb 'bom'
-& git -C $rb tag -a bom@v2.0.0 -m 'bom'
+& git -C $rb -c user.name=Tests -c user.email=tests@localhost tag -a bom@v2.0.0 -m 'bom'
 Assert-Code (Test-AgentOpsVersioning -RepositoryPath $rb) 0 'BOM-prefixed frontmatter is accepted'
 
 # 12c. A version line that splits a folded/literal description breaks the YAML and is rejected.
