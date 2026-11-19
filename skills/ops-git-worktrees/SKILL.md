@@ -1,6 +1,6 @@
 ---
 name: ops-git-worktrees
-version: 1.0.0
+version: 1.1.0
 description: Procedimiento para crear, gestionar y limpiar directorios de trabajo paralelos con git worktree de forma segura en Windows, macOS y Linux sin colisiones ni bloqueos de ramas.
 triggers:
   - "ops-git-worktrees"
@@ -48,11 +48,12 @@ git worktree add -b feat-nueva-api ../mi-proyecto-feat-api main
 - Navegar a la carpeta creada (`cd ../mi-proyecto-feat-api`).
 - Operar, editar y compilar normalmente.
 - Los commits atómicos realizados allí impactan de inmediato el repositorio Git compartido:
-```bash
+```powershell
 git status -s
-git add .
-git commit -m "feat: implementar nuevo endpoint"
+# Commit verificado con la herramienta del marco: rutas explícitas y mensaje por archivo.
+& "$ActivePath/scripts/commit.ps1" -RepositoryPath . -Paths src/api -MessageFile $mensaje
 ```
+- Nunca encadenar `git add`, `git commit` y `git tag` en una línea: si uno falla en Windows PowerShell 5.1, la línea sigue ejecutándose.
 
 ### 3. Listar Worktrees Activos
 Para auditar qué carpetas de trabajo están activas:

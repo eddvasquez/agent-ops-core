@@ -3,19 +3,12 @@ Set-StrictMode -Version 2
 $script:semver='(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?'
 $script:maxReleased=10
 
+Import-Module (Join-Path $PSScriptRoot 'NativeProcess.psm1') -Force
 function Vr-Git([string]$root,[string[]]$arguments,[switch]$AllowFailure){
-    $info=New-Object Diagnostics.ProcessStartInfo
-    $info.FileName=(Get-Command git.exe -ErrorAction Stop).Source
-    $all=@('-C',$root,'-c','core.quotepath=false')+$arguments
-    $info.Arguments=($all|ForEach-Object {'"'+($_ -replace '"','\"')+'"'}) -join ' '
-    $info.UseShellExecute=$false;$info.CreateNoWindow=$true
-    $info.RedirectStandardOutput=$true;$info.RedirectStandardError=$true
-    $info.StandardOutputEncoding=[Text.Encoding]::UTF8;$info.StandardErrorEncoding=[Text.Encoding]::UTF8
-    $info.EnvironmentVariables['GIT_TERMINAL_PROMPT']='0'
-    $p=New-Object Diagnostics.Process;$p.StartInfo=$info
-    [void]$p.Start();$out=$p.StandardOutput.ReadToEnd();[void]$p.StandardError.ReadToEnd();$p.WaitForExit()
-    if($p.ExitCode -ne 0){if($AllowFailure){return $null};throw ('git '+($arguments -join ' ')+' failed.')}
-    return $out
+    # Shared launcher: correct escaping on Windows PowerShell 5.1 and an explicit exit code.
+    $r=Invoke-Git -RepositoryPath $root -Arguments $arguments -AllowFailure
+    if($r.ExitCode -ne 0){if($AllowFailure){return $null};throw ('git '+($arguments -join ' ')+' failed.')}
+    return $r.Output
 }
 function Vr-Paths([string]$text){ @($text -split "`0"|Where-Object {$_}) }
 
@@ -121,6 +114,8 @@ function Test-AgentOpsVersioning {
         foreach($tag in @((Vr-Git $root @('tag','--list')) -split "\r?\n"|Where-Object {$_})){
             if($tag -match ('^v('+$script:semver+')$')){
                 $v=$Matches[1]
+                # Project tags are only judged in repositories that keep a project changelog.
+                if(-not (Test-Path -LiteralPath $rootLog -PathType Leaf)){continue}
                 $log=Vr-Git $root @('show',"$tag^{commit}:CHANGELOG.md") -AllowFailure
                 if($null -eq $log){$log=Vr-Git $root @('show',"$tag^{commit}:docs/CHANGELOG.md") -AllowFailure}
                 if($null -eq $log -or (Get-ChangelogInfo $log).Released -notcontains $v){$issues.Add("Tag $tag has no '## [$v]' entry in CHANGELOG.md at that commit.");continue}

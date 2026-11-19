@@ -1,6 +1,6 @@
 ---
 name: ops-project-init
-version: 1.1.0
+version: 1.2.0
 description: Inicializa un nuevo proyecto con arquitectura de gobernanza universal, .context/, docs/, AGENTS.md, Git local protegido y validación de respaldo en Google Drive o nube.
 triggers:
   - "ops-project-init"
@@ -68,4 +68,4 @@ Antes de inicializar, validar la seguridad ante pérdida de hardware:
 
 ### 6. Commit Atómico Inicial
 - Ejecutar `check-versioning.ps1 -RepositoryPath $ProjectPath` desde la versión activa y confirmar código `0`.
-- `git add -- .gitignore AGENTS.md CHANGELOG.md VERSION .context docs` -> esperar 1 segundo (higiene cloud) -> `git commit -m "chore: initialize project with universal agent governance"`.
+- Esperar 1 segundo (higiene cloud) y ejecutar `& "$ActivePath/scripts/commit.ps1" -RepositoryPath $ProjectPath -Paths .gitignore,AGENTS.md,CHANGELOG.md,VERSION,.context,docs -Message "chore: initialize project with universal agent governance"`. Comprobar que devuelve `Code` `0`; no componer `git add`/`git commit` a mano.

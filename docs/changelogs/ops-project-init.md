@@ -4,6 +4,10 @@ Cambios relevantes de la skill `ops-project-init`. Formato [Keep a Changelog](ht
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-19
+### Changed
+- El commit inicial se hace con `commit.ps1` en lugar de componer `git add`/`git commit`.
+
 ## [1.1.0] - 2026-11-19
 ### Added
 - Crea `.context/reglas_proyecto.md` y registra las restricciones del cliente ya conocidas (Protocolo 8).

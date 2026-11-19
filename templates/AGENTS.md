@@ -49,8 +49,12 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 - Actualizar `.context/progress.md` marcando con `[x]` **únicamente hitos comprobados objetivamente** mediante pruebas ejecutadas en verde o verificación física.
 - Actualizar `.context/activeContext.md` indicando con precisión quirúrgica: último archivo modificado, estado de revisión/errores y el siguiente paso ejecutable inmediato para el próximo relevo.
 - Ejecutar el verificador de versionado (Protocolo 7) y corregir cualquier fallo antes de commitear.
-- **Commits separados:** primero los cambios funcionales, con su entrada de changelog y un mensaje Conventional Commits; después el commit de relevo, que solo contiene `.context/`. Prohibido `git add .` o `git add -A`: añadir rutas explícitas (`git add -- <rutas>`).
-- Commit de relevo: `git add -- .context` -> esperar 1 segundo para liberar bloqueos en nube -> `git commit -m "chore(relevo): actualizar activeContext y progreso de sesion"`.
+- **Commits separados:** primero los cambios funcionales, con su entrada de changelog y un mensaje Conventional Commits; después el commit de relevo, que solo contiene `.context/`. Prohibido `git add .` o `git add -A`.
+- **Todo commit y toda etiqueta se hacen con la herramienta del marco**, nunca componiendo `git` a mano: `& "$ActivePath/scripts/commit.ps1" -RepositoryPath <proyecto> -Paths <rutas> -MessageFile <archivo>` (opcional: `-Tag vX.Y.Z -TagMessage "…"`).
+  - Prepara solo esas rutas, pasa el mensaje por archivo (comillas, tildes y saltos de línea llegan intactos), verifica el Protocolo 7 y crea la etiqueta únicamente sobre el commit recién hecho.
+  - Si algo falla, se detiene y devuelve `Code` distinto de `0` y el `Step` exacto: no continuar con el paso siguiente.
+- Commit de relevo: `& "$ActivePath/scripts/commit.ps1" -RepositoryPath <proyecto> -Paths .context -Message "chore(relevo): actualizar activeContext y progreso de sesion"`. Esperar 1 segundo antes, para liberar bloqueos de la nube.
+- **Operaciones con efectos (commit, etiqueta, push, borrados):** una por llamada, comprobando su resultado antes de la siguiente. Prohibido encadenarlas con `;` o `&&` en una sola línea: un comando nativo que falla no detiene la línea en Windows PowerShell 5.1. Los textos libres (mensajes, JSON) se pasan por archivo, nunca como argumento entre comillas.
 - *Una vez actualizado activeContext y efectuado el commit, el agente no debe ejecutar código adicional en ese turno.*
 
 ---

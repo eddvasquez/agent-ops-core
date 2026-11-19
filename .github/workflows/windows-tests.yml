@@ -45,6 +45,16 @@ jobs:
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/release-policy.tests.ps1
           exit $LASTEXITCODE
+      - name: Verified commit and tag tool
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/commit.tests.ps1
+          exit $LASTEXITCODE
+      - name: Repository hygiene (encoding and agent instructions)
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/repo-hygiene.tests.ps1
+          exit $LASTEXITCODE
       - name: Project rules compliance gate
         shell: pwsh
         run: |

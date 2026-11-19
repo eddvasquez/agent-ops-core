@@ -6,6 +6,18 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-19
+### Added
+- Herramienta `scripts/commit.ps1` (`Invoke-AgentOpsCommit`) para que los agentes hagan commits y etiquetas de forma verificada: solo las rutas indicadas, mensaje por archivo (comillas, tildes y saltos de línea intactos), comprobación del Protocolo 7, etiqueta solo sobre el commit recién creado y parada en el primer fallo con el paso exacto. Si la verificación falla, deshace el commit y deja los cambios preparados. Acepta las rutas como lista o separadas por comas, porque vía `powershell -File` llegan como un único texto. Pruebas en `tests/commit.tests.ps1`.
+- `scripts/NativeProcess.psm1`: lanzador único de programas nativos con escape correcto de argumentos en Windows PowerShell 5.1 y código de salida obligatorio.
+- `tests/repo-hygiene.tests.ps1`: todo `.ps1`/`.psm1` debe ser ASCII o UTF-8 con BOM, y ninguna skill o plantilla puede indicar `git commit -m`, `git add .` ni `git tag -a`.
+
+### Changed
+- Protocolo 6, `ops-session-handoff`, `ops-project-init` y `ops-git-worktrees`: commits y etiquetas solo vía `commit.ps1`; operaciones con efectos de una en una, sin encadenarlas con `;`; textos libres por archivo.
+- `Versioning.psm1` usa el lanzador compartido en lugar de su propio escape.
+
+### Fixed
+- El verificador de versionado ya no juzga etiquetas `vX.Y.Z` en repositorios sin changelog de proyecto.
 ## [1.1.1] - 2026-11-19
 ### Fixed
 - Las instalaciones existentes rechazaban la 1.1.0 («Unexpected/private file in public release: CHANGELOG.md»): el arranque instalado verifica cada versión con una lista de rutas fija. `CHANGELOG.md`, `VERSION` y `changelogs/` pasan a `docs/`, y el verificador de versionado acepta también esa ubicación.

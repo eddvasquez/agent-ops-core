@@ -1,6 +1,6 @@
 ---
 name: ops-session-handoff
-version: 1.1.0
+version: 1.2.0
 description: Protocolo de Recepción (MODO ENTRADA) y Cierre de Turno (MODO SALIDA) con auditoría Git, actualizaciones verificadas al inicio de sesión y mandato anti-racionalización.
 triggers:
   - "ops-session-handoff"
@@ -70,8 +70,9 @@ Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explíc
    - Ejecutar `& "$ActivePath/scripts/check-versioning.ps1" -RepositoryPath <proyecto>`. Si devuelve código distinto de `0`, corregir las incidencias que lista antes de commitear; no debilitar el verificador ni omitirlo. Las advertencias de rotación indican mover versiones antiguas a `changelogs/archive/`.
    - Leer el changelog solo en este paso (sección `[Unreleased]` y última versión), nunca completo ni en MODO ENTRADA.
 5. **Commits separados y selectivos:**
-   - Prohibido `git add .` y `git add -A`. Añadir siempre rutas explícitas.
-   - Primero, si hay cambios funcionales: `git add -- <rutas del cambio> <changelog>` -> `git commit -m "<tipo>(<artefacto>): <resumen>"` (Conventional Commits; `BREAKING CHANGE:` exige subir MAJOR).
-   - Después, el relevo: `git add -- .context` -> esperar 1 segundo (liberar bloqueos de sincronización cloud) -> `git commit -m "chore(relevo): actualizar activeContext y progreso de sesion"`.
-   - Si el proyecto cuenta con un repositorio remoto configurado (`origin`), ejecutar `git push` para respaldo en la nube.
+   - Prohibido `git add .` y `git add -A`, y prohibido componer `git commit`/`git tag` a mano. Todo commit pasa por `& "$ActivePath/scripts/commit.ps1"`, que prepara solo las rutas indicadas, recibe el mensaje por archivo, verifica el Protocolo 7 y se detiene en el primer fallo.
+   - Primero, si hay cambios funcionales: escribir el mensaje Conventional Commits (`<tipo>(<artefacto>): <resumen>`; `BREAKING CHANGE:` exige subir MAJOR) en un archivo temporal y ejecutar `commit.ps1 -RepositoryPath <proyecto> -Paths <rutas del cambio> <changelog> -MessageFile <archivo>`.
+   - Comprobar su JSON: `Code` `0` y `Status` `COMMITTED`. Si no, corregir lo que indique `Step`/`Issues` antes de seguir.
+   - Después, el relevo: esperar 1 segundo (liberar bloqueos de sincronización cloud) y ejecutar `commit.ps1 -RepositoryPath <proyecto> -Paths .context -Message "chore(relevo): actualizar activeContext y progreso de sesion"`.
+   - Si el proyecto cuenta con un repositorio remoto configurado (`origin`), ejecutar `git push` en una llamada aparte, solo si los commits anteriores devolvieron `Code` `0`.
 6. *Una vez actualizado activeContext y efectuado el commit, el agente no debe ejecutar código adicional en ese turno.*

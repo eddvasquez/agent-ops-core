@@ -157,6 +157,8 @@ $r5=New-Fixture
 Set-File $r5 'notes.txt' 'x'
 Save-Commit $r5 'plain'
 Assert-Code (Test-AgentOpsVersioning -RepositoryPath $r5) 0 'repository without artifacts is accepted'
+& git -C $r5 -c user.name=Tests -c user.email=tests@localhost tag -a v1.0.0 -m 'unversioned tag'
+Assert-Code (Test-AgentOpsVersioning -RepositoryPath $r5) 0 'tags in a repository without a project changelog are not judged'
 
 # 14. CLI returns JSON and the exit code.
 $engine=(Get-Process -Id $PID).Path
