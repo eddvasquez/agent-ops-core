@@ -7,7 +7,7 @@ $raw=Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
 $invoke=@{HubDir=[string]$raw.HubDir;Targets=[string[]]$raw.Targets;StateDir=[string]$raw.StateDir;FrameworkDir=[string]$raw.FrameworkDir}
 $validated=Get-SkillSyncConfiguration @invoke
 $identity=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-$mutex=New-Object Threading.Mutex($false,('Local\AgentOpsSkillsWatcher-'+$identity)); $owned=$false
+$mutex=New-Object Threading.Mutex($false,(& $watchLibrary {param($d) Get-SyncWatcherMutexName $d} $validated.StateDir)); $owned=$false
 $watchers=@(); $ids=@(); $prefix='AOC.'+[guid]::NewGuid().ToString('N')+'.'
 function Write-WatchLog($r,$scope) {
     # Validate again before logging in case an ancestor was replaced by a link.

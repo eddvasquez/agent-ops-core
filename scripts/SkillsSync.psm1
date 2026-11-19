@@ -39,6 +39,14 @@ function Assert-SyncNoLink([string]$Path) {
         if ($parent -eq $current) { break }; $current = $parent
     }
 }
+# One watcher per installation: the lock is scoped to the user and the installation's state directory,
+# so a separate installation (a test fixture, for instance) never contends with the running watcher.
+function Get-SyncWatcherMutexName([string]$StateDir) {
+    $key = [IO.Path]::GetFullPath($StateDir).TrimEnd([char]'\', [char]'/').ToLowerInvariant()
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $hash = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($key)))).Replace('-', '').Substring(0, 16).ToLowerInvariant() } finally { $sha.Dispose() }
+    return 'Local\AgentOpsSkillsWatcher-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value + '-' + $hash
+}
 function Get-SyncRoot([string]$Path) {
     if ([string]::IsNullOrWhiteSpace($Path)) { throw 'Empty root path.' }
     $full = [IO.Path]::GetFullPath($Path).TrimEnd('\','/')

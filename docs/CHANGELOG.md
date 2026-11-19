@@ -9,6 +9,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - `scripts/harvest-instructions.ps1`: extrae en solo lectura las indicaciones que el usuario dio en conversaciones de Claude Code y Codex y en las memorias de Claude Code, y las devuelve como reglas candidatas con su procedencia. Descarta texto inyectado (avisos del arnés, resultados de herramientas, contenido pegado, sesiones de subagentes) y las reglas ya registradas; nunca escribe en el proyecto.
 - La evaluación de migración informa `HarnessInstructions`: líneas propias de `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.windsurfrules` y `.github/copilot-instructions.md`, para que ninguna instrucción de otro arnés se pierda al sembrar reglas. Esos archivos no se modifican.
 
+### Fixed
+- El bloqueo del vigilante de skills es ahora uno por instalación (usuario + `StateDir`): otra instalación, como la de las pruebas, ya no choca con el vigilante en ejecución.
+- La activación de una actualización espera hasta 10 s a que termine una sincronización en curso (el vigilante hace una completa cada 5 minutos) en lugar de fallar al instante. La migración hace lo mismo antes de responder `BUSY`.
+
 ## [2.0.0] - 2026-11-19
 ### Added
 - `AGENTS.md` con **bloque gestionado** (`<!-- agent-ops:begin version=… hash=… -->` … `<!-- agent-ops:end -->`): las actualizaciones del marco reemplazan solo el bloque y conservan byte a byte el texto del proyecto que está fuera.

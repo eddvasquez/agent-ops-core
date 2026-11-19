@@ -147,7 +147,8 @@ function Invoke-ProjectMigration {
         foreach($tree in @($protected|Sort-Object -Unique)){
             & $script:engine {param($p,$t,$s) Get-SkillSyncConfiguration -HubDir $p -Targets @($t) -StateDir $s} $project $tree $cfg.StateDir|Out-Null
         }
-        $syncLock=New-Object Threading.Mutex($false,('Local\AgentOpsSkillsSync-'+$sid));try{$l=$syncLock.WaitOne(0)}catch [Threading.AbandonedMutexException]{$l=$true}
+        # The watcher runs a full synchronization every few minutes; wait for it briefly before reporting BUSY.
+        $syncLock=New-Object Threading.Mutex($false,('Local\AgentOpsSkillsSync-'+$sid));try{$l=$syncLock.WaitOne(10000)}catch [Threading.AbandonedMutexException]{$l=$true}
         if(-not $l){$r.Code=3;$r.Status='BUSY';return [pscustomobject]$r}
         $projectId=Pm-BytesHash ([Text.Encoding]::UTF8.GetBytes($project.ToLowerInvariant()))
         $private=Pm-Child $cfg.StateDir ('migrations/'+$projectId);$pending=Pm-Child $private 'pending.json'

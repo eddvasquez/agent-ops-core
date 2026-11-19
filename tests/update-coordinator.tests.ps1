@@ -67,6 +67,20 @@ Test 'update now prepares and activates exactly the approved SHA' {
     Assert ($r.Code -eq 0 -and $r.ActiveSha -eq $new -and $r.LastGoodSha -eq $new) ($r|ConvertTo-Json -Depth 8)
     Assert ([IO.Directory]::Exists($r.ActivePath) -and [IO.Directory]::Exists((Join-Path $f.Parameters.RuntimeDir ('releases/'+$f.OldSha)))) 'Previous code environment lost'
 }
+Test 'activation waits for a short synchronization already in progress instead of failing' {
+    $f=Fixture;$new=Publish $f;Run $f|Out-Null;Run $f 'Prepare' 'A' $new|Out-Null
+    $ready=Join-Path $f.Parameters.StateDir 'sync-holder-ready'
+    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value)); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 3}finally{$m.ReleaseMutex();$m.Dispose()}'
+    $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
+    $child=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -WindowStyle Hidden -PassThru
+    try{
+        $deadline=[datetime]::UtcNow.AddSeconds(20)
+        while(-not [IO.File]::Exists($ready) -and [datetime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 100}
+        Assert ([IO.File]::Exists($ready)) 'Lock holder failed to initialize'
+        $r=Run $f 'Apply' 'A' $new
+        Assert ($r.Code -eq 0 -and $r.ActiveSha -eq $new) ($r|ConvertTo-Json -Depth 8)
+    }finally{if(-not $child.WaitForExit(10000)){$child.Kill()};$child.Dispose()}
+}
 Test 'defer suppresses repeated prompts only for that candidate and session' {
     $f=Fixture;$new=Publish $f;Run $f|Out-Null
     Assert ((Run $f 'Defer' 'A' $new).Status -eq 'DEFERRED') 'Defer failed'

@@ -262,5 +262,12 @@ Test 'missing framework directory and malformed baseline fail closed' {
     [IO.File]::WriteAllText($path,($s|ConvertTo-Json -Depth 30))
     Assert ((Invoke-SkillSync @p -Mode Apply).Code -eq 1) 'Malformed baseline accepted'
 }
+Test 'watcher lock is scoped to its installation state directory' {
+    $m = Get-Module SkillsSync
+    $a = & $m { Get-SyncWatcherMutexName 'C:\AgentOps\StateA' }
+    Assert ($a -like 'Local\AgentOpsSkillsWatcher-*') "Unexpected lock name $a"
+    Assert ($a -eq (& $m { Get-SyncWatcherMutexName 'c:\agentops\statea\' })) 'Same installation must share one watcher lock'
+    Assert ($a -ne (& $m { Get-SyncWatcherMutexName 'C:\AgentOps\StateB' })) 'Separate installations (tests included) must not share the watcher lock'
+}
 Write-Host "Results: $script:Passed passed, $script:Failed failed. Fixtures: $script:TestRoot"
 if ($script:Failed) { exit 1 }

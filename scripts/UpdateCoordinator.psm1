@@ -343,7 +343,8 @@ function Up-Apply($s,$taskController){
     $path=Up-ValidateRelease $s $record
     $engine=Import-Module (Join-Path $path 'scripts/SkillsSync.psm1') -Force -PassThru
     $invoke=@{HubDir=$s.Config.HubDir;Targets=$s.Config.Targets;StateDir=$s.Config.StateDir;FrameworkDir=$path;SkillNames=$script:core}
-    $syncLock=Up-Mutex 'SkillsSync';$owned=Up-Lock $syncLock
+    # The watcher runs a full synchronization every few minutes; wait for it briefly instead of failing the activation.
+    $syncLock=Up-Mutex 'SkillsSync';$owned=Up-Lock $syncLock 10000
     if(-not $owned){$syncLock.Dispose();throw 'Another synchronization is running.'}
     $previous=$null;$guard=Up-Child $s.Config.StateDir 'activation-pending.json';$journal=$null;$watchLock=$null;$watchOwned=$false
     try{
@@ -360,7 +361,7 @@ function Up-Apply($s,$taskController){
         Up-Write $journalPath $journal;Up-Write $guard @{Journal=$relative}
         $previous=if($taskController){& $taskController 'Suspend' $s.Config}else{Up-Task 'Suspend' $s.Config}
         $journal.TaskBefore=$previous;Up-Write $journalPath $journal
-        $watchLock=Up-Mutex 'SkillsWatcher';$watchOwned=Up-Lock $watchLock 5000
+        $watchLock=New-Object Threading.Mutex($false,(& $script:library {param($d) Get-SyncWatcherMutexName $d} $s.Config.StateDir));$watchOwned=Up-Lock $watchLock 5000
         if(-not $watchOwned){throw 'An unmanaged watcher is running; activation cannot replace its code.'}
         $r=& $engine {param($p) Invoke-SkillSync @p -Mode Apply} $invoke
         if($r.Code -ne 0){throw ('Skill deployment failed: '+($r.Issues -join '; '))}

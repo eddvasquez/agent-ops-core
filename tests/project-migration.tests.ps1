@@ -273,5 +273,18 @@ Test 'a project without harness instruction files reports an empty inventory' {
     $f=Fixture;$r=Invoke-ProjectMigration @f
     Assert (@($r.HarnessInstructions).Count -eq 0) 'Phantom harness inventory'
 }
+Test 'a short synchronization in progress is awaited instead of returning busy' {
+    $f=Fixture;$ready=Join-Path (Split-Path $f.ConfigPath) 'sync-holder-ready'
+    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value)); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 3}finally{$m.ReleaseMutex();$m.Dispose()}'
+    $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
+    $child=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -WindowStyle Hidden -PassThru
+    try{
+        $deadline=[datetime]::UtcNow.AddSeconds(20)
+        while(-not [IO.File]::Exists($ready) -and [datetime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 100}
+        Assert ([IO.File]::Exists($ready)) 'Lock holder failed to initialize'
+        $r=Invoke-ProjectMigration @f
+        Assert ($r.Code -eq 0 -and $r.Status -eq 'PLANNED') ($r|ConvertTo-Json -Depth 5)
+    }finally{if(-not $child.WaitForExit(10000)){$child.Kill()};$child.Dispose()}
+}
 Write-Host "Migration results: $passed passed, $failed failed. Fixtures: $base"
 if($failed){exit 1}
