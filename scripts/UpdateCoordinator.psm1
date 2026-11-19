@@ -345,7 +345,8 @@ function Up-Apply($s,$taskController){
     $invoke=@{HubDir=$s.Config.HubDir;Targets=$s.Config.Targets;StateDir=$s.Config.StateDir;FrameworkDir=$path;SkillNames=$script:core}
     # The watcher runs a full synchronization every few minutes; wait for it briefly instead of failing the activation.
     $syncLock=Up-Mutex 'SkillsSync';$owned=Up-Lock $syncLock 10000
-    if(-not $owned){$syncLock.Dispose();throw 'Another synchronization is running.'}
+    # Contention is transient: report BUSY (retryable) and keep the candidate and the user's approval untouched.
+    if(-not $owned){$syncLock.Dispose();throw 'BUSY: Another synchronization is running.'}
     $previous=$null;$guard=Up-Child $s.Config.StateDir 'activation-pending.json';$journal=$null;$watchLock=$null;$watchOwned=$false
     try{
         $plan=& $engine {param($p) Invoke-SkillSync @p -Mode Plan} $invoke
@@ -528,6 +529,7 @@ function Invoke-AgentOpsUpdate {
     }catch{
         $message=$_.Exception.Message
         $pending=$s -and [IO.File]::Exists((Join-Path $s.Config.StateDir 'activation-pending.json'))
+        if(-not $pending -and $message.StartsWith('BUSY:')){$r=Up-Result $s 'BUSY' 3;$r.Issues=@($message);return [pscustomobject]$r}
         if($s -and $owned -and -not $pending){try{if($s.Candidate.Count){$s.Candidate.Status='FAILED';$s.Candidate.Approved=$false};$s.LastError=$message;Up-Save $s}catch{}}
         $status=if($pending){'ACTIVATION_REVIEW_REQUIRED'}elseif($message.StartsWith('SKILL_CONFLICT:')){'SKILL_CONFLICT'}else{'FAILED'}
         $code=if($status -in @('SKILL_CONFLICT','ACTIVATION_REVIEW_REQUIRED')){2}else{1}

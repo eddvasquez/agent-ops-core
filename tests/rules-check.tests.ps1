@@ -125,5 +125,60 @@ Test 'CLI returns JSON and the exit code' {
     $json=& $engine -NoProfile -ExecutionPolicy Bypass -File (Join-Path $source 'scripts/check-rules.ps1') -RulesPath $rulesPath -Path $d -Scope anuncios|Out-String
     Assert ($LASTEXITCODE -eq 1 -and ($json|ConvertFrom-Json).Code -eq 1) $json
 }
+Test 'an example that its own Detectar does not catch is an issue' {
+    $rp=Put 'reglas.md' "### R-001 [expresion-vetada] [ámbito: todas] [estado: activa]`n- Regla: No prometer rentabilidad.`n- Detectar: `"rentabilidad garantizada`"`n- Ejemplo: `"Rentabilidad asegurada desde el primer mes`"`n"
+    $r=Test-AgentOpsRules -RulesPath $rp -Path (Put 'ad.md' 'texto limpio')
+    Assert ($r.Code -eq 1 -and @($r.Issues|Where-Object {$_ -match 'R-001.*Ejemplo'}).Count -eq 1) ($r|ConvertTo-Json -Depth 6)
+}
+Test 'an example caught by Detectar is accepted and semantic examples reach the reviewer' {
+    $rp=Put 'reglas.md' "### R-001 [expresion-vetada] [ámbito: todas] [estado: activa]`n- Regla: No prometer rentabilidad.`n- Detectar: `"re:rentabilidad\s+(garantizad|asegurad)[oa]`"`n- Ejemplo: `"Rentabilidad asegurada desde el primer mes`"`n`n### R-002 [prohibido-afirmar] [ámbito: todas] [estado: activa]`n- Regla: No afirmar que hay financiación bancaria.`n- Ejemplo: `"Te ayudamos con el crédito hipotecario`"`n"
+    $r=Test-AgentOpsRules -RulesPath $rp -Path (Put 'ad.md' 'texto limpio')
+    Assert ($r.Code -eq 0) ($r|ConvertTo-Json -Depth 6)
+    $sem=@($r.ReviewRules|Where-Object {$_.Id -eq 'R-002'})
+    Assert ($sem.Count -eq 1 -and @($sem[0].Examples) -contains 'Te ayudamos con el crédito hipotecario') ($r.ReviewRules|ConvertTo-Json -Depth 4)
+}
+function ReviewFixture {
+    $rp=Put 'reglas.md' "### R-001 [prohibido-afirmar] [ámbito: todas] [estado: activa]`n- Regla: No afirmar que hay financiación bancaria.`n`n### R-002 [tono] [ámbito: todas] [estado: activa]`n- Regla: Tutear siempre al lector.`n"
+    $d=Put 'ad.md' 'Conoce tu nueva casa.'
+    $out=Join-Path $script:base ([guid]::NewGuid().ToString('N')+'-revision.md')
+    $r=Test-AgentOpsRules -RulesPath $rp -Path $d -ReviewOut $out
+    return @{Rules=$rp;Deliverable=$d;Out=$out;Result=$r}
+}
+Test 'ReviewOut writes a pending checklist with a fingerprint of rules and deliverables' {
+    $f=ReviewFixture;$text=[IO.File]::ReadAllText($f.Out)
+    Assert ($f.Result.Code -eq 0 -and $text -match '(?m)^- R-001: PENDIENTE' -and $text -match '(?m)^- R-002: PENDIENTE' -and $text -match '(?m)^Huella: [0-9a-f]{64}$') $text
+    Assert ($text.Contains('No afirmar que hay financiación bancaria.') -and $text.Contains($f.Deliverable)) 'Checklist lacks rule text or deliverable'
+}
+Test 'a completed verdict passes; a pending or failed rule blocks delivery' {
+    $f=ReviewFixture;$text=[IO.File]::ReadAllText($f.Out)
+    $r=Test-AgentOpsRules -RulesPath $f.Rules -Path $f.Deliverable -ReviewVerdictPath $f.Out
+    Assert ($r.Code -eq 1 -and @($r.Issues|Where-Object {$_ -match 'R-001.*PENDIENTE|PENDIENTE.*R-001'}).Count -eq 1) ($r|ConvertTo-Json -Depth 6)
+    [IO.File]::WriteAllText($f.Out,($text -replace '- R-001: PENDIENTE','- R-001: PASA — no menciona financiación' -replace '- R-002: PENDIENTE','- R-002: FALLA — "Conozca" trata de usted'),$utf8)
+    $r=Test-AgentOpsRules -RulesPath $f.Rules -Path $f.Deliverable -ReviewVerdictPath $f.Out
+    Assert ($r.Code -eq 1 -and @($r.Violations|Where-Object {$_.Rule -eq 'R-002' -and $_.Kind -eq 'semantic'}).Count -eq 1) ($r|ConvertTo-Json -Depth 6)
+    [IO.File]::WriteAllText($f.Out,($text -replace '- R-001: PENDIENTE','- R-001: PASA — no menciona financiación' -replace '- R-002: PENDIENTE','- R-002: PASA — tutea'),$utf8)
+    $r=Test-AgentOpsRules -RulesPath $f.Rules -Path $f.Deliverable -ReviewVerdictPath $f.Out
+    Assert ($r.Code -eq 0) ($r|ConvertTo-Json -Depth 6)
+}
+Test 'a verdict for an older version of the deliverable or rules is rejected' {
+    $f=ReviewFixture;$text=[IO.File]::ReadAllText($f.Out)
+    [IO.File]::WriteAllText($f.Out,($text -replace 'PENDIENTE','PASA — revisado'),$utf8)
+    [IO.File]::AppendAllText($f.Deliverable,' Te ayudamos con el crédito.',$utf8)
+    $r=Test-AgentOpsRules -RulesPath $f.Rules -Path $f.Deliverable -ReviewVerdictPath $f.Out
+    Assert ($r.Code -eq 1 -and @($r.Issues|Where-Object {$_ -match 'Huella|fingerprint'}).Count -eq 1) ($r|ConvertTo-Json -Depth 6)
+}
+Test 'a verdict missing an applicable rule is rejected' {
+    $f=ReviewFixture;$text=[IO.File]::ReadAllText($f.Out)
+    [IO.File]::WriteAllText($f.Out,(($text -replace '- R-001: PENDIENTE','- R-001: PASA — ok') -replace '(?m)^- R-002: PENDIENTE\r?\n?',''),$utf8)
+    $r=Test-AgentOpsRules -RulesPath $f.Rules -Path $f.Deliverable -ReviewVerdictPath $f.Out
+    Assert ($r.Code -eq 1 -and @($r.Issues|Where-Object {$_ -match 'R-002'}).Count -eq 1) ($r|ConvertTo-Json -Depth 6)
+}
+Test 'CLI writes the review checklist and validates the verdict' {
+    $f=ReviewFixture;$out2=$f.Out+'.cli.md';$engine=(Get-Process -Id $PID).Path;$cli=Join-Path $source 'scripts/check-rules.ps1'
+    & $engine -NoProfile -ExecutionPolicy Bypass -File $cli -RulesPath $f.Rules -Path $f.Deliverable -ReviewOut $out2|Out-Null
+    Assert ($LASTEXITCODE -eq 0 -and (Test-Path $out2)) 'CLI did not write the checklist'
+    $json=& $engine -NoProfile -ExecutionPolicy Bypass -File $cli -RulesPath $f.Rules -Path $f.Deliverable -ReviewVerdictPath $out2|Out-String
+    Assert ($LASTEXITCODE -eq 1) ('Pending verdict accepted by CLI: '+$json)
+}
 Write-Host "Rules check: $script:passed passed, $script:failed failed."
 if($script:failed){exit 1}

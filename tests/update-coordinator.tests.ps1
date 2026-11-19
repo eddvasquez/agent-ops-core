@@ -30,7 +30,8 @@ function Fixture {
     [IO.Directory]::CreateDirectory($install)|Out-Null
     Copy-Item -LiteralPath (Join-Path $remote 'scripts') -Destination $install -Recurse
     $p=@{InstallRoot=$install;RepoUrl=$remote;StateDir=(Join-Path $root 'state');RuntimeDir=(Join-Path $root 'runtime');HubDir=(Join-Path $root 'hub');Targets=@((Join-Path $root 'target'));WatcherEnabled=$false}
-    $r=Initialize-AgentOpsUpdate @p -Verifier $script:proof -TaskController $script:tasks
+    # BUSY (code 3) is the documented retryable contract, e.g. while the real watcher synchronizes; agents retry it the same way.
+    for($attempt=1;$attempt -le 3;$attempt++){$r=Initialize-AgentOpsUpdate @p -Verifier $script:proof -TaskController $script:tasks;if($r.Code -ne 3){break};Start-Sleep -Seconds 2}
     Assert ($r.Code -eq 0) ($r|ConvertTo-Json -Depth 8)
     return @{Parameters=$p;Remote=$remote;ConfigPath=(Join-Path $p.StateDir 'watch-config.json');OldSha=(git -C $remote rev-parse HEAD);StatePath=(Join-Path $p.StateDir 'update-state.json')}
 }
@@ -41,6 +42,11 @@ function Publish($f,$text='core v2'){
     if($LASTEXITCODE -ne 0){throw 'Fixture update failed'}
     & git -C $f.Remote branch -f stable HEAD
     return (git -C $f.Remote rev-parse HEAD)
+}
+function Detect($f,$sha){
+    # A check under heavy load can miss its 5 s remote budget (transient); retry it and fail with the real cause.
+    for($i=1;$i -le 3;$i++){$c=Run $f;if($c.CandidateSha -eq $sha){return};Start-Sleep -Seconds 1}
+    throw ('Check did not detect the published candidate: '+($c|ConvertTo-Json -Depth 6 -Compress))
 }
 function Run($f,$action='Check',$session='A',$sha='') {
     Invoke-AgentOpsUpdate -ConfigPath $f.ConfigPath -Action $action -SessionId $session -BeginSession -CandidateSha $sha -Verifier $script:proof -TaskController $script:tasks
@@ -68,7 +74,7 @@ Test 'update now prepares and activates exactly the approved SHA' {
     Assert ([IO.Directory]::Exists($r.ActivePath) -and [IO.Directory]::Exists((Join-Path $f.Parameters.RuntimeDir ('releases/'+$f.OldSha)))) 'Previous code environment lost'
 }
 Test 'activation waits for a short synchronization already in progress instead of failing' {
-    $f=Fixture;$new=Publish $f;Run $f|Out-Null;Run $f 'Prepare' 'A' $new|Out-Null
+    $f=Fixture;$new=Publish $f;Detect $f $new;Run $f 'Prepare' 'A' $new|Out-Null
     $ready=Join-Path $f.Parameters.StateDir 'sync-holder-ready'
     $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value)); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 3}finally{$m.ReleaseMutex();$m.Dispose()}'
     $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
@@ -80,6 +86,24 @@ Test 'activation waits for a short synchronization already in progress instead o
         $r=Run $f 'Apply' 'A' $new
         Assert ($r.Code -eq 0 -and $r.ActiveSha -eq $new) ($r|ConvertTo-Json -Depth 8)
     }finally{if(-not $child.WaitForExit(10000)){$child.Kill()};$child.Dispose()}
+}
+Test 'a synchronization longer than the wait returns busy and keeps the approved candidate' {
+    $f=Fixture;$new=Publish $f;Detect $f $new;Run $f 'Prepare' 'A' $new|Out-Null
+    $ready=Join-Path $f.Parameters.StateDir 'long-holder-ready'
+    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value)); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 13}finally{$m.ReleaseMutex();$m.Dispose()}'
+    $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
+    $child=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -WindowStyle Hidden -PassThru
+    try{
+        $deadline=[datetime]::UtcNow.AddSeconds(20)
+        while(-not [IO.File]::Exists($ready) -and [datetime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 100}
+        Assert ([IO.File]::Exists($ready)) 'Lock holder failed to initialize'
+        $r=Run $f 'Apply' 'A' $new
+        Assert ($r.Code -eq 3 -and $r.Status -eq 'BUSY' -and $r.ActiveSha -eq $f.OldSha) ($r|ConvertTo-Json -Depth 8)
+        $state=Get-Content $f.StatePath -Raw|ConvertFrom-Json
+        Assert ($state.Candidate.Status -eq 'READY' -and $state.Candidate.Approved) ('Contention revoked the approval: '+($state.Candidate|ConvertTo-Json -Compress))
+    }finally{if(-not $child.WaitForExit(20000)){$child.Kill()};$child.Dispose()}
+    $r=Run $f 'Apply' 'A' $new
+    Assert ($r.Code -eq 0 -and $r.ActiveSha -eq $new) ($r|ConvertTo-Json -Depth 8)
 }
 Test 'defer suppresses repeated prompts only for that candidate and session' {
     $f=Fixture;$new=Publish $f;Run $f|Out-Null

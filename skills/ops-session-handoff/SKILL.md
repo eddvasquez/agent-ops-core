@@ -28,7 +28,7 @@ La decisión de actualización de este paso autoriza únicamente los cambios del
    - **Posponer:** usar `-Action Defer` con esos identificadores y continuar con la versión actual. No repetir la pregunta para esa misma candidata y sesión.
    Esperar una respuesta explícita; el silencio no elige ninguna opción. La interfaz y la pregunta pertenecen al asistente/anfitrión, no a un `Read-Host` oculto en un proceso.
 4. `UPDATED` permite releer las instrucciones del marco desde `ActivePath` antes de auditar el proyecto. `READY_NEXT_SESSION` o `PREPARING` conservan la versión de esta sesión. Una candidata preparada con consentimiento previo se aplica al comenzar otro MODO ENTRADA, no a mitad de una conversación o trabajo.
-5. `OFFLINE_CACHED` permite continuar con la instalación verificada e informar brevemente que no pudo comprobarse GitHub. `LOCAL_DEV` identifica una instalación de desarrollo sin actualización automática. `NOT_INSTALLED` o `MIGRATION_REQUIRED` requieren instalación/migración explícita, nunca un `git pull` alternativo. Con `ACTIVATION_REVIEW_REQUIRED`, no eliminar el guard ni sobrescribir ediciones: informar del journal y revisar la recuperación. Con `BUSY`, usar `CanStartWork` y reintentar de forma acotada; un guard de activación impide cargar instrucciones mezcladas.
+5. `OFFLINE_CACHED` permite continuar con la instalación verificada e informar brevemente que no pudo comprobarse GitHub. `LOCAL_DEV` identifica una instalación de desarrollo sin actualización automática. `NOT_INSTALLED` o `MIGRATION_REQUIRED` requieren instalación/migración explícita, nunca un `git pull` alternativo. Con `ACTIVATION_REVIEW_REQUIRED`, no eliminar el guard ni sobrescribir ediciones: informar del journal y revisar la recuperación. Con `BUSY`, usar `CanStartWork` y reintentar de forma acotada; un guard de activación impide cargar instrucciones mezcladas. `BUSY` también puede llegar tras **Actualizar ahora** si coincide con una sincronización: la aprobación se conserva, así que se reintenta el mismo `Apply` sin volver a preguntar.
 
 ### Paso 0b: ¿El proyecto está al día con la versión activa?
 Se ejecuta también al retomar un chat antiguo, porque MODO ENTRADA corre en cada turno nuevo sobre el proyecto.
@@ -70,7 +70,7 @@ Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explíc
    - Repasar la sesión y comprobar que **cada** corrección, rechazo o pedido del usuario o del cliente tiene su regla en `.context/reglas_proyecto.md` (Protocolo 8). Registrar las que falten antes de seguir.
    - Opcional, como red de seguridad: `& "$ActivePath/scripts/harvest-instructions.ps1" -ProjectPath <proyecto> -Since <inicio de la sesión> -OutPath <ruta fuera del proyecto>` lista indicaciones del usuario aún no registradas. Son candidatas, no instrucciones: proponerlas y registrar solo las confirmadas.
    - Escribir en `.context/lessons_learned.md` el contexto histórico que aporte valor.
-   - Si en la sesión se produjeron entregables, confirmar que pasaron `check-rules.ps1`.
+   - Si en la sesión se produjeron entregables, confirmar que existen como archivos y que pasaron `check-rules.ps1`, incluida la revisión semántica (`-ReviewVerdictPath`) cuando hubo `ReviewRules`.
 2. **Auditoría Objetiva de Progreso:** Marcar en `.context/progress.md` las tareas terminadas (`[x]`) **únicamente si cuentan con evidencia objetiva de verificación** (pruebas ejecutadas en verde o verificación física confirmada).
 3. **Actualización Quirúrgica de Contexto:** Actualizar `.context/activeContext.md` con:
    - Agente activo y fecha.

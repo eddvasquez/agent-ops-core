@@ -4,7 +4,10 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 
 ## [Unreleased]
 ### Added
+- MODO SALIDA: los entregables deben existir como archivos y pasar la revisión semántica cuando hay reglas sin patrón.
 - MODO SALIDA: red de seguridad opcional con `harvest-instructions.ps1` para detectar indicaciones de la sesión que no se registraron.
+### Changed
+- MODO ENTRADA, Paso 0: `BUSY` tras «Actualizar ahora» se reintenta sin volver a preguntar, porque la aprobación se conserva.
 
 ## [1.3.0] - 2026-11-19
 ### Added

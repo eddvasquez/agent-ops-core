@@ -77,8 +77,11 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 - **Nivel correcto:** redactar la regla para el proyecto, no para el entregable. "No afirmar X" en lugar de "quitar X del hero". El ámbito por defecto es `todas`; restringirlo (`landing`, `anuncios`…) solo cuando el usuario lo indique.
 - **Cambios por delta:** añadir, modificar o retirar reglas por su ID (`[estado: retirada]`). Nunca reescribir ni resumir el archivo entero, porque se perderían detalles.
 - **Inyección en el momento de uso:** releer `reglas_proyecto.md` justo antes de producir cualquier entregable (copy, anuncios, landing, guion, código, contenido) y de nuevo antes de entregarlo. También tras una compactación o un resumen de la conversación.
+- **Todo entregable vive en un archivo:** copy, anuncios, guiones o correos se guardan en el proyecto antes de entregarlos, aunque también se muestren en el chat. Lo que solo existe en el chat no pasa por la compuerta.
 - **Compuerta antes de entregar:**
   1. Ejecutar `& "$ActivePath/scripts/check-rules.ps1" -RulesPath .context/reglas_proyecto.md -Path <entregable o carpeta> -Scope <ámbito>` y corregir hasta obtener código `0`.
-  2. Revisar a mano las reglas que el verificador devuelve en `ReviewRules`, las que no se pueden comprobar con un patrón.
-  3. Indicar al entregar que la compuerta pasó.
+  2. Si devuelve `ReviewRules` (reglas que no se pueden comprobar con un patrón), repetirlo con `-ReviewOut .context/revisiones/<entregable>.md`. Ese archivo lo revisa un **contexto limpio** (un subagente o un segundo pase sin el historial de redacción, leyendo solo las reglas y el entregable), que sustituye cada `PENDIENTE` por `PASA` o `FALLA` con una cita del entregable.
+  3. Ejecutar con `-ReviewVerdictPath .context/revisiones/<entregable>.md` y corregir hasta obtener código `0`. Si cambia el entregable o las reglas, la revisión deja de valer (línea `Huella`) y hay que repetirla.
+  4. Indicar al entregar que la compuerta pasó, incluida la revisión.
+- **Ejemplo por regla:** al registrar una corrección, guardar en `- Ejemplo:` el texto que se rechazó. El verificador comprueba que `Detectar` lo detecta; en las reglas sin patrón, el ejemplo orienta la revisión.
 - **Universal:** este protocolo se basa solo en archivos del proyecto y en un script de terminal. Se aplica igual en cualquier arnés de IA.

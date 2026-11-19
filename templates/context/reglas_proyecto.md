@@ -16,11 +16,13 @@ Fuente de verdad de las correcciones, prohibiciones y requisitos de este proyect
 - Origen: quién la pidió y cuándo (AAAA-MM-DD).
 - Detectar: "expresión vetada"; "re:expresión\s+regular"
 - Exigir: "texto que debe aparecer"
+- Ejemplo: "texto que el usuario o el cliente rechazó"
 ```
 
 - Tipos: `expresion-vetada`, `prohibido-afirmar`, `dato-obligatorio`, `tono`, `formato`, `otro`.
 - Ámbito: `todas`, o una lista separada por comas, por ejemplo `landing, anuncios`.
-- `Detectar` y `Exigir` son opcionales. Con ellos, el verificador `check-rules.ps1` controla la regla automáticamente: ignora mayúsculas y tildes y compara palabras completas. Sin ellos, el agente la revisa a mano antes de entregar.
+- `Detectar` y `Exigir` son opcionales. Con ellos, el verificador `check-rules.ps1` controla la regla automáticamente: ignora mayúsculas y tildes y compara palabras completas. Sin ellos, la regla pasa a la revisión semántica de un contexto limpio antes de entregar.
+- `Ejemplo` (opcional, recomendado) guarda el texto original que se rechazó. Si la regla tiene `Detectar`, el verificador exige que lo detecte; si no, el ejemplo orienta la revisión.
 
 ## Reglas activas
 
