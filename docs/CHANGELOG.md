@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.0.0] - 2026-11-20
 ### Added
 - **Aprendizaje gobernado, fase 1.** `capture-learning.ps1` guarda candidatas en la bandeja del hub (`proposals/inbox/`) sin tocar ninguna skill y rechaza las skills de terceros. `check-proposal.ps1` valida cada ficha antes de presentarla: destino, bloques aprobables por separado, SemVer creciente, tamaño, solapamientos, prueba antes y después con riesgo medio o alto, descripción de 300 caracteres como máximo y, para skills nuevas, las cuatro condiciones del umbral y el techo de 25 skills. `learning-queue.ps1` informa de lo pendiente.
 - Protocolo 4 pasa a **Aprendizaje Gobernado de Skills**: capturar en el momento, llevar cada aprendizaje al destino más ligero, umbral de cuatro condiciones y techo de 25 skills para crear, y aplicar solo los bloques que el usuario aprueba. Protocolo 6 añade la captura y la presentación de fichas al cierre.
