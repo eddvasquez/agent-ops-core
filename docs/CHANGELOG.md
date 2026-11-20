@@ -6,6 +6,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Added
+- **Aprendizaje gobernado, fase 1.** `capture-learning.ps1` guarda candidatas en la bandeja del hub (`proposals/inbox/`) sin tocar ninguna skill y rechaza las skills de terceros. `check-proposal.ps1` valida cada ficha antes de presentarla: destino, bloques aprobables por separado, SemVer creciente, tamaño, solapamientos, prueba antes y después con riesgo medio o alto, descripción de 300 caracteres como máximo y, para skills nuevas, las cuatro condiciones del umbral y el techo de 25 skills. `learning-queue.ps1` informa de lo pendiente.
 - Documento de diseño `docs/aprendizaje-gobernado-skills.md`: investigación comparada (Hermes, Devin, Letta, Cursor, SkillsBench, ACE) y propuesta de arquitectura para el aprendizaje gobernado de skills, con aprobación humana por bloques y controles contra la acumulación. Solo diseño; no cambia ningún comportamiento.
 
 ## [2.1.0] - 2026-11-19

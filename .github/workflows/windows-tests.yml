@@ -60,6 +60,11 @@ jobs:
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/rules-check.tests.ps1
           exit $LASTEXITCODE
+      - name: Governed learning proposals
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/learning-proposals.tests.ps1
+          exit $LASTEXITCODE
       - name: Hub reconfiguration
         shell: pwsh
         run: |
