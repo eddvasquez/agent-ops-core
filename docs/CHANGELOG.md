@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Documento de diseño `docs/aprendizaje-gobernado-skills.md`: investigación comparada (Hermes, Devin, Letta, Cursor, SkillsBench, ACE) y propuesta de arquitectura para el aprendizaje gobernado de skills, con aprobación humana por bloques y controles contra la acumulación. Solo diseño; no cambia ningún comportamiento.
 
 ## [2.1.0] - 2026-11-19
 ### Added
