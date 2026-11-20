@@ -24,9 +24,13 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 ---
 
 ### Protocolo 3 (Invocación Mandatoria y Anti-Racionalización)
-- Si la tarea entra en el dominio que declara la descripción de una skill instalada, su invocación y lectura de `SKILL.md` es **obligatoria** antes de generar código o responder. Fuera de ese dominio se razona sin forzar una skill: una skill mal aplicada también empeora el resultado.
-- **En tareas de depuración:** Es mandatorio invocar `dev-systematic-debugging`. Prohibido el *shotgun debugging* (parchear a ciegas o modificar código especulativamente).
-- **En desarrollo de código nuevo:** Es mandatorio invocar `dev-tdd` (ciclo estricto Red-Green-Refactor). Prohibido escribir código de producción sin una prueba previa que haya fallado por la razón correcta.
+- **Skills críticas, criterio del 1 %:** si existe cualquier posibilidad (≥ 1 %) de que apliquen, se invocan y se lee su `SKILL.md` antes de actuar:
+  - `dev-tdd` ante cualquier cambio en algo que se ejecuta: código nuevo o existente, refactors, scripts, automatizaciones y configuración que cambia el comportamiento (CI, build). Prohibido escribir o modificar código sin una prueba previa que haya fallado por la razón correcta.
+  - `dev-systematic-debugging` ante cualquier error, prueba roja o comportamiento inesperado. Prohibido el *shotgun debugging* (parchear a ciegas o modificar código especulativamente).
+  - Las que el proyecto declare en `reglas_proyecto.md` como «Skill crítica: X, cuando Y».
+- **Sin excepciones:** ni «cambio pequeño», ni «es una línea», ni prisa. Solo el usuario puede eximir un cambio concreto, y la exención se anota en `activeContext.md`.
+- **Verificación antes del commit:** las suites que cubren lo modificado se ejecutan y deben estar en verde; si no existen, se escriben antes. El resultado (suite y n.º de pruebas) se anota en `activeContext.md`.
+- **Resto de skills, criterio de dominio:** son obligatorias cuando la tarea entra en el dominio que declara su descripción. Fuera de él se razona sin forzarlas: una skill mal aplicada también empeora el resultado.
 
 ---
 

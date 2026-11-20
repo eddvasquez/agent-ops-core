@@ -45,7 +45,7 @@ Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquie
 
 ### Paso 1: Lectura de Contexto y Mandato Anti-Racionalización
 1. Lee `AGENTS.md` y los archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`, `reglas_proyecto.md`). Lee `reglas_proyecto.md` completo: sus reglas activas gobiernan todo entregable de la sesión (Protocolo 8).
-2. Revisa las skills disponibles en tu arnés activo (`.gemini`, `.claude`, `.agents`). Una skill es obligatoria cuando la tarea entra en el dominio que declara su descripción; fuera de él, razonar sin forzarla (Protocolo 3). Aplica el **Principio Anti-Racionalización**:
+2. Revisa las skills disponibles en tu arnés activo (`.gemini`, `.claude`, `.agents`). Las skills críticas (`dev-tdd`, `dev-systematic-debugging` y las que declare `reglas_proyecto.md` como «Skill crítica») se invocan ante cualquier posibilidad de que apliquen (≥ 1 %); el resto, cuando la tarea entra en el dominio que declara su descripción (Protocolo 3). Aplica el **Principio Anti-Racionalización**:
    - Si la tarea involucra investigar o corregir un error: es **mandatorio** invocar `dev-systematic-debugging` (prohibido parchar a ciegas).
    - Si involucra diseñar o construir componentes de software: es **mandatorio** invocar `dev-tdd` (Red-Green-Refactor).
    - Si involucra tareas simultáneas o ramas paralelas: evaluar `ops-git-worktrees`.
@@ -76,7 +76,7 @@ Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explíc
 3. **Actualización Quirúrgica de Contexto:** Actualizar `.context/activeContext.md` con:
    - Agente activo y fecha.
    - Último archivo modificado.
-   - Estado de pruebas/errores.
+   - Estado de pruebas/errores: suites ejecutadas sobre lo modificado, con su n.º de pruebas, y cualquier exención de pruebas concedida por el usuario (Protocolo 3).
    - Siguiente paso ejecutable inmediato para el próximo relevo.
 4. **Verificación de Versionado (Protocolo 7):**
    - Si hay cambios entregables, confirmar que cada artefacto tocado tiene su línea en `[Unreleased]` de su changelog (`CHANGELOG.md` del proyecto o `changelogs/<skill>.md`) y que su versión declarada es SemVer válida.
