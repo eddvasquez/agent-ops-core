@@ -4,6 +4,7 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-20
 ### Added
 - Punto de control por paso con `-Request`, la petición literal del usuario, para retomar desde cualquier arnés con terminal. La reanudación devuelve `UserRequests` y lee también Antigravity.
 

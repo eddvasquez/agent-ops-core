@@ -6,6 +6,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-11-20
 ### Added
 - **Reanudación desde cualquier arnés con terminal.** `checkpoint.ps1 -Request` guarda la petición literal del usuario (las 5 últimas) y `resume-session.ps1` la devuelve como `UserRequests`, así que retomar ya no depende de leer la conversación del arnés anterior.
 - Lectura de conversaciones de **Antigravity/Gemini** en `resume-session.ps1` y `harvest-instructions.ps1`. Una conversación cuenta para el proyecto que más menciona entre sus carpetas hermanas; las dudosas se descartan. ChatGPT figura como no compatible y se explica el motivo: sus conversaciones solo están en el servidor.
