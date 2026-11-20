@@ -93,5 +93,13 @@ Test 'since filter and missing harness roots are reported, not fatal' {
     Assert ($r.Code -eq 0 -and @($r.Sources|Where-Object {$_.Harness -eq 'codex' -and $_.Status -eq 'NOT_FOUND'}).Count -eq 1) ($r.Sources|ConvertTo-Json)
     Assert (@($r.Sources|Where-Object {$_.Status -eq 'UNSUPPORTED'}).Count -ge 1) 'Unsupported harnesses not declared'
 }
+Test '-Since keeps only later turns instead of failing' {
+    $f=Fixture;$a=Args $f;$r=Invoke-InstructionHarvest @a -Since ([datetime]'2026-11-02T00:00:00Z')
+    Assert ($r.Code -eq 0) ($r|ConvertTo-Json -Depth 5)
+    $t=Texts $r
+    Assert ($t -contains 'En lugar de npm, usa siempre pnpm.') ('Later directive missing: '+($t -join ' | '))
+    $c=@($r.Candidates|Where-Object {$_.Text -like '*comillas*'})
+    Assert ($c.Count -eq 1 -and @($c[0].Sources).Count -eq 1 -and $c[0].Sources[0].SessionId -eq 's2') 'Earlier turn not filtered out'
+}
 Write-Host "Harvest results: $passed passed, $failed failed. Fixtures: $base"
 if($failed){exit 1}

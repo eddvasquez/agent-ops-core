@@ -65,6 +65,16 @@ jobs:
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/learning-proposals.tests.ps1
           exit $LASTEXITCODE
+      - name: Session checkpoints and cold resume
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/session-checkpoint.tests.ps1
+          exit $LASTEXITCODE
+      - name: Instruction harvest
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/instruction-harvest.tests.ps1
+          exit $LASTEXITCODE
       - name: Hub reconfiguration
         shell: pwsh
         run: |

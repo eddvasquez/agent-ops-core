@@ -10,6 +10,7 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 - Lee `AGENTS.md`, todos los archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`, `reglas_proyecto.md`) y las skills disponibles en tus aplicaciones de IA.
 - Ejecuta una auditoría física en Git (`git status -s`, `git log -n 3 --oneline`, `git diff --stat`).
 - **Resolución de discrepancias:** En caso de existir cualquier contradicción entre el texto de `.context/activeContext.md` y el estado real del árbol de trabajo en Git, **prevalece siempre la evidencia física de Git**.
+- **Reanudación en frío:** `& "$ActivePath/scripts/resume-session.ps1" -ProjectPath <proyecto>` indica si la sesión anterior se cortó (`INTERRUPTED`) y su siguiente paso exacto. En ese caso se retoma desde ahí y se completa su MODO SALIDA pendiente.
 - Emite el reporte de sincronización de 5 puntos y **detente a esperar la confirmación explícita del usuario** antes de tocar archivos o escribir código.
 
 ---
@@ -51,6 +52,7 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 
 ### Protocolo 6 (Cierre de Turno / Handoff - MODO SALIDA)
 - Al concluir cualquier unidad de trabajo o antes de devolver el control al usuario, el agente debe ejecutar obligatoriamente `ops-session-handoff` (o `ops-gestion-relevo`) bajo **MODO SALIDA**.
+- **Punto de control por paso:** la sesión puede cortarse sin aviso (cuota, contexto, cierre). Tras cada paso del plan, `& "$ActivePath/scripts/checkpoint.ps1"` registra lo hecho y el siguiente paso exacto, sin hacer commit. Si el arnés muestra que la cuota baja de ~10 %, no se empiezan pasos nuevos: se hace el MODO SALIDA MÍNIMO (`checkpoint.ps1 -Close` y commit de relevo de `.context/`).
 - Actualizar `.context/lessons_learned.md` si hubo aprendizajes o correcciones.
 - Capturar los aprendizajes reutilizables fuera del proyecto y presentar las fichas de riesgo bajo de la sesión (Protocolo 4); el resto espera a la revisión semanal.
 - Actualizar `.context/progress.md` marcando con `[x]` **únicamente hitos comprobados objetivamente** mediante pruebas ejecutadas en verde o verificación física.

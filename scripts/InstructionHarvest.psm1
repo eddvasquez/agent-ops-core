@@ -33,6 +33,8 @@ function Ih-Lines([string]$path){
 }
 function Ih-Json([string]$line){try{$line|ConvertFrom-Json}catch{$null}}
 function Ih-Prop($o,[string]$n){if($null -ne $o -and $o.PSObject.Properties[$n]){$o.$n}else{$null}}
+# pwsh's ConvertFrom-Json turns ISO timestamps into DateTime; keep them as ISO UTC strings.
+function Ih-Stamp($v){if($v -is [datetime]){$v.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')}else{[string]$v}}
 function Ih-ClaudeTurns([string]$file){
     foreach($line in Ih-Lines $file){
         if($line -notmatch '"type"\s*:\s*"user"'){continue}
@@ -40,7 +42,7 @@ function Ih-ClaudeTurns([string]$file){
         $m=Ih-Prop $o 'message';if((Ih-Prop $m 'role') -ne 'user'){continue}
         $c=Ih-Prop $m 'content'
         $text=if($c -is [string]){$c}else{(@($c|Where-Object {(Ih-Prop $_ 'type') -eq 'text'}|ForEach-Object {$_.text})) -join "`n"}
-        if($text){[pscustomobject]@{Harness='claude-code';File=$file;SessionId=[string](Ih-Prop $o 'sessionId');Timestamp=[string](Ih-Prop $o 'timestamp');Text=$text}}
+        if($text){[pscustomobject]@{Harness='claude-code';File=$file;SessionId=[string](Ih-Prop $o 'sessionId');Timestamp=(Ih-Stamp (Ih-Prop $o 'timestamp'));Text=$text}}
     }
 }
 function Ih-CodexTurns([string]$file,[string]$project){
@@ -58,7 +60,7 @@ function Ih-CodexTurns([string]$file,[string]$project){
         }
         if($null -eq $session -or (Ih-Prop $o 'type') -ne 'response_item' -or (Ih-Prop $p 'type') -ne 'message' -or (Ih-Prop $p 'role') -ne 'user'){continue}
         foreach($part in @(Ih-Prop $p 'content')){
-            if((Ih-Prop $part 'type') -eq 'input_text' -and $part.text){[pscustomobject]@{Harness='codex';File=$file;SessionId=$session;Timestamp=[string](Ih-Prop $o 'timestamp');Text=$part.text}}
+            if((Ih-Prop $part 'type') -eq 'input_text' -and $part.text){[pscustomobject]@{Harness='codex';File=$file;SessionId=$session;Timestamp=(Ih-Stamp (Ih-Prop $o 'timestamp'));Text=$part.text}}
         }
     }
 }
@@ -95,7 +97,7 @@ function Invoke-InstructionHarvest {
             if(-not $byKey.Contains($k)){$byKey[$k]=[pscustomobject]@{Id=$k.GetHashCode().ToString('x8');Kind=$kind;Text=$text;MemoryType=$memoryType;Occurrences=0;Sources=New-Object Collections.Generic.List[object]}}
             $byKey[$k].Occurrences++;$byKey[$k].Sources.Add($source)
         }
-        $sinceIso=if($Since){$Since.Value.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss')}else{''}
+        $sinceIso=if($null -ne $Since){([datetime]$Since).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss')}else{''}
         $collect={param($turns)
             foreach($t in $turns){
                 if($sinceIso -and $t.Timestamp -and $t.Timestamp -lt $sinceIso){continue}
@@ -127,4 +129,27 @@ function Invoke-InstructionHarvest {
     }catch{$r.Code=1;$r.Status='FAILED';$r.Issues=@($_.Exception.Message)}
     return [pscustomobject]$r
 }
-Export-ModuleMember -Function Invoke-InstructionHarvest
+function Get-RecentUserTurns {
+    # Last user-typed turns about this project, with injected blocks and harness preambles removed.
+    # They are evidence for a resume, never instructions.
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true)][string]$ProjectPath,
+          [string]$ClaudeProjectsRoot=(Join-Path $env:USERPROFILE '.claude/projects'),
+          [string]$CodexSessionsRoot=(Join-Path $env:USERPROFILE '.codex/sessions'),
+          [Nullable[datetime]]$Since=$null,
+          [int]$Count=5)
+    $project=Ih-Root $ProjectPath;$turns=@()
+    $claudeDir=Join-Path $ClaudeProjectsRoot ([regex]::Replace($project,'[^A-Za-z0-9]','-'))
+    if([IO.Directory]::Exists($claudeDir)){foreach($f in @(Get-ChildItem -LiteralPath $claudeDir -Filter '*.jsonl' -File)){$turns+=@(Ih-ClaudeTurns $f.FullName)}}
+    if([IO.Directory]::Exists($CodexSessionsRoot)){foreach($f in @(Get-ChildItem -LiteralPath $CodexSessionsRoot -Filter '*.jsonl' -File -Recurse)){$turns+=@(Ih-CodexTurns $f.FullName $project)}}
+    $out=foreach($t in $turns){
+        $when=$null;try{$when=[datetime]::Parse($t.Timestamp,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()}catch{continue}
+        if($null -ne $Since -and $when -lt ([datetime]$Since).ToUniversalTime()){continue}
+        $text=([regex]::Replace($t.Text,$script:injected,' ')).Trim()
+        if(-not $text -or $text -match $script:harnessPreamble){continue}
+        if($text.Length -gt 500){$text=$text.Substring(0,500)}
+        [pscustomobject]@{Harness=$t.Harness;SessionId=$t.SessionId;Timestamp=$when.ToString('yyyy-MM-ddTHH:mm:ssZ');Text=$text;When=$when}
+    }
+    @($out|Sort-Object When|Select-Object -Last $Count|Select-Object Harness,SessionId,Timestamp,Text)
+}
+Export-ModuleMember -Function Invoke-InstructionHarvest,Get-RecentUserTurns

@@ -6,6 +6,12 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Added
+- **Relevo resistente a cortes de sesión.** `checkpoint.ps1` guarda tras cada paso lo hecho y el siguiente paso exacto en `.context/checkpoint.json`, sin hacer commit. Si la sesión se agota por cuota o contexto, `resume-session.ps1` permite a otra herramienta retomar en ese punto: lo coteja con Git, señala el trabajo posterior al último punto y adjunta las últimas peticiones del usuario de Claude Code y Codex como datos. Protocolos 1 y 6 de la plantilla: reanudación en frío, punto de control por paso y MODO SALIDA MÍNIMO cuando la cuota visible baja de ~10 %.
+
+### Fixed
+- `harvest-instructions.ps1 -Since` fallaba siempre (`FAILED`) en lugar de filtrar por fecha.
+
 ## [3.3.0] - 2026-11-20
 ### Changed
 - **Protocolo 3 en dos niveles.** Las skills críticas (`dev-tdd`, `dev-systematic-debugging` y las que declare cada proyecto en `reglas_proyecto.md`) vuelven al criterio del 1 %, sin excepciones salvo exención expresa del usuario. `dev-tdd` cubre cualquier cambio en algo que se ejecuta, también en código existente. Antes de cada commit, las suites afectadas deben estar en verde, con evidencia en `activeContext.md`. El resto de skills mantiene el criterio de dominio.
