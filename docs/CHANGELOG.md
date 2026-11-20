@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.3.0] - 2026-11-20
 ### Changed
 - **Protocolo 3 en dos niveles.** Las skills críticas (`dev-tdd`, `dev-systematic-debugging` y las que declare cada proyecto en `reglas_proyecto.md`) vuelven al criterio del 1 %, sin excepciones salvo exención expresa del usuario. `dev-tdd` cubre cualquier cambio en algo que se ejecuta, también en código existente. Antes de cada commit, las suites afectadas deben estar en verde, con evidencia en `activeContext.md`. El resto de skills mantiene el criterio de dominio.
 

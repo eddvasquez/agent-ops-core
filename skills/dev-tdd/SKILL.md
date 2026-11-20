@@ -1,6 +1,6 @@
 ---
 name: dev-tdd
-version: 1.0.0
+version: 1.1.0
 description: Metodología estricta de Test-Driven Development (Red-Green-Refactor) para cualquier cambio en código, scripts o configuración ejecutable, nuevo o existente, incluidos refactors y ajustes de una línea, guiado por pruebas automatizadas.
 triggers:
   - "dev-tdd"
