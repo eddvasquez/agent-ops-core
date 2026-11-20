@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.1.0] - 2026-11-20
 ### Added
 - **Protocolo 9, Recepción de Solicitudes:** ante una solicitud sustancial, el agente responde desde un profesional de clase mundial (el que el usuario ya citó, o uno que sugiere entre 2 y 3 opciones, con «sin perspectiva» siempre disponible) y ofrece una entrevista opcional con preguntas una a una, de opción múltiple y con respuesta libre. La elección vale toda la sesión; «siempre» o «nunca» se guarda como regla del proyecto.
 
