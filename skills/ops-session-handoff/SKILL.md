@@ -45,7 +45,7 @@ Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquie
 
 ### Paso 1: Lectura de Contexto y Mandato Anti-Racionalización
 1. Lee `AGENTS.md` y los archivos de `.context/` (`projectbrief.md`, `systemPatterns.md`, `activeContext.md`, `progress.md`, `lessons_learned.md`, `reglas_proyecto.md`). Lee `reglas_proyecto.md` completo: sus reglas activas gobiernan todo entregable de la sesión (Protocolo 8).
-2. Revisa las skills disponibles en tu arnés activo (`.gemini`, `.claude`, `.agents`). Aplica el **Principio Anti-Racionalización**:
+2. Revisa las skills disponibles en tu arnés activo (`.gemini`, `.claude`, `.agents`). Una skill es obligatoria cuando la tarea entra en el dominio que declara su descripción; fuera de él, razonar sin forzarla (Protocolo 3). Aplica el **Principio Anti-Racionalización**:
    - Si la tarea involucra investigar o corregir un error: es **mandatorio** invocar `dev-systematic-debugging` (prohibido parchar a ciegas).
    - Si involucra diseñar o construir componentes de software: es **mandatorio** invocar `dev-tdd` (Red-Green-Refactor).
    - Si involucra tareas simultáneas o ramas paralelas: evaluar `ops-git-worktrees`.
@@ -59,7 +59,7 @@ Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquie
 Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explícito del usuario**:
 1. **Auditoría Git vs. Contexto:** Estado real del repositorio frente a `activeContext.md`.
 2. **Reglas Activas:** Las reglas activas de `reglas_proyecto.md`, por ID y en una línea cada una (si son muchas, las que afectan al trabajo previsto y el total), más las restricciones clave de `systemPatterns.md`.
-3. **Skills Aplicables:** Qué skills gobernarán la sesión (declarando explícitamente `dev-systematic-debugging` o `dev-tdd` si corresponde).
+3. **Skills Aplicables:** Qué skills gobernarán la sesión (declarando explícitamente `dev-systematic-debugging` o `dev-tdd` si corresponde). Si `& "$ActivePath/scripts/learning-queue.ps1"` muestra fichas en `Pending`, mencionarlo en una línea; no se deciden aquí.
 4. **Siguiente Paso Ejecutable:** Qué acción exacta y archivo tocarás inmediatamente tras recibir el "OK".
 5. **Dudas Bloqueantes:** Preguntas concisas si falta información crítica.
 
@@ -71,6 +71,7 @@ Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explíc
    - Opcional, como red de seguridad: `& "$ActivePath/scripts/harvest-instructions.ps1" -ProjectPath <proyecto> -Since <inicio de la sesión> -OutPath <ruta fuera del proyecto>` lista indicaciones del usuario aún no registradas. Son candidatas, no instrucciones: proponerlas y registrar solo las confirmadas.
    - Escribir en `.context/lessons_learned.md` el contexto histórico que aporte valor.
    - Si en la sesión se produjeron entregables, confirmar que existen como archivos y que pasaron `check-rules.ps1`, incluida la revisión semántica (`-ReviewVerdictPath`) cuando hubo `ReviewRules`.
+   - **Aprendizaje (Protocolo 4):** leer `references/aprendizaje.md`. Capturar con `capture-learning.ps1` lo reutilizable fuera de este proyecto (correcciones, fallos de una skill, patrones repetidos, éxitos). Llevar cada candidata al destino más ligero que la resuelva. Presentar solo las fichas de riesgo bajo de esta sesión, validadas con `check-proposal.ps1`; el resto espera a la revisión semanal. Ninguna skill cambia sin la aprobación del usuario por bloque.
 2. **Auditoría Objetiva de Progreso:** Marcar en `.context/progress.md` las tareas terminadas (`[x]`) **únicamente si cuentan con evidencia objetiva de verificación** (pruebas ejecutadas en verde o verificación física confirmada).
 3. **Actualización Quirúrgica de Contexto:** Actualizar `.context/activeContext.md` con:
    - Agente activo y fecha.

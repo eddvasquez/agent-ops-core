@@ -24,15 +24,17 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 ---
 
 ### Protocolo 3 (Invocación Mandatoria y Anti-Racionalización)
-- Si una tarea tiene $\ge 1\%$ de probabilidad de beneficiarse de una skill especializada instalada, su invocación y lectura de `SKILL.md` es **obligatoria** antes de generar código o responder.
+- Si la tarea entra en el dominio que declara la descripción de una skill instalada, su invocación y lectura de `SKILL.md` es **obligatoria** antes de generar código o responder. Fuera de ese dominio se razona sin forzar una skill: una skill mal aplicada también empeora el resultado.
 - **En tareas de depuración:** Es mandatorio invocar `dev-systematic-debugging`. Prohibido el *shotgun debugging* (parchear a ciegas o modificar código especulativamente).
 - **En desarrollo de código nuevo:** Es mandatorio invocar `dev-tdd` (ciclo estricto Red-Green-Refactor). Prohibido escribir código de producción sin una prueba previa que haya fallado por la razón correcta.
 
 ---
 
-### Protocolo 4 (Destilación Controlada a Skill General)
+### Protocolo 4 (Aprendizaje Gobernado de Skills)
 - Está estrictamente prohibido modificar o crear archivos dentro de carpetas de skills sin la autorización humana explícita.
-- Cuando una solución o regla documentada en `.context/lessons_learned.md` demuestre ser universalmente reutilizable para otros proyectos, el agente debe proponer formalmente al usuario su destilación como Skill Global en su bóveda central.
+- **Capturar:** lo reutilizable fuera del proyecto (correcciones del usuario, fallos de una skill, patrones repetidos, éxitos) se anota en el momento con `& "$ActivePath/scripts/capture-learning.ps1"`, que lo guarda en la bandeja del hub sin tocar ninguna skill.
+- **Destino más ligero:** cada candidata va al primer peldaño que la resuelve: nada; regla de proyecto (Protocolo 8); parche a una skill existente; referencia dentro de una skill. Una skill nueva exige las cuatro condiciones del umbral (repetida en al menos dos proyectos o tres sesiones, evidencia antes y después, no cabe en una existente, sin solapamiento) y, con 25 skills activas, fusionar o archivar otra.
+- **Decidir:** cada propuesta se presenta como ficha validada (`check-proposal.ps1` con código `0`) con el cambio en bloques. El usuario aprueba, ajusta, rechaza o aplaza cada bloque; solo lo aprobado se aplica, con SemVer y changelog, y propagarlo a los arneses se confirma aparte. Nunca reescribir una skill entera. Procedimiento: `references/aprendizaje.md` de `ops-session-handoff`.
 
 ---
 
@@ -46,6 +48,7 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 ### Protocolo 6 (Cierre de Turno / Handoff - MODO SALIDA)
 - Al concluir cualquier unidad de trabajo o antes de devolver el control al usuario, el agente debe ejecutar obligatoriamente `ops-session-handoff` (o `ops-gestion-relevo`) bajo **MODO SALIDA**.
 - Actualizar `.context/lessons_learned.md` si hubo aprendizajes o correcciones.
+- Capturar los aprendizajes reutilizables fuera del proyecto y presentar las fichas de riesgo bajo de la sesión (Protocolo 4); el resto espera a la revisión semanal.
 - Actualizar `.context/progress.md` marcando con `[x]` **únicamente hitos comprobados objetivamente** mediante pruebas ejecutadas en verde o verificación física.
 - Actualizar `.context/activeContext.md` indicando con precisión quirúrgica: último archivo modificado, estado de revisión/errores y el siguiente paso ejecutable inmediato para el próximo relevo.
 - Ejecutar el verificador de versionado (Protocolo 7) y corregir cualquier fallo antes de commitear.
