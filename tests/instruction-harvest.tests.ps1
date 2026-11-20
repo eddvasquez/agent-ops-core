@@ -50,10 +50,45 @@ function Fixture {
         (Line @{type='session_meta';payload=@{id='c2';cwd=(Join-Path $root 'other');timestamp='2026-11-03T08:00:00Z'}}),
         (Line @{type='response_item';timestamp='2026-11-03T08:00:03Z';payload=@{type='message';role='user';content=@(@{type='input_text';text='Nunca toques la base de datos.'})}})
     ))
-    return @{ProjectPath=$project;ClaudeProjectsRoot=$claude;CodexSessionsRoot=$codex;Root=$root}
+    # Antigravity: the workspace is the parent of every project, so a conversation belongs to the
+    # project its transcript mentions most among the sibling folders; ties are discarded.
+    $other=Join-Path $root 'Work\Other Project';[IO.Directory]::CreateDirectory($other)|Out-Null
+    $agy=Join-Path $root 'agy-brain'
+    function Brain($id,[string[]]$lines){$d=Join-Path $agy "$id/.system_generated/logs";[IO.Directory]::CreateDirectory($d)|Out-Null;[IO.File]::WriteAllLines((Join-Path $d 'transcript.jsonl'),$lines)}
+    $uri='file:///'+$project.Replace([string][char]92,'/').Replace(' ','%20')
+    Brain 'b1' @(
+        (Line @{step_index=0;source='USER_EXPLICIT';type='USER_INPUT';created_at='2026-11-04T08:00:00Z';content="<USER_REQUEST>`nNunca publiques sin mi visto bueno.`n</USER_REQUEST>`n<ADDITIONAL_METADATA>Siempre usa el modo rápido.</ADDITIONAL_METADATA>"}),
+        (Line @{step_index=1;source='MODEL';type='PLANNER_RESPONSE';created_at='2026-11-04T08:00:01Z';content="Siempre leeré $project\AGENTS.md"}),
+        (Line @{step_index=2;source='MODEL';type='GENERIC';created_at='2026-11-04T08:00:02Z';content="Nunca cambies nada. Abierto $uri/README.md"})
+    )
+    Brain 'b2' @(
+        (Line @{step_index=0;source='USER_EXPLICIT';type='USER_INPUT';created_at='2026-11-04T09:00:00Z';content="<USER_REQUEST>Nunca toques el CSS del otro proyecto.</USER_REQUEST>"}),
+        (Line @{step_index=1;source='MODEL';type='GENERIC';created_at='2026-11-04T09:00:01Z';content="$other\a.css $other\b.css $project\x.md"})
+    )
+    Brain 'b3' @(
+        (Line @{step_index=0;source='USER_EXPLICIT';type='USER_INPUT';created_at='2026-11-04T10:00:00Z';content="<USER_REQUEST>Nunca mezcles los dos proyectos.</USER_REQUEST>"}),
+        (Line @{step_index=1;source='MODEL';type='GENERIC';created_at='2026-11-04T10:00:01Z';content="$other\a.css $project\x.md"})
+    )
+    return @{ProjectPath=$project;ClaudeProjectsRoot=$claude;CodexSessionsRoot=$codex;AntigravityBrainRoot=$agy;Root=$root}
 }
-function Args($f){@{ProjectPath=$f.ProjectPath;ClaudeProjectsRoot=$f.ClaudeProjectsRoot;CodexSessionsRoot=$f.CodexSessionsRoot}}
+function Args($f){@{ProjectPath=$f.ProjectPath;ClaudeProjectsRoot=$f.ClaudeProjectsRoot;CodexSessionsRoot=$f.CodexSessionsRoot;AntigravityBrainRoot=$f.AntigravityBrainRoot}}
 function Texts($r){@($r.Candidates|ForEach-Object {$_.Text})}
+Test 'Antigravity turns count only for the project the conversation is about' {
+    $f=Fixture;$a=Args $f;$r=Invoke-InstructionHarvest @a
+    Assert ($r.Code -eq 0) ($r|ConvertTo-Json -Depth 5)
+    $t=Texts $r
+    Assert ($t -contains 'Nunca publiques sin mi visto bueno.') ('Antigravity directive missing: '+($t -join ' | '))
+    foreach($bad in @('modo rápido','leeré','cambies nada','CSS del otro','mezcles')){Assert (-not @($t|Where-Object {$_ -like "*$bad*"}).Count) "Foreign or non-user Antigravity text harvested: $bad"}
+    $s=@($r.Sources|Where-Object {$_.Harness -eq 'antigravity-gemini'})
+    Assert ($s.Count -eq 1 -and $s[0].Status -eq 'FOUND' -and $s[0].Files -eq 1) ($s|ConvertTo-Json)
+    $c=@($r.Sources|Where-Object {$_.Harness -eq 'chatgpt'})
+    Assert ($c.Count -eq 1 -and $c[0].Status -eq 'UNSUPPORTED' -and $c[0].Reason) ($c|ConvertTo-Json)
+}
+Test 'recent user turns include Antigravity without its wrapper' {
+    $f=Fixture;$t=@(Get-RecentUserTurns -ProjectPath $f.ProjectPath -ClaudeProjectsRoot $f.ClaudeProjectsRoot -CodexSessionsRoot $f.CodexSessionsRoot -AntigravityBrainRoot $f.AntigravityBrainRoot -Count 50)
+    $g=@($t|Where-Object {$_.Harness -eq 'antigravity-gemini'})
+    Assert ($g.Count -eq 1 -and $g[0].Text -eq 'Nunca publiques sin mi visto bueno.' -and $g[0].SessionId -eq 'b1') ($g|ConvertTo-Json)
+}
 Test 'only the user''s own directive turns become candidates' {
     $f=Fixture;$a=Args $f;$r=Invoke-InstructionHarvest @a
     Assert ($r.Code -eq 0) ($r|ConvertTo-Json -Depth 5)
@@ -100,6 +135,21 @@ Test '-Since keeps only later turns instead of failing' {
     Assert ($t -contains 'En lugar de npm, usa siempre pnpm.') ('Later directive missing: '+($t -join ' | '))
     $c=@($r.Candidates|Where-Object {$_.Text -like '*comillas*'})
     Assert ($c.Count -eq 1 -and @($c[0].Sources).Count -eq 1 -and $c[0].Sources[0].SessionId -eq 's2') 'Earlier turn not filtered out'
+}
+Test 'a transcript the running harness is still writing can be read' {
+    $f=Fixture;$file=Get-ChildItem $f.CodexSessionsRoot -Recurse -Filter 'rollout-a.jsonl'|Select-Object -First 1
+    $lock=[IO.File]::Open($file.FullName,'Open','ReadWrite','ReadWrite')
+    try{
+        $t=@(Get-RecentUserTurns -ProjectPath $f.ProjectPath -ClaudeProjectsRoot $f.ClaudeProjectsRoot -CodexSessionsRoot $f.CodexSessionsRoot -AntigravityBrainRoot $f.AntigravityBrainRoot -Count 50 -ErrorAction Stop)
+    }finally{$lock.Dispose()}
+    Assert (@($t|Where-Object {$_.Text -eq 'En lugar de npm, usa siempre pnpm.'}).Count -eq 1) ('Live Codex turn missing: '+(@($t|ForEach-Object Text) -join ' | '))
+}
+Test 'transcripts untouched since -Since are not read' {
+    $f=Fixture;$old=[datetime]'2026-01-01'
+    foreach($x in @(Get-ChildItem $f.Root -Recurse -File -Filter '*.jsonl')){$x.LastWriteTimeUtc=$old}
+    $fresh=Get-ChildItem $f.CodexSessionsRoot -Recurse -Filter 'rollout-a.jsonl'|Select-Object -First 1;$fresh.LastWriteTimeUtc=[datetime]'2026-11-03T09:00:00Z'
+    $t=@(Get-RecentUserTurns -ProjectPath $f.ProjectPath -ClaudeProjectsRoot $f.ClaudeProjectsRoot -CodexSessionsRoot $f.CodexSessionsRoot -AntigravityBrainRoot $f.AntigravityBrainRoot -Since ([datetime]'2026-10-01T00:00:00Z') -Count 50)
+    Assert ($t.Count -eq 1 -and $t[0].Harness -eq 'codex') ('Stale transcripts were read: '+(@($t|ForEach-Object {$_.Harness+':'+$_.Text}) -join ' | '))
 }
 Write-Host "Harvest results: $passed passed, $failed failed. Fixtures: $base"
 if($failed){exit 1}

@@ -22,7 +22,7 @@ function Repo {
     return @{Path=$p;Root=$root;Claude=$claude;Codex=$codex}
 }
 function Save-Step($r,[string]$step,[string]$next,[string[]]$files=@()){Write-SessionCheckpoint -ProjectPath $r.Path -Agent 'claude-code' -Step $step -Next $next -Files $files}
-function Resume($r){Get-SessionResume -ProjectPath $r.Path -ClaudeProjectsRoot $r.Claude -CodexSessionsRoot $r.Codex}
+function Resume($r){Get-SessionResume -ProjectPath $r.Path -ClaudeProjectsRoot $r.Claude -CodexSessionsRoot $r.Codex -AntigravityBrainRoot (Join-Path $r.Root 'agy')}
 function Cpfile($r){Join-Path $r.Path '.context/checkpoint.json'}
 
 Test 'a checkpoint is written atomically without staging or committing anything' {
@@ -114,6 +114,15 @@ Test 'resume never writes to the project' {
     $r=Repo;$null=Save-Step $r 'paso 1' 'paso 2';[IO.File]::WriteAllText((Join-Path $r.Path 'app.txt'),"v2`n")
     $h={(Get-ChildItem $r.Path -Recurse -File -Force|Where-Object {$_.FullName -notmatch '\\\.git\\'}|Get-FileHash|ForEach-Object Hash) -join ','}
     $before=& $h;$null=Resume $r;Assert ((& $h) -eq $before) 'Resume modified the project'
+}
+Test 'the user request travels in the checkpoint for harnesses without a transcript reader' {
+    $r=Repo
+    foreach($q in @('uno','dos','dos','tres','cuatro','cinco','seis')){$null=Write-SessionCheckpoint -ProjectPath $r.Path -Agent 'chatgpt-codex' -Step "paso $q" -Next 'x' -Request "Petición $q"}
+    $null=Save-Step $r 'sin petición nueva' 'y'
+    $long='a'*700;$null=Write-SessionCheckpoint -ProjectPath $r.Path -Agent 'chatgpt-codex' -Step 'largo' -Next 'z' -Request $long
+    $x=Resume $r;$q=@($x.UserRequests|ForEach-Object {$_.Text})
+    Assert ($q.Count -eq 5 -and $q[0] -eq 'Petición tres' -and $q[3] -eq 'Petición seis' -and $q[4].Length -eq 500) ('Requests: '+($q -join ' | '))
+    Assert (@($x.UserRequests)[0].At -and $x.UserRequestsAre -eq 'untrusted-data') 'Requests not dated or not labelled as data'
 }
 Test 'an unreadable checkpoint is reported, not guessed' {
     $r=Repo;[IO.File]::WriteAllText((Cpfile $r),'{not json')

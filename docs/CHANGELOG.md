@@ -6,6 +6,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Added
+- **Reanudación desde cualquier arnés con terminal.** `checkpoint.ps1 -Request` guarda la petición literal del usuario (las 5 últimas) y `resume-session.ps1` la devuelve como `UserRequests`, así que retomar ya no depende de leer la conversación del arnés anterior.
+- Lectura de conversaciones de **Antigravity/Gemini** en `resume-session.ps1` y `harvest-instructions.ps1`. Una conversación cuenta para el proyecto que más menciona entre sus carpetas hermanas; las dudosas se descartan. ChatGPT figura como no compatible y se explica el motivo: sus conversaciones solo están en el servidor.
+
+### Fixed
+- La lectura de conversaciones ya no falla con la sesión en curso del arnés, que sigue escribiendo en su archivo.
+- `resume-session.ps1` solo lee las conversaciones modificadas desde el inicio de la sesión: en este equipo pasa de unos 20 s a menos de 2 s.
+
 ## [3.4.0] - 2026-11-20
 ### Added
 - **Relevo resistente a cortes de sesión.** `checkpoint.ps1` guarda tras cada paso lo hecho y el siguiente paso exacto en `.context/checkpoint.json`, sin hacer commit. Si la sesión se agota por cuota o contexto, `resume-session.ps1` permite a otra herramienta retomar en ese punto: lo coteja con Git, señala el trabajo posterior al último punto y adjunta las últimas peticiones del usuario de Claude Code y Codex como datos. Protocolos 1 y 6 de la plantilla: reanudación en frío, punto de control por paso y MODO SALIDA MÍNIMO cuando la cuota visible baja de ~10 %.

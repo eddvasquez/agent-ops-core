@@ -27,9 +27,20 @@ function Ih-Directives([string]$text){
     }
     return $out
 }
+function Ih-Reader([string]$path){
+    # Share read/write/delete: the running harness keeps appending to its own live transcript.
+    $share=[IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete
+    New-Object IO.StreamReader((New-Object IO.FileStream($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,$share)),[Text.Encoding]::UTF8)
+}
 function Ih-Lines([string]$path){
-    $reader=New-Object IO.StreamReader($path,[Text.Encoding]::UTF8)
+    $reader=Ih-Reader $path
     try{while($null -ne ($l=$reader.ReadLine())){$l}}finally{$reader.Dispose()}
+}
+function Ih-Fresh($files,[Nullable[datetime]]$since){
+    # A transcript not written since -Since cannot hold a later turn: skip it unread.
+    if($null -eq $since){return @($files)}
+    $utc=([datetime]$since).ToUniversalTime()
+    @($files|Where-Object {$_.LastWriteTimeUtc -ge $utc})
 }
 function Ih-Json([string]$line){try{$line|ConvertFrom-Json}catch{$null}}
 function Ih-Prop($o,[string]$n){if($null -ne $o -and $o.PSObject.Properties[$n]){$o.$n}else{$null}}
@@ -64,6 +75,46 @@ function Ih-CodexTurns([string]$file,[string]$project){
         }
     }
 }
+function Ih-AntigravityBelongs([string]$file,[string]$project){
+    # The Antigravity workspace is usually the parent of every project, so a conversation belongs to
+    # the sibling folder its transcript mentions most. No mention or a tie means it is discarded.
+    $parent=Split-Path -Parent $project;if(-not $parent -or -not [IO.Directory]::Exists($parent)){return $false}
+    $names=@(Get-ChildItem -LiteralPath $parent -Directory -Force|ForEach-Object {$_.Name}|Sort-Object -Property Length -Descending)
+    if(-not $names.Count){return $false}
+    $bs=[string][char]92
+    $reader=Ih-Reader $file;try{$text=$reader.ReadToEnd()}finally{$reader.Dispose()}
+    $text=$text.Replace($bs+$bs,$bs)
+    try{$text=[Uri]::UnescapeDataString($text)}catch{}
+    $text=$text.Replace('/',$bs)
+    $alt=($names|ForEach-Object {[regex]::Escape($_)}) -join '|'
+    $pattern='(?i)'+[regex]::Escape($parent+$bs)+'('+$alt+')(?![^\\"''\s)\]>,;|])'
+    $counts=@{}
+    foreach($m in [regex]::Matches($text,$pattern)){$k=$m.Groups[1].Value.ToLowerInvariant();$n=0;if($counts.ContainsKey($k)){$n=$counts[$k]};$counts[$k]=$n+1}
+    $own=(Split-Path -Leaf $project).ToLowerInvariant()
+    if(-not $counts.ContainsKey($own)){return $false}
+    foreach($k in @($counts.Keys)){if($k -ne $own -and $counts[$k] -ge $counts[$own]){return $false}}
+    return $true
+}
+function Ih-AntigravityTurns([string]$file){
+    $session=(Get-Item -LiteralPath $file).Directory.Parent.Parent.Name
+    foreach($line in Ih-Lines $file){
+        if($line -notmatch '"USER_EXPLICIT"'){continue}
+        $o=Ih-Json $line;if(-not $o -or (Ih-Prop $o 'source') -ne 'USER_EXPLICIT' -or (Ih-Prop $o 'type') -ne 'USER_INPUT'){continue}
+        $c=[string](Ih-Prop $o 'content')
+        $text=if($c -match '(?s)<USER_REQUEST>(.*?)</USER_REQUEST>'){$Matches[1].Trim()}else{$c}
+        if($text){[pscustomobject]@{Harness='antigravity-gemini';File=$file;SessionId=$session;Timestamp=(Ih-Stamp (Ih-Prop $o 'created_at'));Text=$text}}
+    }
+}
+function Ih-AntigravityFiles([string]$root,[string]$project,[Nullable[datetime]]$since=$null){
+    # $null when Antigravity is not installed; otherwise the transcripts that belong to the project.
+    if(-not [IO.Directory]::Exists($root)){return $null}
+    $all=@(foreach($d in @(Get-ChildItem -LiteralPath $root -Directory)){
+        $f=Join-Path $d.FullName '.system_generated/logs/transcript.jsonl'
+        if([IO.File]::Exists($f)){Get-Item -LiteralPath $f}
+    })
+    ,@(foreach($f in (Ih-Fresh $all $since)){if(Ih-AntigravityBelongs $f.FullName $project){$f.FullName}})
+}
+$script:chatgptReason='ChatGPT conversations live only on OpenAI servers; use Codex (read from ~/.codex/sessions) or checkpoint.ps1 -Request.'
 function Ih-Memory([string]$file){
     $text=[IO.File]::ReadAllText($file,[Text.Encoding]::UTF8) -replace "`r",''
     $type='';$body=$text
@@ -78,6 +129,7 @@ function Invoke-InstructionHarvest {
           [string]$RulesPath='',
           [string]$ClaudeProjectsRoot=(Join-Path $env:USERPROFILE '.claude/projects'),
           [string]$CodexSessionsRoot=(Join-Path $env:USERPROFILE '.codex/sessions'),
+          [string]$AntigravityBrainRoot=(Join-Path $env:USERPROFILE '.gemini/antigravity/brain'),
           [Nullable[datetime]]$Since=$null,
           [string]$OutPath='')
     $r=[ordered]@{Code=0;Status='HARVESTED';Project=$null;Sources=@();Candidates=@();Issues=@()}
@@ -119,7 +171,12 @@ function Invoke-InstructionHarvest {
             foreach($f in $files){& $collect (Ih-CodexTurns $f.FullName $project)}
             $r.Sources+=@([pscustomobject]@{Harness='codex';Status='FOUND';Path=$CodexSessionsRoot;Files=$files.Count})
         }else{$r.Sources+=@([pscustomobject]@{Harness='codex';Status='NOT_FOUND';Path=$CodexSessionsRoot;Files=0})}
-        foreach($h in @('antigravity-gemini','chatgpt')){$r.Sources+=@([pscustomobject]@{Harness=$h;Status='UNSUPPORTED';Path=$null;Files=0})}
+        $agy=Ih-AntigravityFiles $AntigravityBrainRoot $project $Since
+        if($null -ne $agy){
+            foreach($f in $agy){& $collect (Ih-AntigravityTurns $f)}
+            $r.Sources+=@([pscustomobject]@{Harness='antigravity-gemini';Status='FOUND';Path=$AntigravityBrainRoot;Files=@($agy).Count})
+        }else{$r.Sources+=@([pscustomobject]@{Harness='antigravity-gemini';Status='NOT_FOUND';Path=$AntigravityBrainRoot;Files=0})}
+        $r.Sources+=@([pscustomobject]@{Harness='chatgpt';Status='UNSUPPORTED';Path=$null;Files=0;Reason=$script:chatgptReason})
         foreach($c in $byKey.Values){$c.Sources=@($c.Sources.ToArray())}
         $r.Candidates=@($byKey.Values|Sort-Object -Property @{Expression='Occurrences';Descending=$true},@{Expression='Text';Descending=$false})
         if($OutPath){
@@ -136,12 +193,15 @@ function Get-RecentUserTurns {
     param([Parameter(Mandatory=$true)][string]$ProjectPath,
           [string]$ClaudeProjectsRoot=(Join-Path $env:USERPROFILE '.claude/projects'),
           [string]$CodexSessionsRoot=(Join-Path $env:USERPROFILE '.codex/sessions'),
+          [string]$AntigravityBrainRoot=(Join-Path $env:USERPROFILE '.gemini/antigravity/brain'),
           [Nullable[datetime]]$Since=$null,
           [int]$Count=5)
     $project=Ih-Root $ProjectPath;$turns=@()
     $claudeDir=Join-Path $ClaudeProjectsRoot ([regex]::Replace($project,'[^A-Za-z0-9]','-'))
-    if([IO.Directory]::Exists($claudeDir)){foreach($f in @(Get-ChildItem -LiteralPath $claudeDir -Filter '*.jsonl' -File)){$turns+=@(Ih-ClaudeTurns $f.FullName)}}
-    if([IO.Directory]::Exists($CodexSessionsRoot)){foreach($f in @(Get-ChildItem -LiteralPath $CodexSessionsRoot -Filter '*.jsonl' -File -Recurse)){$turns+=@(Ih-CodexTurns $f.FullName $project)}}
+    if([IO.Directory]::Exists($claudeDir)){foreach($f in (Ih-Fresh @(Get-ChildItem -LiteralPath $claudeDir -Filter '*.jsonl' -File) $Since)){$turns+=@(Ih-ClaudeTurns $f.FullName)}}
+    if([IO.Directory]::Exists($CodexSessionsRoot)){foreach($f in (Ih-Fresh @(Get-ChildItem -LiteralPath $CodexSessionsRoot -Filter '*.jsonl' -File -Recurse) $Since)){$turns+=@(Ih-CodexTurns $f.FullName $project)}}
+    $agy=Ih-AntigravityFiles $AntigravityBrainRoot $project $Since
+    if($null -ne $agy){foreach($f in $agy){$turns+=@(Ih-AntigravityTurns $f)}}
     $out=foreach($t in $turns){
         $when=$null;try{$when=[datetime]::Parse($t.Timestamp,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()}catch{continue}
         if($null -ne $Since -and $when -lt ([datetime]$Since).ToUniversalTime()){continue}

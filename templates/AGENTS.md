@@ -52,7 +52,7 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
 
 ### Protocolo 6 (Cierre de Turno / Handoff - MODO SALIDA)
 - Al concluir cualquier unidad de trabajo o antes de devolver el control al usuario, el agente debe ejecutar obligatoriamente `ops-session-handoff` (o `ops-gestion-relevo`) bajo **MODO SALIDA**.
-- **Punto de control por paso:** la sesión puede cortarse sin aviso (cuota, contexto, cierre). Tras cada paso del plan, `& "$ActivePath/scripts/checkpoint.ps1"` registra lo hecho y el siguiente paso exacto, sin hacer commit. Si el arnés muestra que la cuota baja de ~10 %, no se empiezan pasos nuevos: se hace el MODO SALIDA MÍNIMO (`checkpoint.ps1 -Close` y commit de relevo de `.context/`).
+- **Punto de control por paso:** la sesión puede cortarse sin aviso (cuota, contexto, cierre). Tras cada paso del plan, `& "$ActivePath/scripts/checkpoint.ps1"` registra lo hecho, el siguiente paso exacto y, con `-Request`, la petición literal del usuario, sin hacer commit. Así cualquier arnés con terminal puede retomar, tenga o no lector de conversaciones. Si el arnés muestra que la cuota baja de ~10 %, no se empiezan pasos nuevos: se hace el MODO SALIDA MÍNIMO (`checkpoint.ps1 -Close` y commit de relevo de `.context/`).
 - Actualizar `.context/lessons_learned.md` si hubo aprendizajes o correcciones.
 - Capturar los aprendizajes reutilizables fuera del proyecto y presentar las fichas de riesgo bajo de la sesión (Protocolo 4); el resto espera a la revisión semanal.
 - Actualizar `.context/progress.md` marcando con `[x]` **únicamente hitos comprobados objetivamente** mediante pruebas ejecutadas en verde o verificación física.

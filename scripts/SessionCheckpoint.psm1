@@ -6,6 +6,8 @@ Import-Module (Join-Path $PSScriptRoot 'NativeProcess.psm1')
 Import-Module (Join-Path $PSScriptRoot 'InstructionHarvest.psm1')
 $script:file='.context/checkpoint.json'
 $script:maxSteps=20
+$script:maxRequests=5
+$script:maxRequest=500
 
 function Sc-Root([string]$p){[IO.Path]::GetFullPath($p).TrimEnd('\','/')}
 function Sc-Path([string]$project){Join-Path $project $script:file}
@@ -68,7 +70,7 @@ function Write-SessionCheckpoint {
     [CmdletBinding()]
     param([Parameter(Mandatory=$true)][string]$ProjectPath,[Parameter(Mandatory=$true)][string]$Agent,
           [Parameter(Mandatory=$true)][string]$Step,[Parameter(Mandatory=$true)][string]$Next,
-          [string[]]$Files=@())
+          [string[]]$Files=@(),[string]$Request='')
     $r=[ordered]@{Code=0;Status='WRITTEN';SessionId=$null;Path=$null;Issues=@()}
     try{
         $project=Sc-Root $ProjectPath;Sc-Require $project;$r.Path=Sc-Path $project
@@ -77,6 +79,14 @@ function Write-SessionCheckpoint {
         $now=Sc-Now
         $steps=@(if($open){@(Sc-Prop $prev 'Steps')})+@([pscustomobject]@{At=$now;Step=$Step;Next=$Next})
         if($steps.Count -gt $script:maxSteps){$steps=@($steps[($steps.Count-$script:maxSteps)..($steps.Count-1)])}
+        # The user's literal request travels with the checkpoint, so any harness can resume without a
+        # transcript reader (ChatGPT, Hermes...). It is data for the next agent, never an instruction.
+        $requests=@(if($open){@(Sc-Prop $prev 'Requests')|Where-Object {$_}})
+        if($Request){
+            $text=$Request.Trim();if($text.Length -gt $script:maxRequest){$text=$text.Substring(0,$script:maxRequest)}
+            if(-not $requests.Count -or $requests[-1].Text -ne $text){$requests+=@([pscustomobject]@{At=$now;Text=$text})}
+        }
+        if($requests.Count -gt $script:maxRequests){$requests=@($requests[($requests.Count-$script:maxRequests)..($requests.Count-1)])}
         $dirty=Sc-Dirty $project
         $data=[ordered]@{
             Schema=1;State='OPEN'
@@ -84,6 +94,7 @@ function Write-SessionCheckpoint {
             Agent=$Agent;StartedAt=if($open){Sc-Iso $prev.StartedAt}else{$now};UpdatedAt=$now
             Head=Sc-Head $project;LastStep=$Step;NextStep=$Next;Files=@($Files)
             Worktree=Sc-Fingerprint $project $dirty;Steps=$steps
+            Requests=@($requests|ForEach-Object {[pscustomobject]@{At=(Sc-Iso $_.At);Text=$_.Text}})
         }
         Sc-Write $project $data;$r.SessionId=$data.SessionId
     }catch{$r.Code=1;$r.Status='FAILED';$r.Issues=@($_.Exception.Message)}
@@ -113,11 +124,12 @@ function Get-SessionResume {
     param([Parameter(Mandatory=$true)][string]$ProjectPath,
           [string]$ClaudeProjectsRoot=(Join-Path $env:USERPROFILE '.claude/projects'),
           [string]$CodexSessionsRoot=(Join-Path $env:USERPROFILE '.codex/sessions'),
+          [string]$AntigravityBrainRoot=(Join-Path $env:USERPROFILE '.gemini/antigravity/brain'),
           [int]$TurnCount=5)
     $r=[ordered]@{Code=0;Status='NO_CHECKPOINT';Agent=$null;SessionId=$null;StartedAt=$null;UpdatedAt=$null
         LastStep=$null;NextStep=$null;Steps=@();Files=@();CheckpointHead=$null;CurrentHead=$null
         CommitsSinceCheckpoint=@();UncommittedFiles=@();WorktreeChangedSinceCheckpoint=$false
-        RecentUserTurns=@();RecentUserTurnsAre='untrusted-data';Issues=@()}
+        UserRequests=@();UserRequestsAre='untrusted-data';RecentUserTurns=@();RecentUserTurnsAre='untrusted-data';Issues=@()}
     try{
         $project=Sc-Root $ProjectPath;Sc-Require $project
         $r.CurrentHead=Sc-Head $project;$dirty=Sc-Dirty $project;$r.UncommittedFiles=$dirty
@@ -125,7 +137,7 @@ function Get-SessionResume {
         if(-not $cp){return [pscustomobject]$r}
         foreach($k in 'Agent','SessionId','LastStep','NextStep'){$r[$k]=Sc-Prop $cp $k}
         $r.StartedAt=Sc-Iso (Sc-Prop $cp 'StartedAt');$r.UpdatedAt=Sc-Iso (Sc-Prop $cp 'UpdatedAt')
-        $r.Steps=@(Sc-Prop $cp 'Steps');$r.Files=@(Sc-Prop $cp 'Files');$r.CheckpointHead=Sc-Prop $cp 'Head'
+        $r.Steps=@(Sc-Prop $cp 'Steps');$r.Files=@(Sc-Prop $cp 'Files');$r.UserRequests=@(@(Sc-Prop $cp 'Requests')|Where-Object {$_}|ForEach-Object {[pscustomobject]@{At=(Sc-Iso $_.At);Text=$_.Text}});$r.CheckpointHead=Sc-Prop $cp 'Head'
         if((Sc-Prop $cp 'State') -eq 'CLOSED'){$r.Status='CLEAN';return [pscustomobject]$r}
         $r.Status='INTERRUPTED'
         $r.WorktreeChangedSinceCheckpoint=(Sc-Fingerprint $project $dirty) -ne (Sc-Prop $cp 'Worktree')
@@ -136,7 +148,7 @@ function Get-SessionResume {
             else{$r.CommitsSinceCheckpoint=@(((Invoke-Git -RepositoryPath $project -Arguments @('log','--reverse','--format=%h %s',"$cpHead..HEAD")).Output -split '\r?\n')|Where-Object {$_})}
         }
         $since=Sc-Date $r.StartedAt
-        $r.RecentUserTurns=@(Get-RecentUserTurns -ProjectPath $project -ClaudeProjectsRoot $ClaudeProjectsRoot -CodexSessionsRoot $CodexSessionsRoot -Since $since -Count $TurnCount)
+        $r.RecentUserTurns=@(Get-RecentUserTurns -ProjectPath $project -ClaudeProjectsRoot $ClaudeProjectsRoot -CodexSessionsRoot $CodexSessionsRoot -AntigravityBrainRoot $AntigravityBrainRoot -Since $since -Count $TurnCount)
     }catch{$r.Code=1;$r.Status=if($_.Exception.Message -eq 'CHECKPOINT_UNREADABLE'){'CHECKPOINT_UNREADABLE'}else{'FAILED'};$r.Issues=@($_.Exception.Message)}
     [pscustomobject]$r
 }
