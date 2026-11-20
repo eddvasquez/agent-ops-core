@@ -88,3 +88,13 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
   4. Indicar al entregar que la compuerta pasó, incluida la revisión.
 - **Ejemplo por regla:** al registrar una corrección, guardar en `- Ejemplo:` el texto que se rechazó. El verificador comprueba que `Detectar` lo detecta; en las reglas sin patrón, el ejemplo orienta la revisión.
 - **Universal:** este protocolo se basa solo en archivos del proyecto y en un script de terminal. Se aplica igual en cualquier arnés de IA.
+
+---
+
+### Protocolo 9 (Recepción de Solicitudes: Perspectiva y Entrevista)
+- **Cuándo:** solo ante solicitudes sustanciales (entregables, diseños, estrategias, decisiones o encargos ambiguos). Nunca ante confirmaciones, respuestas cortas, correcciones puntuales o tareas mecánicas.
+- **Perspectiva profesional:** si el usuario ya citó un profesional en la conversación, responder como su versión de clase mundial sin volver a preguntar; preguntar solo si la nueva solicitud es claramente de otra disciplina. Si no citó ninguno, preguntar primero desde qué perspectiva responder: 2–3 perfiles de clase mundial pertinentes (el más adecuado primero, cada uno con una línea sobre qué aporta), «Sin perspectiva profesional» y respuesta libre.
+- **Entrevista opcional:** después, ofrecer «hacerte todas las preguntas necesarias para entender a fondo la solicitud y darte la mejor respuesta posible». Si acepta, preguntar una a una, cada pregunta con opciones (la recomendada primero) y respuesta libre, nunca en bloque. Cada pregunta se entiende sola.
+- **Memoria:** ambas elecciones valen para toda la sesión. Si el usuario dice «siempre» o «nunca», registrarlo como regla en `reglas_proyecto.md` (Protocolo 8) y no volver a ofrecerlo.
+- **Transparencia:** con perspectiva activa, indicarla en una línea al inicio de la respuesta («Perspectiva: …»). El rol eleva el criterio y el rigor; nunca inventa credenciales, experiencias ni datos.
+- **Universal:** usar la herramienta de preguntas del arnés si existe; si no, texto con opciones numeradas y una opción «Otra». Una pregunta por mensaje.
