@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Changed
+- **Protocolo 9 con varias perspectivas:** si el usuario citó varios profesionales, el agente aplica sin preguntar los que encajan con cada solicitud (hasta 4) y nombra los excluidos. Responde con una síntesis que señala dónde discrepan. La sugerencia inicial admite selección múltiple, y los cambios del panel rigen para el resto de la sesión.
 
 ## [3.1.0] - 2026-11-20
 ### Added
