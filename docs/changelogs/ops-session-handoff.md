@@ -4,6 +4,7 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-11-20
 ### Added
 - MODO ENTRADA, Paso 2: `resume-session.ps1` detecta una sesión cortada (`INTERRUPTED`/`DIVERGED`) y su siguiente paso exacto. Quien recibe completa el MODO SALIDA pendiente.
 - Punto de control por paso con `checkpoint.ps1` y MODO SALIDA MÍNIMO cuando la cuota visible baja de ~10 %. MODO SALIDA cierra el checkpoint antes del commit de relevo.
