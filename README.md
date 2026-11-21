@@ -1,382 +1,104 @@
-<div align="center">
-
 # Agent Ops Core
 
-### Memoria y Gobernanza Universal para Trabajar con Cualquier Inteligencia Artificial
+### Memoria y gobernanza para trabajar con asistentes de inteligencia artificial
 
-**El conocimiento y los proyectos de tu negocio en tu propia computadora, no secuestrados en una plataforma. Trabaja indistintamente con Claude, Cursor, ChatGPT o Gemini bajo un estándar único: cero amnesia entre sesiones, entregables verificados con evidencia real y total independencia tecnológica.**
+Agent Ops Core organiza la memoria, las reglas y el relevo de tus proyectos en archivos locales. Te ayuda a continuar el trabajo con distintas herramientas de IA, registrar decisiones y verificar entregables con evidencia. El cumplimiento depende de las capacidades de cada herramienta y de la supervisión del usuario.
 
-[![Compatibilidad](https://img.shields.io/badge/Compatible-Cualquier%20IA%20(Claude%20%7C%20Cursor%20%7C%20ChatGPT%20%7C%20Gemini)-818cf8?style=flat-square)]()
-[![Memoria](https://img.shields.io/badge/Memoria-Persistente%20(.context%2F)-38bdf8?style=flat-square)]()
-[![Instalación](https://img.shields.io/badge/Uso-Cero%20Código%20(60s)-10b981?style=flat-square)]()
-[![Licencia](https://img.shields.io/badge/Licencia-Apache%202.0-blue?style=flat-square)](LICENSE)
+[Empezar](#empezar) · [Estructura](#estructura-de-un-proyecto) · [Flujo de trabajo](#flujo-de-trabajo) · [Protocolos](#los-nueve-protocolos) · [Skills](#las-seis-skills-del-marco) · [Compatibilidad](#compatibilidad-y-actualizaciones) · [Licencia](#licencia-y-aviso-legal-de-independencia)
 
-[Arranque en 60s](#como-arrancar-en-60-segundos-cero-codigo) · [Estructura de Carpetas](#donde-crear-tus-proyectos-y-anatomia-de-carpetas) · [Conectar tus IAs](#5-como-conectar-cualquier-herramienta-de-ia-a-la-misma-carpeta-el-ancla-agnostica) · [Flujo Diario en 3 Pasos](#el-flujo-de-trabajo-diario-en-3-pasos) · [Cuellos de Botella](#por-que-funciona-los-cuatro-cuellos-de-botella-que-resuelve) · [Diagramas](#compatibilidad-universal-y-distribucion-simetrica) · [Los 6 Protocolos](#los-seis-protocolos-universales-de-agentsmd) · [Aviso Legal](#licencia-y-aviso-legal-de-independencia)
+## Empezar
 
-</div>
-
-> [!IMPORTANT]
-> **Tus Datos y tu Memoria Están a Salvo:**
-> Toda IA dejada a su suerte improvisa supuestos, inventa conclusiones complacientes y olvida el contexto al cerrar la ventana. **Agent Ops Core** convierte a tu IA en un asistente disciplinado: ningún agente puede afirmar que una tarea está terminada sin comprobarla físicamente, ningún archivo se modifica a ciegas y la memoria histórica de tu negocio queda blindada localmente bajo control de versiones y respaldo seguro en la nube.
-
----
-
-## Qué es este Sistema (En 30 Segundos)
-
-Cualquiera que trabaje con herramientas de Inteligencia Artificial (**Claude**, **Cursor**, **ChatGPT**, **Antigravity** o **OpenAI Codex**) en marketing, investigación, operaciones o desarrollo conoce este triple dolor:
-1. **El secuestro de contexto:** La memoria de tu negocio vive fragmentada y atrapada en ventanas de chat cerradas que no te pertenecen.
-2. **La amnesia y la reexplicación crónica:** Abres una sesión nueva y la IA ya no recuerda las directrices de la marca ni qué se acordó ayer.
-3. **La complacencia del falso avance:** La IA afirma con entusiasmo que un informe, análisis o entregable está *"terminado"* cuando en realidad contiene números inventados o instrucciones a medias.
-
-**Agent Ops Core erradica estos problemas convirtiendo tu computadora en el centro soberano de operaciones:**
-
-* **1. Soberanía y Agnolicismo Total (Cero Dependencia de Proveedores):** La memoria y los archivos de tu proyecto viven en tu máquina en Markdown estándar (`.context/`) y respaldados en tu Google Drive. Si una plataforma cambia sus tarifas o sufre una caída, puedes cambiar de IA en segundos sin perder un solo milímetro de contexto.
-* **2. Memoria Aislada por Proyecto (Cero Contaminación Cruzada):** Cinco libretas estructuradas donde cualquier IA que uses está obligada a consultar quién es el cliente, las directrices vigentes y los errores prohibidos antes de tocar un archivo.
-* **3. Mandato Físico Anti-Complacencia (`AGENTS.md`):** La IA tiene prohibido dar una tarea por terminada sin comprobarla físicamente con evidencia real. Si falta información crítica, formula una pregunta bloqueante en lugar de adivinar.
-
----
-
-## Cómo Arrancar en 60 Segundos (Cero Código)
-
-No necesitas ser programador ni memorizar comandos técnicos. Simplemente abre la carpeta de tu proyecto en tu herramienta de IA favorita (**Cursor**, **Claude Code**, **Antigravity**, **Windsurf**, o **OpenAI Codex**) y envía este bloque en tu primer mensaje para activar la gobernanza:
+Abre la carpeta del proyecto en un asistente con acceso a archivos locales y terminal. Para un proyecto nuevo, pide usar `ops-project-init`; para uno existente, solicita una evaluación con `ops-project-migrate`. La migración se revisa y decide por proyecto: actualizar el marco no modifica automáticamente cada proyecto.
 
 ```text
-Actúa como mi Coordinador de Operaciones y Gobernanza de Proyectos.
-
-Quiero que gestionemos este proyecto bajo el estándar de AGENTS.md del repositorio público https://github.com/eddvasquez/agent-ops-core.
-
-Por favor realiza lo siguiente de forma estricta:
-1. Revisa las directrices de https://raw.githubusercontent.com/eddvasquez/agent-ops-core/stable/README.md y los 6 Protocolos de AGENTS.md.
-2. Adopta de inmediato el Protocolo 1 (MODO ENTRADA): audita el estado actual de nuestro proyecto y los archivos de memoria en .context/ y entrégame el Reporte de 5 Puntos antes de realizar cualquier cambio, propuesta o entregable.
-3. Aplica la regla de Cero Suposición y Cero Complacencia: si falta información crítica, formúlame una pregunta bloqueante en lugar de adivinar, y no des ninguna tarea por terminada sin antes verificarla físicamente.
+Ayúdame a trabajar en este proyecto con Agent Ops Core.
+Revisa AGENTS.md y .context/, inicia ops-session-handoff en MODO ENTRADA,
+compara el estado con Git y presenta el reporte antes de modificar archivos.
 ```
 
----
+### Instalación
 
-### Instalación Permanente en tu Computadora (1 Solo Comando)
+En Windows, el instalador usa el canal `stable`; el marco público, el hub personal y los respaldos tienen ubicaciones separadas. Revisa el script y sus requisitos antes de ejecutarlo:
 
-En Windows, el marco público, el hub personal y los respaldos se mantienen en ubicaciones separadas. La instalación usa el canal `stable`, activa un vigilante de archivos y una comprobación diaria. Al iniciar MODO ENTRADA, puedes elegir actualizar ahora, preparar en segundo plano para la próxima sesión o posponer. Consulta [Actualizaciones al inicio de sesión](docs/session-updates-windows.md) y [Sincronización y recuperación de skills](docs/skills-sync-windows.md). Los instaladores de macOS y Linux conservan su implementación anterior y están pendientes de una revisión equivalente.
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/eddvasquez/agent-ops-core/stable/install.ps1 | iex"
+```
 
-Para que todos los agentes de IA de tu equipo (**Claude Code**, **Antigravity**, **Gemini CLI** y **OpenAI Codex**) compartan automáticamente las 6 habilidades maestras en cualquier proyecto sin tener que configurar nada más, ejecuta este comando en tu terminal una sola vez:
+En macOS y Linux existe un instalador anterior; sus mecanismos de actualización, sincronización y migración no tienen todavía la misma revisión ni las mismas garantías que Windows:
 
-* **En Windows (PowerShell):**
-  ```powershell
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/eddvasquez/agent-ops-core/stable/install.ps1 | iex"
-  ```
-* **En macOS y Linux (Terminal):**
-  ```bash
-  curl -fsSL https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/install.sh | bash
-  ```
+```bash
+curl -fsSL https://raw.githubusercontent.com/eddvasquez/agent-ops-core/main/install.sh | bash
+```
 
-> [!TIP]
-> **Aprovisionamiento Preventivo y Cero Pérdida de Habilidades:**
-> - **Listo para Nuevas IAs en el Futuro:** Aunque hoy utilices únicamente una sola herramienta (por ejemplo, Antigravity o Claude Code), el instalador deja preparadas preventivamente las rutas globales de los demás proveedores (`~/.gemini/config/skills`, `~/.claude/skills` y `~/.agents/skills`). Si dentro de semanas o meses instalas otra aplicación de IA, esta despertará de inmediato equipada con toda la gobernanza y habilidades sin requerir que reinstales ni reconfigures nada.
-> - **Protocolo de Cosecha Previa (*Harvest-First*):** Si ya tenías habilidades personalizadas creadas previamente en cualquiera de tus herramientas de IA, el sistema las detecta y absorbe de forma segura hacia tu bóveda central antes de sincronizar, garantizando que nunca se sobreescriba ni se pierda ninguna habilidad preexistente.
-> - **Sincronización en Windows:** El vigilante y la tarea diaria usan un motor común con comparación SHA-256, respaldos verificables y conflictos explícitos. Los respaldos son locales; configura por separado el respaldo externo o en la nube.
+Las instrucciones detalladas están en [actualizaciones de Windows](docs/session-updates-windows.md), [sincronización de skills](docs/skills-sync-windows.md) y [migración de proyectos en Windows](docs/project-migration-windows.md).
 
----
+## Estructura de un proyecto
 
-## Dónde Crear tus Proyectos y Anatomía de Carpetas
-
-Para que la Inteligencia Artificial trabaje con precisión quirúrgica y nunca mezcle clientes ni pierda datos, este sistema se basa en **tres reglas de organización física**:
-
-### 1. La Regla de Oro: Un Proyecto = Una Carpeta Autónoma (Aislamiento de Contexto)
-* **El Problema:** Si trabajas con múltiples clientes o iniciativas en una misma carpeta o en el Escritorio, la memoria de la IA se contamina (*cross-contamination*). El asistente comenzará a mezclar números, tonos de voz y directrices de marcas distintas.
-* **La Regla:** **Cada cliente, campaña o producto debe tener su propia carpeta independiente.** Esa carpeta contiene su propio archivador de memoria (`.context/`) y su propio historial de versiones.
-
----
-
-### 2. Dónde Crear tus Proyectos (Respaldo en la Nube Garantizado)
-Crea siempre tus carpetas de proyecto dentro de tu almacenamiento en la nube sincronizado:
-* **En Windows:** Dentro de tu unidad de Google Drive (ej. `G:\Mi unidad\Proyectos\<tu-proyecto>`) o en `C:\Usuarios\<TuUsuario>\Documents\ChatGPT\<tu-proyecto>` (si la carpeta Documentos está sincronizada con OneDrive o Google Drive).
-* **En macOS:** Dentro de `~/Google Drive/Mi unidad/Proyectos/<tu-proyecto>` o en iCloud/Dropbox sincronizado.
-* **En Linux:** Dentro de tu directorio de trabajo respaldado o vinculado a un repositorio remoto de GitHub.
-
-> [!IMPORTANT]
-> **Por qué esto es innegociable:** Si tu computadora sufre una falla eléctrica, un daño de disco o cambias de equipo, **todo tu trabajo, tus documentos y la memoria permanente de la IA están a salvo al instante**. Prohibido crear proyectos en carpetas temporales (`/tmp`) o sueltos en el Escritorio.
-
----
-
-### 3. Anatomía Visual del Sistema (Qué hay Dentro de Cada Proyecto)
-
-> [!TIP]
-> **Tú no tienes que crear ninguna de estas subcarpetas a mano:**  
-> Tu asistente de IA ejecuta `ops-project-init` y construye todo el árbol de directorios, los 5 archivos de memoria en `.context/`, la guía de documentación en `docs/README.md` y la copia de seguridad de Git en menos de 2 segundos. Tú únicamente eliges el nombre de tu proyecto y confirmas que resida dentro de tu Google Drive o almacenamiento cloud.
-
-Cuando la IA arranca tu proyecto mediante `ops-project-init`, genera automáticamente esta estructura limpia y estandarizada:
+Mantén cada proyecto en su propia carpeta y conecta las herramientas que uses a esa misma ubicación. La plantilla actual contempla esta estructura; algunos archivos se generan durante la operación o migración:
 
 ```text
-📁 Tu-Carpeta-Cloud/ (Google Drive / OneDrive / Dropbox)
-  └── 📁 nombre-del-proyecto/              <- Carpeta raíz aislada de tu proyecto o cliente
-      ├── 📄 AGENTS.md                     <- Para la IA: el reglamento operativo (los 8 protocolos innegociables)
-      │
-      ├── 📁 .context/                     <- Exclusivo de la IA: el archivador inteligente (las 5 libretas que no debes tocar a mano)
-      │   ├── 📄 projectbrief.md           <- Misión, cliente, objetivos del negocio y requerimientos
-      │   ├── 📄 systemPatterns.md         <- Decisiones clave de diseño, arquitectura y reglas técnicas
-      │   ├── 📄 activeContext.md          <- Qué se está haciendo hoy, agente activo y siguiente paso
-      │   ├── 📄 progress.md               <- Checklist de hitos terminados con evidencia real
-      │   └── 📄 lessons_learned.md        <- Errores corregidos y directrices para no tropezar dos veces
-      │
-      ├── 📁 docs/                         <- Para ti y tu equipo: briefs de cliente, informes formales, manuales y SOPs
-      │   └── 📄 README.md                 <- Guía interna de qué guardar aquí y cómo organizar tus documentos
-      │
-      ├── 📁 [tus entregables]/            <- Para ti y tu equipo: copies, análisis, hojas de cálculo, creatividades o código
-      │
-      └── 📁 .git/                         <- Copia de seguridad y versiones automática (invisible)
+proyecto/
+├── AGENTS.md                      # Protocolos y reglas operativas
+├── .context/
+│   ├── projectbrief.md            # Objetivos y alcance
+│   ├── systemPatterns.md          # Decisiones e invariantes
+│   ├── activeContext.md           # Agente activo y siguiente paso
+│   ├── progress.md                # Hitos con evidencia
+│   ├── lessons_learned.md         # Historial de correcciones
+│   ├── reglas_proyecto.md         # Reglas vigentes del proyecto
+│   └── checkpoint.json            # Punto de control, cuando se genera
+├── CHANGELOG.md                   # Cambios del proyecto, según configuración
+├── docs/                          # Documentación y entregables
+└── .git/                          # Historial local de Git
 ```
 
----
+`reglas_proyecto.md` contiene las reglas aplicables; `lessons_learned.md` conserva su contexto histórico. Un proyecto existente puede tener una plantilla anterior o requerir una migración revisada antes de adoptar la actual.
 
-### 4. Las Tres Reglas de Higiene del Espacio de Trabajo
-1. **Cero Archivos Duplicados:** Prohibido crear copias con sufijos como `brief_cliente_v2.docx` o `analisis_final_FINAL.md`. Toda evolución de un documento se versiona limpiamente en el historial automático (Git).
-2. **Cero Carpetas `skills/` Locales:** Las habilidades operativas de la IA son globales en tu máquina y residen en tu configuración central; no se deben duplicar ni crear carpetas `skills/` dentro de la carpeta del cliente.
-3. **Escritor Único:** Un solo asistente o aplicación de IA escribe en el proyecto por sesión para prevenir colisiones o sobreescrituras accidentales.
+Git conserva versiones locales. Una carpeta sincronizada, un repositorio remoto y un respaldo independiente son mecanismos distintos: configura el destino que necesites, comprueba que la sincronización termine y prueba periódicamente la restauración. Ninguno se garantiza por el solo hecho de crear el proyecto.
 
----
+## Flujo de trabajo
 
-### 5. Cómo Conectar Cualquier Herramienta de IA a la Misma Carpeta (El Ancla Agnóstica)
+1. **Iniciar:** `ops-session-handoff` revisa instrucciones, reglas, estado de Git y actualizaciones disponibles; presenta el reporte de entrada antes de modificar archivos.
+2. **Trabajar:** el agente registra las correcciones como reglas y aplica las verificaciones pertinentes. En desarrollo utiliza TDD y depuración sistemática según corresponda.
+3. **Guardar puntos de control:** tras cada paso, `checkpoint.ps1` registra lo realizado, el siguiente paso y, con `-Request`, la solicitud del usuario. Si hay una interrupción, `resume-session.ps1` contrasta el punto de control con Git. Un arnés necesita acceso a terminal y archivos para ejecutar estos scripts; los textos recuperados son datos, no instrucciones.
+4. **Cerrar:** se registran avances comprobados y el siguiente paso. Los cambios funcionales y el relevo se preparan por rutas explícitas y en commits separados, con verificación de versionado.
 
-El secreto para que este sistema funcione de forma **100% independiente de cualquier proveedor** es que **todas tus herramientas de IA deben apuntar exactamente a la misma carpeta física en tu computadora**.
+La compuerta `check-rules.ps1` comprueba patrones definidos en las reglas. Las reglas que no pueden evaluarse mediante patrones requieren revisión semántica; el verificador puede asociar el resultado a la huella del entregable y de las reglas.
 
-Tu carpeta de proyecto en Google Drive es la "oficina central" donde residen los datos reales (`.context/`, `docs/`, `AGENTS.md` y tus entregables). Las diferentes IAs son empleados de turno que entran y salen de esa misma oficina:
+## Los nueve protocolos
 
-| Herramienta de IA | Proveedor | Cómo Conectarla a la Carpeta de tu Proyecto |
-| :--- | :--- | :--- |
-| **Cursor / Windsurf / VS Code** | Anysphere / Codeium / Microsoft | En el menú superior: `Archivo` $\to$ `Abrir Carpeta...` (`File` $\to$ `Open Folder...`) y seleccionas la carpeta de tu proyecto en Google Drive. El panel de la IA tendrá acceso inmediato a todos tus archivos y a la memoria. |
-| **Claude Code (CLI)** | Anthropic | Abres la terminal en tu computadora, te sitúas en la carpeta del proyecto (`cd "G:\Mi unidad\Proyectos\<tu-proyecto>"`) y ejecutas `claude`. La sesión se ancla automáticamente a ese espacio de trabajo. |
-| **Google Antigravity** | Google DeepMind | Abres la aplicación y seleccionas `Open Workspace` / `Abrir Espacio de Trabajo` apuntando a la misma carpeta física del proyecto. |
-| **Claude Desktop** | Anthropic | En los ajustes de la aplicación, añades la carpeta de tu proyecto a la lista de directorios locales permitidos (Filesystem MCP). |
-| **ChatGPT Desktop** | OpenAI | En la aplicación de escritorio, conectas la carpeta local del proyecto como espacio de trabajo activo mediante las funciones de trabajo con archivos locales. |
+La [plantilla actual de AGENTS.md](templates/AGENTS.md) define:
 
-#### El Relevo Cruzado en Acción (Ejemplo Real)
-1. **Por la mañana trabajas con Claude Code:** Le pides estructurar una propuesta comercial o investigar un mercado. Al terminar, ejecutas `ops-session-handoff SALIDA`. Claude actualiza `.context/activeContext.md` con el estado exacto del proyecto y guarda el respaldo en Git y Google Drive.
-2. **Por la tarde abres Cursor o Antigravity:** Abres esa misma carpeta física. Al iniciar turno (`ops-session-handoff ENTRADA`), el nuevo modelo lee `.context/activeContext.md`, sabe exactamente qué hizo Claude por la mañana y continúa la tarea sin perder un solo milímetro de contexto.
-3. **Resultado:** Cambiaste de herramienta y de empresa proveedora a mitad del día, pero tu proyecto no sufrió ni un solo segundo de amnesia.
+1. **Entrada y auditoría:** revisar contexto, Git, actualizaciones y reanudación.
+2. **Cero suposiciones:** aclarar información crítica y registrar correcciones.
+3. **Skills y calidad:** aplicar las skills críticas cuando puedan corresponder y las demás por su dominio; verificar las suites afectadas.
+4. **Aprendizaje gobernado:** capturar candidatas, preferir la solución más ligera y someter los cambios a skills a revisión humana.
+5. **Escritor único e higiene:** coordinar al agente activo, evitar duplicados y cuidar el almacenamiento sincronizado.
+6. **Cierre y relevo:** registrar progreso comprobado, puntos de control y commits selectivos.
+7. **Versionado y trazabilidad:** usar SemVer, changelog y verificación antes de publicar o registrar cambios.
+8. **Reglas del proyecto:** conservar las reglas vigentes por identificador y revisar cada entregable con la compuerta.
+9. **Recepción de solicitudes:** acordar la perspectiva profesional y ofrecer una entrevista opcional cuando corresponda.
 
----
+El aprendizaje gobernado dispone de captura y validación de propuestas. El triaje automatizado, la aplicación parcial y la medición de uso y poda siguen planteados como fases posteriores; consulta [su diseño y estado](docs/aprendizaje-gobernado-skills.md) y el [historial de cambios](docs/CHANGELOG.md).
 
-## El Flujo de Trabajo Diario en 3 Pasos
+## Las seis skills del marco
 
-Una vez activado el sistema, así trabajas día a día con tu IA:
+| Skill | Función |
+| --- | --- |
+| `ops-project-init` | Inicializar un proyecto y su gobernanza. |
+| `ops-session-handoff` | Coordinar entrada, puntos de control, reanudación y cierre. |
+| `ops-project-migrate` | Evaluar y migrar proyectos existentes en Windows, conservando memoria y respaldos. |
+| `ops-git-worktrees` | Gestionar espacios de trabajo Git paralelos. |
+| `dev-tdd` | Guiar cambios ejecutables con el ciclo prueba fallida, implementación y refactorización. |
+| `dev-systematic-debugging` | Investigar fallos desde la reproducción hasta la causa raíz. |
 
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'flowchart': { 'minNodeWidth': 280, 'nodeSpacing': 25, 'rankSpacing': 25, 'padding': 16 }}}%%
-flowchart TD
-    Paso1["PASO 1: ARRANCAR PROYECTO<br>Comando: ops-project-init<br>Crea carpeta limpia y archivador .context/"]
-    Paso2["PASO 2: ABRIR SESION DE TRABAJO<br>Comando: ops-session-handoff ENTRADA<br>Audita historial y emite Reporte 5 Puntos"]
-    Paso3["PASO 3: CERRAR SESION Y GUARDAR<br>Comando: ops-session-handoff SALIDA<br>Audita entregables y guarda respaldo"]
+## Compatibilidad y actualizaciones
 
-    Paso1 ==> Paso2 ==> Paso3
-    Paso3 -.->|"Siguiente sesion sin amnesia"| Paso2
+El núcleo usa archivos del proyecto, skills y scripts de terminal para poder trabajar con distintos arneses. La compatibilidad efectiva depende del acceso a esos recursos y de las funciones disponibles en cada aplicación; un chat sin terminal no puede ejecutar el flujo de scripts por sí solo.
 
-    classDef step fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    class Paso1,Paso2,Paso3 step;
-```
+En Windows, el inicio consulta el canal estable y, cuando hay una actualización verificada, ofrece actualizar, preparar para otra sesión o posponer. La sincronización compara hashes, conserva respaldos locales y presenta conflictos para revisión. La migración de cada proyecto es una decisión separada y conserva un journal para recuperación. En macOS y Linux, la instalación mantiene una implementación anterior; no debe suponerse paridad con esos mecanismos de Windows.
 
-### 1. Paso 1: Arrancar un Proyecto Nuevo
-Dile a tu IA:
-> *"Usa `ops-project-init` para crear el proyecto [Nombre]"*
-
-La IA crea la carpeta protegida, comprueba que esté respaldada en tu almacenamiento cloud (Google Drive) para evitar pérdidas y genera el archivador `.context/` con sus 5 libretas de memoria.
-
-### 2. Paso 2: Abrir Sesión de Trabajo (Modo Entrada)
-Al comenzar el día o abrir un nuevo chat, dile:
-> *"Iniciemos turno con `ops-session-handoff` MODO ENTRADA"*
-
-La IA tiene prohibido tocar archivos o improvisar. Primero revisa qué se avanzó ayer, qué directrices están vigentes y te entrega el **Reporte de 5 Puntos** (estado del proyecto, reglas activas y siguiente paso inmediato). Solo tienes que responder "OK" para autorizar el avance.
-
-### 3. Paso 3: Cerrar Sesión y Guardar (Modo Salida)
-Al terminar la jornada o antes de cerrar el chat, dile:
-> *"Terminamos por hoy, ejecuta `ops-session-handoff` MODO SALIDA"*
-
-La IA comprueba qué tareas se completaron con evidencia real, anota los aprendizajes o correcciones del día en la libreta de lecciones, actualiza la bitácora y sella una copia de seguridad automática respaldada en tu nube.
-
----
-
-## Por Qué Funciona: Los Cuatro Cuellos de Botella que Resuelve
-
-### 1. La Amnesia de Turno y la Reexplicación Crónica
-- **El Coste:** En cada nuevo chat, la IA olvida el perfil del cliente, las cifras de la oferta, el tono de marca y las objeciones previas. Pierdes entre 20 y 45 minutos de tu jornada repitiendo antecedentes en cada chat.
-- **La Solución Agent Ops:** Memoria persistente en Markdown nativo (`.context/`). La IA lee el estado exacto antes de escribir una sola palabra.
-
-### 2. La Complacencia del Falso Avance
-- **El Coste:** El modelo afirma con entusiasmo que un copy, un informe de mercado o un script de ventas está "listo", pero al inspeccionarlo contiene datos genéricos, números inventados o instrucciones a medio hacer.
-- **La Solución Agent Ops:** Mandato anti-complacencia. Queda prohibido marcar hitos como terminados sin evidencia física comprobable y contrastada contra criterios objetivos de éxito.
-
-### 3. La Modificación Especulativa (Parches a Ciegas)
-- **El Coste:** Ante un error o retroalimentación, la IA pide disculpas serviles y altera variables al azar (*shotgun approach*), dañando la coherencia del resto de entregables.
-- **La Solución Agent Ops:** Depuración sistemática en 4 fases: aislamiento del síntoma, análisis de causa raíz, hipótesis única y corrección quirúrgica controlada.
-
-### 4. La Dispersión de Datos y la Pérdida de Archivos
-- **El Coste:** Archivos dispersos sin versionar, versiones duplicadas informales (`documento_final_v2.docx`) y riesgo de pérdida absoluta si la plataforma del proveedor sufre una caída o bloquea la cuenta.
-- **La Solución Agent Ops:** Neutralidad e independencia total. El conocimiento y la memoria residen en tu equipo y tu nube bajo Git, legibles por cualquier IA de hoy o de mañana.
-
----
-
-## Comparativa de Rendimiento Operativo
-
-| Dimensión | Operación Sin Gobernanza (Tradicional) | Operación Con Agent Ops Core |
-| :--- | :--- | :--- |
-| **Continuidad entre Sesiones** | Amnesia recurrente; el usuario debe reexplicar el contexto en cada turno. | Protocolo de Relevo (Modo Entrada): auditoría del estado real y confirmación de foco. |
-| **Calidad de Entregables** | Contenido genérico y complaciente sin verificación rigurosa. | Validación contra criterios de éxito explícitos y memoria de lecciones aprendidas. |
-| **Resolución de Incidencias** | Modificaciones a ciegas (*shotgun approach*) que generan retrabajos. | Análisis determinista de causa raíz antes de intervenir cualquier activo. |
-| **Independencia Tecnológica** | Dependencia absoluta del ecosistema de un solo proveedor. | Neutral: Las mismas reglas operan idénticas en Claude, Gemini, ChatGPT y terminales locales. |
-| **Seguridad de Archivos** | Riesgo de pérdida por daño físico o sobreescritura accidental. | Auditoría automática de almacenamiento en la nube y versionado Git protegido. |
-
----
-
-## Las 6 Habilidades Maestras que Adquiere tu IA
-
-| Habilidad | Tipo | Función Crítica y Resultado Tangible |
-| :--- | :---: | :--- |
-| **`ops-project-init`** | Operación | Inicializa proyectos nuevos con arquitectura v2, Git protegido y auditoría preventiva de respaldo en Google Drive/Cloud. |
-| **`ops-session-handoff`** | Gobernanza | Ejecuta el relevo (Entrada y Salida) y ofrece actualizaciones verificadas, con activación inmediata o diferida según tu decisión. |
-| **`ops-project-migrate`** | Operación | Evalúa y migra proyectos existentes en Windows con rescate completo, orígenes de solo lectura, reglas y memoria conservadas y commits opcionales limitados. [Procedimiento](docs/project-migration-windows.md). |
-| **`ops-git-worktrees`** | Operación | Gestiona espacios de trabajo paralelos para abordar tareas simultáneas sin interferencias ni bloqueos. |
-| **`dev-tdd`** | Calidad | Implementa el principio de "revisar antes de publicar", garantizando que ningún entregable se apruebe sin pruebas de consistencia. |
-| **`dev-systematic-debugging`** | Resolución | Metodología de 4 fases para investigar y resolver incidencias de causa raíz sin parches a ciegas ni improvisación. |
-
----
-
-## Compatibilidad Universal y Distribución Simétrica
-
-El sistema de gobernanza reside en una capa independiente y universal. Ninguna empresa corporativa (Claude, OpenAI, Google) es propietaria de la memoria de tu negocio:
-
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'flowchart': { 'minNodeWidth': 220, 'nodeSpacing': 20, 'rankSpacing': 25, 'padding': 14 }}}%%
-flowchart TD
-    subgraph GITHUB["Repositorio Central (Capa Publica)"]
-        Core["agent-ops-core<br>(Gobernanza y Protocolos)"]
-    end
-
-    subgraph LOCAL["Tu Computadora (Espacio de Trabajo)"]
-        subgraph APPS["Tus Aplicaciones de IA"]
-            direction LR
-            Gemini["~/.gemini/skills/<br>(Antigravity / Gemini)"]
-            Claude["~/.claude/skills/<br>(Claude Code / App)"]
-            Codex["~/.agents/skills/<br>(OpenAI Codex / Std)"]
-        end
-
-        subgraph PROYECTOS["Proyectos Activos de la Empresa"]
-            direction LR
-            P1["Marketing & Adquisicion<br>(.context/ + AGENTS.md)"]
-            P2["Operaciones & Negocio<br>(.context/ + AGENTS.md)"]
-            P3["Software & Tecnologia<br>(.context/ + AGENTS.md)"]
-        end
-    end
-
-    Core -->|"install.ps1 / install.sh"| Gemini
-    Core -->|"install.ps1 / install.sh"| Claude
-    Core -->|"install.ps1 / install.sh"| Codex
-
-    Gemini -->|"Gobernanza Unificada"| PROYECTOS
-    Claude -->|"Gobernanza Unificada"| PROYECTOS
-    Codex -->|"Gobernanza Unificada"| PROYECTOS
-
-    classDef central fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef harness fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-    classDef project fill:#0f172a,stroke:#34d399,stroke-width:2px,color:#f8fafc;
-    class Core central;
-    class Gemini,Claude,Codex harness;
-    class P1,P2,P3 project;
-```
-
----
-
-## Arquitectura de Trabajo en Dos Capas
-
-El framework separa de forma estricta los procesos operativos de los activos propietarios del negocio:
-
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'flowchart': { 'minNodeWidth': 230, 'nodeSpacing': 20, 'rankSpacing': 25, 'padding': 14 }}}%%
-flowchart TD
-    subgraph CAPA1["CAPA 1: Gobernanza Universal (GitHub Publico)"]
-        direction TB
-        OpsCore["agent-ops-core"]
-        P_Ops["• ops-project-init<br>• ops-session-handoff<br>• ops-project-migrate<br>• dev-tdd & debugging"]
-    end
-
-    subgraph CAPA2["CAPA 2: Boveda Privada (Google Drive Local)"]
-        direction TB
-        HubPrivado["_ai-skills-hub"]
-        P_Priv["• Metodologias comerciales<br>• Activos de marketing y copy<br>• Ofertas de conversion<br>• Credenciales y accesos"]
-    end
-
-    subgraph MOTOR["Entorno de Ejecucion Local"]
-        IA["Claude Code / Antigravity / Codex"]
-        Proyecto["Proyectos Activos del Negocio<br>(Marketing, Operaciones, Software)"]
-    end
-
-    CAPA1 -->|"Sincronizacion Git"| IA
-    CAPA2 -->|"Servicio de Sincronizacion"| IA
-    IA -->|"Ejecucion Blindada"| Proyecto
-
-    classDef public fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef private fill:#1e293b,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
-    classDef target fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc;
-    class OpsCore,P_Ops public;
-    class HubPrivado,P_Priv private;
-    class IA,Proyecto target;
-```
-
-1. **Capa 1: Marco de Gobernanza (`agent-ops-core` en GitHub):**
-   - Protocolo universal `AGENTS.md`.
-   - Inicializador de proyectos (`ops-project-init`).
-   - Gestión de relevos y recepción/cierre de turnos (`ops-session-handoff`).
-   - Estandarización y rescate de proyectos legados (`ops-project-migrate`).
-   - Aislamiento de tareas paralelas (`ops-git-worktrees`).
-   - Protocolos de verificación y depuración de causa raíz.
-
-2. **Capa 2: Bóveda Privada de Negocio (Almacenamiento Local Respaldado):**
-   - Habilidades propietarias de la empresa: marcos de consultoría, ángulos de adquisición, guiones comerciales y credenciales.
-   - Reside exclusivamente en tu almacenamiento respaldado y privado, sin exposición en repositorios públicos.
-   - **Protocolo de Cosecha Previa (*Harvest-First*):** Los servicios de sincronización inspeccionan de forma continua los directorios locales de Claude, OpenAI y Gemini. Si detectan una habilidad creada directamente en una herramienta específica, la rescatan de inmediato hacia la bóveda central (`_ai-skills-hub`) y la distribuyen simétricamente a todas las demás IAs, protegiéndola contra eliminaciones accidentales.
-
----
-
-## Ciclo de Vida Operativo: Protocolo de Relevo
-
-Así interactúas tú, los asistentes de Inteligencia Artificial y la copia de seguridad en cada sesión de trabajo:
-
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'fontSize': '14px' }, 'sequence': { 'actorFontSize': '14px', 'messageFontSize': '13px', 'noteFontSize': '12px', 'width': 170 }}}%%
-sequenceDiagram
-    autonumber
-    actor U as Usuario (Tú)
-    participant IA as Asistente de IA (Claude / ChatGPT / Gemini)
-    participant CTX as Memoria Local (.context/)
-    participant GIT as Copia de Seguridad (Git)
-
-    Note over U,GIT: FASE 1: RECEPCIÓN DE TURNO (MODO ENTRADA)
-    U->>IA: Inicia sesión / asigna objetivo
-    IA->>CTX: Lee AGENTS.md, activeContext.md y lecciones aprendidas
-    IA->>GIT: Ejecuta git status -s y git log -n 3
-    GIT-->>IA: Retorna estado físico real del árbol
-    IA->>U: Emite Reporte de 5 Puntos (auditoría, reglas, skills, siguiente paso)
-    U-->>IA: Validación humana explícita ("OK")
-
-    Note over U,GIT: FASE 2: EJECUCIÓN DISCIPLINADA
-    IA->>IA: Aplica TDD (Revisar antes de publicar) o Causa Raíz
-    IA->>CTX: Actualiza memoria operativa
-
-    Note over U,GIT: FASE 3: CIERRE DE TURNO (MODO SALIDA)
-    IA->>CTX: Registra lecciones y actualiza activeContext.md
-    IA->>GIT: Commit atómico de relevo (con pausa cloud)
-    GIT-->>U: Confirmación de versión registrada y respaldo listo
-```
-
----
-
-## Los Seis Protocolos Universales de AGENTS.md
-
-Todo proyecto iniciado con este framework incluye un archivo rector `AGENTS.md` con seis reglas innegociables:
-
-1. **Protocolo 1 (Inicio de Turno / Auditoría de Estado):** Prevalencia de la evidencia física de Git y los registros de contexto sobre suposiciones verbales. Reporte de 5 puntos obligatorio antes de modificar activos.
-2. **Protocolo 2 (Cero Suposiciones y Memoria Cruda):** Prohibido adivinar requerimientos o directrices del cliente. Toda corrección humana se registra cronológicamente en `.context/lessons_learned.md`.
-3. **Protocolo 3 (Invocación Mandatoria y Anti-Racionalización):** Prohibido omitir habilidades o metodologías probadas con excusas de premura.
-4. **Protocolo 4 (Destilación de Conocimiento):** Las reglas operativas que demuestren valor universal se abstraen hacia habilidades maestras reutilizables.
-5. **Protocolo 5 (Escritor Único e Higiene en la Nube):** Un único agente activo por turno para prevenir colisiones; prohibición de archivos duplicados; pausas de seguridad para liberar bloqueos de sincronización en la nube.
-6. **Protocolo 6 (Cierre de Turno y Relevo):** Auditoría objetiva de tareas terminadas antes de actualizar el progreso y generación de commit atómico de relevo.
+Consulta [docs/VERSION](docs/VERSION) para la versión del repositorio y [docs/CHANGELOG.md](docs/CHANGELOG.md) para la evolución. La versión activa instalada puede ser distinta de la copia de trabajo y de la gobernanza de un proyecto ya existente.
 
 ---
 

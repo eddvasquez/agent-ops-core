@@ -45,6 +45,15 @@ Test 'an existing CHANGELOG.md is preserved byte for byte' {
     Assert ($r.Code -eq 0 -and @($r.Actions|Where-Object {$_.Key -eq 'CHANGELOG.md'}).Count -eq 0) ($r|ConvertTo-Json -Depth 5)
     Assert (([BitConverter]::ToString([IO.File]::ReadAllBytes($log))) -eq '23-0D-0A-58') 'Existing changelog changed'
 }
+Test 'an existing docs changelog is preserved without creating a competing root changelog' {
+    $f=Fixture;$docs=Join-Path $f.ProjectPath 'docs';[IO.Directory]::CreateDirectory($docs)|Out-Null
+    $log=Join-Path $docs 'CHANGELOG.md';[IO.File]::WriteAllBytes($log,[byte[]](35,13,10,88))
+    $plan=Invoke-ProjectMigration @f -Mode Plan
+    Assert ($plan.Code -eq 0 -and @($plan.Actions|Where-Object {$_.Key -eq 'CHANGELOG.md'}).Count -eq 0) 'Plan proposed a competing root changelog'
+    $result=Invoke-ProjectMigration @f -Mode Apply
+    Assert ($result.Code -eq 0 -and -not (Test-Path (Join-Path $f.ProjectPath 'CHANGELOG.md'))) 'Migration created a competing root changelog'
+    Assert (([BitConverter]::ToString([IO.File]::ReadAllBytes($log))) -eq '23-0D-0A-58') 'Existing docs changelog changed'
+}
 Test 'an existing project rules registry is preserved byte for byte' {
     $f=Fixture;$context=Join-Path $f.ProjectPath '.context';[IO.Directory]::CreateDirectory($context)|Out-Null
     $rules=Join-Path $context 'reglas_proyecto.md';[IO.File]::WriteAllBytes($rules,[byte[]](82,13,10,49))

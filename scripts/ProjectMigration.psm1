@@ -240,7 +240,7 @@ function Invoke-ProjectMigration {
         }
         # Protocol 7: every project keeps a changelog; an existing one is never touched.
         $changelogTemplate=Pm-Child $frame 'templates/CHANGELOG.md'
-        if([IO.File]::Exists($changelogTemplate) -and -not [IO.File]::Exists((Pm-Child $project 'CHANGELOG.md'))){$texts['CHANGELOG.md']=[IO.File]::ReadAllText($changelogTemplate)}
+        if([IO.File]::Exists($changelogTemplate) -and -not [IO.File]::Exists((Pm-Child $project 'CHANGELOG.md')) -and -not [IO.File]::Exists((Pm-Child $project 'docs/CHANGELOG.md'))){$texts['CHANGELOG.md']=[IO.File]::ReadAllText($changelogTemplate)}
         $patterns=Pm-Child $project '.context/systemPatterns.md'
         if([IO.File]::Exists($patterns)){
             $text=[IO.File]::ReadAllText($patterns)
