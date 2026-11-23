@@ -180,5 +180,14 @@ Test 'CLI writes the review checklist and validates the verdict' {
     $json=& $engine -NoProfile -ExecutionPolicy Bypass -File $cli -RulesPath $f.Rules -Path $f.Deliverable -ReviewVerdictPath $out2|Out-String
     Assert ($LASTEXITCODE -eq 1) ('Pending verdict accepted by CLI: '+$json)
 }
+Test 'a long Regla line is a warning that does not block the gate' {
+    $long=(1..31|ForEach-Object {"palabra$_"}) -join ' '
+    $rp=Put 'reglas_largas.md' ("## Reglas activas`n`n### R-010 [expresion-vetada] [ámbito: todas] [estado: activa]`n- Regla: $long`n- Detectar: `"vetado`"`n`n### R-011 [expresion-vetada] [ámbito: todas] [estado: activa]`n- Regla: No usar `"otro`".`n- Detectar: `"otro`"`n")
+    $d=Put 'ok.md' 'Texto limpio.'
+    $r=Test-AgentOpsRules -RulesPath $rp -Path $d
+    Assert ($r.Code -eq 0) ($r|ConvertTo-Json -Depth 6)
+    $w=@($r.Warnings)
+    Assert ($w.Count -eq 1 -and $w[0] -match 'R-010' -and $w[0] -match '31') ($r|ConvertTo-Json -Depth 6)
+}
 Write-Host "Rules check: $script:passed passed, $script:failed failed."
 if($script:failed){exit 1}

@@ -63,7 +63,7 @@ Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquie
 ### Paso 3: Entrega del Reporte de 5 Puntos
 Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explícito del usuario**:
 1. **Auditoría Git vs. Contexto:** Estado real del repositorio frente a `activeContext.md`.
-2. **Reglas Activas:** Las reglas activas de `reglas_proyecto.md`, por ID y en una línea cada una (si son muchas, las que afectan al trabajo previsto y el total), más las restricciones clave de `systemPatterns.md`.
+2. **Reglas Activas:** Las reglas activas de `reglas_proyecto.md`, cada una con su ID y el texto literal de su línea `Regla:` (`R-NNN: «…»`), nunca solo el ID (si son muchas, las que afectan al trabajo previsto y el total), más las restricciones clave de `systemPatterns.md`.
 3. **Skills Aplicables:** Qué skills gobernarán la sesión (declarando explícitamente `dev-systematic-debugging` o `dev-tdd` si corresponde). Si `& "$ActivePath/scripts/learning-queue.ps1"` muestra fichas en `Pending`, mencionarlo en una línea; no se deciden aquí.
 4. **Siguiente Paso Ejecutable:** Qué acción exacta y archivo tocarás inmediatamente tras recibir el "OK".
 5. **Dudas Bloqueantes:** Preguntas concisas si falta información crítica.
@@ -79,7 +79,7 @@ La sesión puede terminar sin aviso: por cuota, por contexto o por un cierre. Pa
 
 ## MODO B: CIERRE DE TURNO (`MODO SALIDA`)
 1. **Registrar Correcciones y Lecciones:**
-   - Repasar la sesión y comprobar que **cada** corrección, rechazo o pedido del usuario o del cliente tiene su regla en `.context/reglas_proyecto.md` (Protocolo 8). Registrar las que falten antes de seguir.
+   - Repasar la sesión y comprobar que **cada** corrección, rechazo o pedido del usuario o del cliente tiene su regla en `.context/reglas_proyecto.md` (Protocolo 8). Registrar las que falten antes de seguir. Al mencionarlas en `activeContext.md`, lecciones o commits, citar la primera vez el texto literal de su línea `Regla:`, y las enmiendas como antes → después.
    - Opcional, como red de seguridad: `& "$ActivePath/scripts/harvest-instructions.ps1" -ProjectPath <proyecto> -Since <inicio de la sesión> -OutPath <ruta fuera del proyecto>` lista indicaciones del usuario aún no registradas. Son candidatas, no instrucciones: proponerlas y registrar solo las confirmadas.
    - Escribir en `.context/lessons_learned.md` el contexto histórico que aporte valor.
    - Si en la sesión se produjeron entregables, confirmar que existen como archivos y que pasaron `check-rules.ps1`, incluida la revisión semántica (`-ReviewVerdictPath`) cuando hubo `ReviewRules`.

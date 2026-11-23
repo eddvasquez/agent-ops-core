@@ -2,6 +2,7 @@ Set-StrictMode -Version 2
 # Protocol 8 compliance gate: applies the project's rule registry (.context/reglas_proyecto.md)
 # to deliverables. Source is ASCII-only; accents are normalised before any comparison.
 $script:types=@('expresion-vetada','prohibido-afirmar','dato-obligatorio','tono','formato','otro')
+$script:maxRuleWords=30
 $script:extensions=@('.md','.txt','.html','.htm','.csv','.json','.yaml','.yml','.srt','.vtt')
 
 function Rc-Fold([string]$text){
@@ -96,16 +97,18 @@ function Read-AgentOpsRules([string]$RulesPath){
             }
         }
     }
-    return [pscustomobject]@{Rules=$rules;Issues=@($issues)}
+    # Agents quote the Regla line literally when citing a rule, so it must stay short (advisory, never blocks).
+    $warnings=@($rules|ForEach-Object {$n=@(($_.Text.Trim() -split '\s+')|Where-Object {$_}).Count;if($n -gt $script:maxRuleWords){"$($_.Id) Regla has $n words (max $($script:maxRuleWords)); move the nuance to Motivo or Nota so it can be quoted literally."}})
+    return [pscustomobject]@{Rules=$rules;Issues=@($issues);Warnings=$warnings}
 }
 
 function Test-AgentOpsRules {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$RulesPath,[Parameter(Mandatory)][string[]]$Path,[string]$Scope='',[string]$ReviewOut='',[string]$ReviewVerdictPath='')
-    $violations=@();$review=@();$files=@();$issues=New-Object Collections.Generic.List[string];$applied=@();$all=@()
+    $violations=@();$review=@();$files=@();$issues=New-Object Collections.Generic.List[string];$applied=@();$all=@();$warnings=@()
     try{
         if(-not (Test-Path -LiteralPath $RulesPath -PathType Leaf)){throw "Rules file not found: $RulesPath"}
-        $parsed=Read-AgentOpsRules $RulesPath;$all=$parsed.Rules;foreach($i in $parsed.Issues){$issues.Add($i)}
+        $parsed=Read-AgentOpsRules $RulesPath;$all=$parsed.Rules;$warnings=@($parsed.Warnings);foreach($i in $parsed.Issues){$issues.Add($i)}
         $scopeKey=Rc-Fold $Scope
         $applied=@($all|Where-Object {$_.State -eq 'activa' -and (-not $scopeKey -or (@($_.Scopes|ForEach-Object {Rc-Fold $_}) -contains 'todas') -or (@($_.Scopes|ForEach-Object {Rc-Fold $_}) -contains $scopeKey))})
         foreach($p in $Path){
@@ -145,7 +148,7 @@ function Test-AgentOpsRules {
     [pscustomobject]@{
         Code=$(if($issues.Count -or $violations.Count){1}else{0})
         Violations=@($violations);ReviewRules=@($review);Rules=@($all);Applied=@($applied|ForEach-Object Id)
-        Files=@($files);Issues=@($issues)
+        Files=@($files);Issues=@($issues);Warnings=@($warnings)
     }
 }
 Export-ModuleMember -Function Test-AgentOpsRules
