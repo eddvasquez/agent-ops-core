@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [2.5.0] - 2026-11-23
 ### Added
 - Paso 0a de MODO ENTRADA: perfil de lenguaje de cada persona (entrevista única de 3 preguntas como máximo, que se puede saltar) y guía `references/lenguaje.md` con glosario de términos técnicos en lenguaje llano. Por defecto, los mensajes al usuario van en lenguaje llano.
 
@@ -51,7 +53,3 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 - MODO ENTRADA lee `reglas_proyecto.md` y lista sus reglas activas en el reporte; MODO SALIDA comprueba que toda corrección de la sesión quedó registrada como regla y que los entregables pasaron `check-rules.ps1` (Protocolo 8).
 - MODO SALIDA verifica el Protocolo 7 con `check-versioning.ps1` y separa el commit funcional del de relevo.
 - Sustituye `git add .` por staging selectivo con rutas explícitas.
-
-## [1.0.0] - 2026-11-18
-### Added
-- Línea base versionada (estado publicado en `e5eb4d1`).

@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.7.0] - 2026-11-23
 ### Added
 - Lenguaje según la persona (Protocolo 9): el marco pregunta una sola vez a cada usuario a qué se dedica, si le resultan familiares términos como «commit» o «push» y cuánto detalle quiere, y le habla en consecuencia. Por defecto, lenguaje llano con el término técnico entre paréntesis solo cuando le sirve. El perfil se guarda en el equipo, no en el proyecto, y vale para todos sus proyectos.
 - `scripts/user-profile.ps1` (`UserProfile.psm1`) consulta y guarda ese perfil; pruebas en `tests/user-profile.tests.ps1`.
@@ -71,16 +73,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - El bloqueo del vigilante de skills es ahora uno por instalación (usuario + `StateDir`): otra instalación, como la de las pruebas, ya no choca con el vigilante en ejecución.
 - La activación de una actualización espera hasta 10 s a que termine una sincronización en curso (el vigilante hace una completa cada 5 minutos) en lugar de fallar al instante. La migración hace lo mismo antes de responder `BUSY`.
 - Si la sincronización en curso dura más que esa espera, la activación responde `BUSY` (código 3, reintentable) y conserva la candidata preparada y la aprobación del usuario, en lugar de marcarla como fallida y revocar la aprobación.
-
-## [2.0.0] - 2026-11-19
-### Added
-- `AGENTS.md` con **bloque gestionado** (`<!-- agent-ops:begin version=… hash=… -->` … `<!-- agent-ops:end -->`): las actualizaciones del marco reemplazan solo el bloque y conservan byte a byte el texto del proyecto que está fuera.
-- **Compuerta de conservación**: ninguna línea propia del `AGENTS.md` original puede faltar en el candidato salvo que figure en `-ApprovedRemovalsPath`; si falta, `AGENTS_RULES_MISSING` con `MissingLines` y sin escribir nada.
-- `AgentsProposal`: la migración propone el `AGENTS.md` nuevo con cada línea propia del original bajo `## Reglas particulares del proyecto`. Un archivo antiguo hecho solo con texto de plantillas oficiales (`templates/agents-legacy-lines.txt`) se convierte sin revisión.
-- Registro `.context/agent-ops.json` con la versión del marco que sigue cada proyecto; `Plan` informa `UpToDate` y `Deferred`.
-- Reversión `-Mode Rollback -Journal <id>`, que restaura el estado exacto previo o no toca nada si hubo ediciones posteriores, y punto de restauración Git `refs/agent-ops/pre-migration/<id>`.
-- `-Mode Defer` («no para esta versión»), recordado en el estado privado y nunca en el proyecto.
-- MODO ENTRADA, Paso 0b: ofrece migrar el proyecto cuando no está al día, con resumen y garantía de reversión.
-
-### Changed
-- **BREAKING:** el candidato de `AGENTS.md` debe contener el bloque gestionado vigente sin modificar (partir de `AgentsProposal`); los candidatos con el formato anterior se rechazan sin escribir.

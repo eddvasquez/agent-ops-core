@@ -1,5 +1,18 @@
 # Historial de versiones anteriores
 
+## [2.0.0] - 2026-11-19
+### Added
+- `AGENTS.md` con **bloque gestionado** (`<!-- agent-ops:begin version=… hash=… -->` … `<!-- agent-ops:end -->`): las actualizaciones del marco reemplazan solo el bloque y conservan byte a byte el texto del proyecto que está fuera.
+- **Compuerta de conservación**: ninguna línea propia del `AGENTS.md` original puede faltar en el candidato salvo que figure en `-ApprovedRemovalsPath`; si falta, `AGENTS_RULES_MISSING` con `MissingLines` y sin escribir nada.
+- `AgentsProposal`: la migración propone el `AGENTS.md` nuevo con cada línea propia del original bajo `## Reglas particulares del proyecto`. Un archivo antiguo hecho solo con texto de plantillas oficiales (`templates/agents-legacy-lines.txt`) se convierte sin revisión.
+- Registro `.context/agent-ops.json` con la versión del marco que sigue cada proyecto; `Plan` informa `UpToDate` y `Deferred`.
+- Reversión `-Mode Rollback -Journal <id>`, que restaura el estado exacto previo o no toca nada si hubo ediciones posteriores, y punto de restauración Git `refs/agent-ops/pre-migration/<id>`.
+- `-Mode Defer` («no para esta versión»), recordado en el estado privado y nunca en el proyecto.
+- MODO ENTRADA, Paso 0b: ofrece migrar el proyecto cuando no está al día, con resumen y garantía de reversión.
+
+### Changed
+- **BREAKING:** el candidato de `AGENTS.md` debe contener el bloque gestionado vigente sin modificar (partir de `AgentsProposal`); los candidatos con el formato anterior se rechazan sin escribir.
+
 ## [1.2.0] - 2026-11-19
 ### Added
 - Herramienta `scripts/commit.ps1` (`Invoke-AgentOpsCommit`) para que los agentes hagan commits y etiquetas de forma verificada: solo las rutas indicadas, mensaje por archivo (comillas, tildes y saltos de línea intactos), comprobación del Protocolo 7, etiqueta solo sobre el commit recién creado y parada en el primer fallo con el paso exacto. Si la verificación falla, deshace el commit y deja los cambios preparados. Acepta las rutas como lista o separadas por comas, porque vía `powershell -File` llegan como un único texto. Pruebas en `tests/commit.tests.ps1`.
