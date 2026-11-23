@@ -2,7 +2,7 @@ Set-StrictMode -Version 2
 # Protocol 8 compliance gate: applies the project's rule registry (.context/reglas_proyecto.md)
 # to deliverables. Source is ASCII-only; accents are normalised before any comparison.
 $script:types=@('expresion-vetada','prohibido-afirmar','dato-obligatorio','tono','formato','otro')
-$script:maxRuleWords=30
+$script:maxRuleWords=40
 $script:extensions=@('.md','.txt','.html','.htm','.csv','.json','.yaml','.yml','.srt','.vtt')
 
 function Rc-Fold([string]$text){

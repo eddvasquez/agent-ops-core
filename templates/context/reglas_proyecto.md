@@ -12,7 +12,7 @@ Fuente de verdad de las correcciones, prohibiciones y requisitos de este proyect
 
 ```
 ### R-001 [tipo] [ámbito: todas] [estado: activa]
-- Regla: descripción en una línea (unas 30 palabras como máximo; los matices, en Motivo o Nota).
+- Regla: descripción en una línea (unas 40 palabras como máximo; los matices, en Motivo o Nota).
 - Motivo: por qué existe.
 - Origen: quién la pidió y cuándo (AAAA-MM-DD).
 - Detectar: "expresión vetada"; "re:expresión\s+regular"
