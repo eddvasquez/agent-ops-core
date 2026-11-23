@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.8.0] - 2026-11-23
 ### Added
 - Revisión automática al guardar (hook `pre-commit` de Git): cada commit, también los hechos a mano, se frena si falta su línea en el changelog o si añade una contraseña o clave, y el aviso explica cómo arreglarlo. La migración la instala en cada proyecto con Git, con respaldo y reversión; nunca sustituye un hook de otra herramienta. Nuevos `scripts/pre-commit-check.ps1`, `scripts/install-git-hook.ps1`, `PreCommitCheck.psm1` y `SecretScan.psm1`; pruebas en `tests/pre-commit.tests.ps1`.
 - Análisis de harness engineering (`docs/analisis-harness-engineering.md`): contraste del marco con OpenAI, Anthropic, LangChain y Endor Labs, tabla de mecanismos comunes a Codex, Antigravity y Claude Code (hooks `SessionStart`, `PreToolUse`, `PostToolUse` y `Stop`) y oportunidades de mejora priorizadas para pasar del cumplimiento por buena fe al automático.
@@ -63,16 +65,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Changed
 - **BREAKING:** Protocolo 3: una skill es obligatoria cuando la tarea entra en el dominio que declara su descripción, ya no con «≥ 1 % de probabilidad». `dev-tdd` y `dev-systematic-debugging` siguen siendo obligatorias en su dominio.
-
-## [2.1.0] - 2026-11-19
-### Added
-- Compuerta de reglas con **revisión semántica verificable**: `check-rules.ps1 -ReviewOut` genera la lista de reglas sin patrón para que la revise un contexto limpio, y `-ReviewVerdictPath` bloquea la entrega si alguna queda `PENDIENTE` o `FALLA`, o si el entregable o las reglas cambiaron después de revisarlos (`Huella`).
-- Campo `- Ejemplo:` en las reglas: guarda el texto que se rechazó y el verificador comprueba que `Detectar` lo detecta, para que ninguna regla deje de dispararse.
-- Protocolo 8: todo entregable se guarda como archivo antes de entregarlo, para que pase por la compuerta.
-- `scripts/harvest-instructions.ps1`: extrae en solo lectura las indicaciones que el usuario dio en conversaciones de Claude Code y Codex y en las memorias de Claude Code, y las devuelve como reglas candidatas con su procedencia. Descarta texto inyectado (avisos del arnés, resultados de herramientas, contenido pegado, sesiones de subagentes) y las reglas ya registradas; nunca escribe en el proyecto.
-- La evaluación de migración informa `HarnessInstructions`: líneas propias de `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.windsurfrules` y `.github/copilot-instructions.md`, para que ninguna instrucción de otro arnés se pierda al sembrar reglas. Esos archivos no se modifican.
-
-### Fixed
-- El bloqueo del vigilante de skills es ahora uno por instalación (usuario + `StateDir`): otra instalación, como la de las pruebas, ya no choca con el vigilante en ejecución.
-- La activación de una actualización espera hasta 10 s a que termine una sincronización en curso (el vigilante hace una completa cada 5 minutos) en lugar de fallar al instante. La migración hace lo mismo antes de responder `BUSY`.
-- Si la sincronización en curso dura más que esa espera, la activación responde `BUSY` (código 3, reintentable) y conserva la candidata preparada y la aprobación del usuario, en lugar de marcarla como fallida y revocar la aprobación.
