@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.6.0] - 2026-11-23
 ### Added
 - Las reglas se citan con el texto literal de su línea `Regla:` (Protocolo 8): al confirmar una regla nueva, en reportes, relevos y commits, y en las enmiendas como antes → después. Quien trabaja en varios proyectos entiende a qué se refiere «R-008» sin abrir el archivo.
 - `check-rules.ps1` devuelve `Warnings` con las reglas cuya línea `Regla:` supera 40 palabras. Es un aviso: no bloquea la compuerta.
@@ -79,15 +81,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Changed
 - **BREAKING:** el candidato de `AGENTS.md` debe contener el bloque gestionado vigente sin modificar (partir de `AgentsProposal`); los candidatos con el formato anterior se rechazan sin escribir.
-## [1.2.0] - 2026-11-19
-### Added
-- Herramienta `scripts/commit.ps1` (`Invoke-AgentOpsCommit`) para que los agentes hagan commits y etiquetas de forma verificada: solo las rutas indicadas, mensaje por archivo (comillas, tildes y saltos de línea intactos), comprobación del Protocolo 7, etiqueta solo sobre el commit recién creado y parada en el primer fallo con el paso exacto. Si la verificación falla, deshace el commit y deja los cambios preparados. Acepta las rutas como lista o separadas por comas, porque vía `powershell -File` llegan como un único texto. Pruebas en `tests/commit.tests.ps1`.
-- `scripts/NativeProcess.psm1`: lanzador único de programas nativos con escape correcto de argumentos en Windows PowerShell 5.1 y código de salida obligatorio.
-- `tests/repo-hygiene.tests.ps1`: todo `.ps1`/`.psm1` debe ser ASCII o UTF-8 con BOM, y ninguna skill o plantilla puede indicar `git commit -m`, `git add .` ni `git tag -a`.
-
-### Changed
-- Protocolo 6, `ops-session-handoff`, `ops-project-init` y `ops-git-worktrees`: commits y etiquetas solo vía `commit.ps1`; operaciones con efectos de una en una, sin encadenarlas con `;`; textos libres por archivo.
-- `Versioning.psm1` usa el lanzador compartido en lugar de su propio escape.
-
-### Fixed
-- El verificador de versionado ya no juzga etiquetas `vX.Y.Z` en repositorios sin changelog de proyecto.
