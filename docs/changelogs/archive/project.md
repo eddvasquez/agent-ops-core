@@ -1,5 +1,9 @@
 # Historial de versiones anteriores
 
+## [3.1.0] - 2026-11-20
+### Added
+- **Protocolo 9, Recepción de Solicitudes:** ante una solicitud sustancial, el agente responde desde un profesional de clase mundial (el que el usuario ya citó, o uno que sugiere entre 2 y 3 opciones, con «sin perspectiva» siempre disponible) y ofrece una entrevista opcional con preguntas una a una, de opción múltiple y con respuesta libre. La elección vale toda la sesión; «siempre» o «nunca» se guarda como regla del proyecto.
+
 ## [3.0.0] - 2026-11-20
 ### Added
 - **Aprendizaje gobernado, fase 1.** `capture-learning.ps1` guarda candidatas en la bandeja del hub (`proposals/inbox/`) sin tocar ninguna skill y rechaza las skills de terceros. `check-proposal.ps1` valida cada ficha antes de presentarla: destino, bloques aprobables por separado, SemVer creciente, tamaño, solapamientos, prueba antes y después con riesgo medio o alto, descripción de 300 caracteres como máximo y, para skills nuevas, las cuatro condiciones del umbral y el techo de 25 skills. `learning-queue.ps1` informa de lo pendiente.
