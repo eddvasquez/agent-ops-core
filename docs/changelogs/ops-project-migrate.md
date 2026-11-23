@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-project-migrate`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [2.2.0] - 2026-11-23
 ### Added
 - Explica el resultado GitHook de la migración (revisión automática al guardar) y qué hacer cuando el proyecto ya tiene un hook de otra herramienta.
 

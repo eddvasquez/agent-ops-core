@@ -1,6 +1,6 @@
 ---
 name: ops-project-migrate
-version: 2.1.0
+version: 2.2.0
 description: Evalúa y migra proyectos existentes a Agent Ops Core mediante un ejecutor verificable en Windows. Conserva memoria, reglas particulares y skills completas; rescata orígenes sin modificarlos, identifica conflictos y deja los cambios locales por defecto.
 triggers:
   - "ops-project-migrate"

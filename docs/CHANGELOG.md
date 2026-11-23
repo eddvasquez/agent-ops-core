@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.9.0] - 2026-11-23
 ### Added
 - Radar de arneses (primera fase): `scripts/harness-radar.ps1` revisa una vez al día las versiones nuevas de Codex y Claude Code en sus fuentes oficiales y deja un aviso de una línea («Novedad de arnés: … Pide "evalúa …"») que se puede marcar como visto. Una fuente caída nunca bloquea y el texto descargado se trata como datos.
 - Tabla de capacidades de los arneses (`scripts/harness-capabilities.json`): qué ofrece cada uno, con enlace a su documentación, fecha de verificación, estado (aprovechada, pendiente, esperando o descartada) y respaldo, para que lo obligatorio no dependa de un solo arnés. Se valida con `harness-radar.ps1 -Action Validate`.
@@ -61,12 +63,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ## [3.1.0] - 2026-11-20
 ### Added
 - **Protocolo 9, Recepción de Solicitudes:** ante una solicitud sustancial, el agente responde desde un profesional de clase mundial (el que el usuario ya citó, o uno que sugiere entre 2 y 3 opciones, con «sin perspectiva» siempre disponible) y ofrece una entrevista opcional con preguntas una a una, de opción múltiple y con respuesta libre. La elección vale toda la sesión; «siempre» o «nunca» se guarda como regla del proyecto.
-
-## [3.0.0] - 2026-11-20
-### Added
-- **Aprendizaje gobernado, fase 1.** `capture-learning.ps1` guarda candidatas en la bandeja del hub (`proposals/inbox/`) sin tocar ninguna skill y rechaza las skills de terceros. `check-proposal.ps1` valida cada ficha antes de presentarla: destino, bloques aprobables por separado, SemVer creciente, tamaño, solapamientos, prueba antes y después con riesgo medio o alto, descripción de 300 caracteres como máximo y, para skills nuevas, las cuatro condiciones del umbral y el techo de 25 skills. `learning-queue.ps1` informa de lo pendiente.
-- Protocolo 4 pasa a **Aprendizaje Gobernado de Skills**: capturar en el momento, llevar cada aprendizaje al destino más ligero, umbral de cuatro condiciones y techo de 25 skills para crear, y aplicar solo los bloques que el usuario aprueba. Protocolo 6 añade la captura y la presentación de fichas al cierre.
-- Documento de diseño `docs/aprendizaje-gobernado-skills.md`: investigación comparada (Hermes, Devin, Letta, Cursor, SkillsBench, ACE) y propuesta de arquitectura para el aprendizaje gobernado de skills, con aprobación humana por bloques y controles contra la acumulación. Solo diseño; no cambia ningún comportamiento.
-
-### Changed
-- **BREAKING:** Protocolo 3: una skill es obligatoria cuando la tarea entra en el dominio que declara su descripción, ya no con «≥ 1 % de probabilidad». `dev-tdd` y `dev-systematic-debugging` siguen siendo obligatorias en su dominio.
