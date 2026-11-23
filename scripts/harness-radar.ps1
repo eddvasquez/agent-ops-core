@@ -7,6 +7,6 @@ $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'HarnessRadar.psm1') -Force
 if($Action -eq 'Detect'){$r=[pscustomobject]@{Code=0;Status='DETECTED';Harnesses=@(Get-AgentOpsHarnessPresence -ProjectPath $ProjectPath)}}
 elseif($Action -eq 'Validate'){$r=Test-AgentOpsHarnessCapabilities;$r|Add-Member -NotePropertyName Status -NotePropertyValue $(if($r.Code){'INVALID'}else{'VALID'})}
-else{$r=Invoke-AgentOpsHarnessRadar -Action $Action -StateDir $StateDir -Harness $Harness -Version $Version}
+else{$r=Invoke-AgentOpsHarnessRadar -Action $Action -ProjectPath $ProjectPath -StateDir $StateDir -Harness $Harness -Version $Version}
 $r|ConvertTo-Json -Depth 5
 exit $r.Code

@@ -15,6 +15,13 @@ function Hr-Date($value){
     return [datetime]::Parse([string]$value,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]'AdjustToUniversal,AssumeUniversal')
 }
 
+function Test-AgentOpsFrameworkRepository {
+    # The maintainer works inside the framework repository; consumer projects never have these two files at their root.
+    [CmdletBinding()]
+    param([string]$ProjectPath=(Get-Location).Path)
+    return [IO.File]::Exists((Join-Path $ProjectPath 'release-contract.json')) -and [IO.File]::Exists((Join-Path $ProjectPath 'scripts/harness-capabilities.json'))
+}
+
 function Get-AgentOpsHarnessCapabilities {
     [CmdletBinding()]
     param([string]$Path=$script:defaultTable)
@@ -93,10 +100,12 @@ function Hr-SaveState([string]$stateDir,$s){
 
 function Invoke-AgentOpsHarnessRadar {
     [CmdletBinding()]
-    param([ValidateSet('Check','Notice','Ack')][string]$Action='Notice',
+    param([ValidateSet('Check','Notice','Ack')][string]$Action='Notice',[string]$ProjectPath=(Get-Location).Path,
           [string]$StateDir=(Join-Path $env:LOCALAPPDATA 'AgentOps'),[string]$Path=$script:defaultTable,
           [scriptblock]$Fetcher,[datetime]$Now=[datetime]::UtcNow,[string]$Harness='',[string]$Version='')
     $res=[ordered]@{Code=0;Status='QUIET';Novelties=@();Lines=@();Skipped=@();Failures=@();Issues=@()}
+    # R-010: novelties are for whoever maintains the framework; consumer projects get nothing and cause no network traffic.
+    if($Action -ne 'Ack' -and -not (Test-AgentOpsFrameworkRepository -ProjectPath $ProjectPath)){$res.Status='NOT_MAINTAINER';return [pscustomobject]$res}
     try{
         $t=Hr-ReadJson $Path;$s=Hr-State $StateDir;$now=$Now.ToUniversalTime()
         if(-not $Fetcher){$Fetcher={param([string]$url) Hr-Fetch $url}}
@@ -133,4 +142,4 @@ function Invoke-AgentOpsHarnessRadar {
     }catch{$res.Code=1;$res.Status='FAILED';$res.Issues=@($_.Exception.Message)}
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function Get-AgentOpsHarnessCapabilities,Test-AgentOpsHarnessCapabilities,Get-AgentOpsHarnessPresence,Invoke-AgentOpsHarnessRadar
+Export-ModuleMember -Function Test-AgentOpsFrameworkRepository,Get-AgentOpsHarnessCapabilities,Test-AgentOpsHarnessCapabilities,Get-AgentOpsHarnessPresence,Invoke-AgentOpsHarnessRadar
