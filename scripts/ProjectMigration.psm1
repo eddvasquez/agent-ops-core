@@ -2,7 +2,8 @@
 Set-StrictMode -Version 2
 $script:engine=Import-Module (Join-Path $PSScriptRoot 'SkillsSync.psm1') -Force -PassThru
 $script:coordinator=Import-Module (Join-Path $PSScriptRoot 'UpdateCoordinator.psm1') -Force -PassThru
-$script:keys=@('AGENTS.md','.context/projectbrief.md','.context/systemPatterns.md','.context/activeContext.md','.context/progress.md','.context/lessons_learned.md','.context/reglas_proyecto.md','.context/agent-ops.json','CHANGELOG.md')
+$script:precommit=Import-Module (Join-Path $PSScriptRoot 'PreCommitCheck.psm1') -Force -PassThru
+$script:keys=@('AGENTS.md','.context/projectbrief.md','.context/systemPatterns.md','.context/activeContext.md','.context/progress.md','.context/lessons_learned.md','.context/reglas_proyecto.md','.context/agent-ops.json','CHANGELOG.md','.git/hooks/pre-commit','.git/hooks/agent-ops-pre-commit.ps1')
 # AGENTS.md keeps the framework protocols inside a managed block; everything outside belongs to the project.
 $script:blockBegin='<!-- agent-ops:begin version=(?<v>\S*) hash=(?<h>[a-f0-9]{64}) -->'
 $script:blockEnd='<!-- agent-ops:end -->'
@@ -122,7 +123,7 @@ function Invoke-ProjectMigration {
           [string]$AgentsCandidatePath='',[string]$ExpectedAgentsHash='',[string]$ApprovedRemovalsPath='',
           [string]$Journal='',[switch]$Commit,
           [scriptblock]$ReleaseResolver,[scriptblock]$FaultHook)
-    $r=[ordered]@{Code=0;Status='PLANNED';Project=$null;Actions=@();ImportSources=@();AgentsHash=$null;AgentsProposal=$null;MissingLines=@();HarnessInstructions=@();UpToDate=$false;Deferred=$false;Issues=@();Conflicts=@();RescueManifest=$null;Journal=$null;JournalId=$null;RestoreRef=$null;Commit=$null}
+    $r=[ordered]@{Code=0;Status='PLANNED';Project=$null;Actions=@();ImportSources=@();AgentsHash=$null;AgentsProposal=$null;MissingLines=@();HarnessInstructions=@();UpToDate=$false;GitHook=$null;Deferred=$false;Issues=@();Conflicts=@();RescueManifest=$null;Journal=$null;JournalId=$null;RestoreRef=$null;Commit=$null}
     $updateLock=$null;$syncLock=$null;$u=$false;$l=$false;$pending=$null;$project=$null;$cfg=$null;$applying=$false;$metadataComplete=$false
     try{
         if(-not [IO.File]::Exists($ConfigPath)){$r.Code=2;$r.Status='INSTALLATION_REQUIRED';return [pscustomobject]$r}
@@ -246,9 +247,15 @@ function Invoke-ProjectMigration {
             $text=[IO.File]::ReadAllText($patterns)
             if($text -notmatch 'dev-tdd' -or $text -notmatch 'dev-systematic-debugging'){$texts['.context/systemPatterns.md']=$text+"`n`n<!-- AgentOps engineering -->`nPara trabajo de software, aplicar dev-tdd y dev-systematic-debugging cuando corresponda.`n"}
         }
+        $content=@{};foreach($key in $texts.Keys){$content[$key]=[Text.Encoding]::UTF8.GetBytes($texts[$key])}
+        # Automatic pre-commit review (Git hook): ordinary actions, so backup, rollback and up-to-date checks apply.
+        # A hook from another tool or a custom hooks folder is reported (GitHook) and never touched.
+        $hookPlan=& $script:precommit {param($p) Get-AgentOpsGitHookPlan -ProjectPath $p} $project;$r.GitHook=$hookPlan.Status
+        if($hookPlan.Status -eq 'HOOK_REVIEW_REQUIRED'){$r.Issues+=@($hookPlan.Issues)}
+        foreach($hf in @($hookPlan.Files|Where-Object {$_.Key})){$content[$hf.Key]=& $script:precommit {param($f) Get-AgentOpsGitHookBytes $f} $hf}
         $payload=@{};$actions=@();$id=[guid]::NewGuid().ToString('N')
-        foreach($key in @($texts.Keys|Sort-Object)){
-            $path=Pm-Child $project $key;$bytes=[Text.Encoding]::UTF8.GetBytes($texts[$key]);$hash=Pm-BytesHash $bytes;$before=Pm-Hash $path
+        foreach($key in @($content.Keys|Sort-Object)){
+            $path=Pm-Child $project $key;$bytes=[byte[]]$content[$key];$hash=Pm-BytesHash $bytes;$before=Pm-Hash $path
             $capture=(Pm-BytesHash ([Text.Encoding]::UTF8.GetBytes($id+'/'+$key))).Substring(0,32)
             if($before -ne $hash){$payload[$key]=$bytes;$actions+=@{Root=$project;Key=$key;Before=$before;Hash=$hash;BackupPath=(Join-Path (Split-Path $path) ('.aoc-'+$capture+'.tmp'))}}
         }
@@ -260,7 +267,7 @@ function Invoke-ProjectMigration {
             if((Pm-Root $top) -ne $project){throw 'Commit requires the project Git root.'}
             $staged=& $script:coordinator {param($p) Up-GitOk @('-C',$p,'diff','--cached','--name-only') 5 $null} $project
             if($staged.Trim()){throw 'Index contains prior changes; commit refused.'}
-            foreach($a in $actions){
+            foreach($a in @($actions|Where-Object {$_.Key -notlike '.git/*'})){
                 $dirty=& $script:coordinator {param($p,$k) Up-GitOk @('-C',$p,'diff','--name-only','--',$k) 5 $null} $project $a.Key
                 if($dirty.Trim() -or ($a.Before -ne '-' -and -not (& $script:coordinator {param($p,$k) Up-Git @('-C',$p,'ls-files','--error-unmatch','--',$k) 5 $null} $project $a.Key).ExitCode.Equals(0))){throw 'Affected file has prior uncommitted content; commit refused.'}
             };$canCommit=$true
@@ -294,12 +301,15 @@ function Invoke-ProjectMigration {
         $journalRecord.Status='Complete';Pm-Write $pending $journalRecord;Pm-Recover $pending $project $cfg.StateDir
         $r.Status='MIGRATED';$r.Journal=Pm-Child $private ($id+'.json');$r.JournalId=$id
         $metadataComplete=$true
-        if($canCommit -and $actions.Count){
+        if($canCommit -and @($actions|Where-Object {$_.Key -notlike '.git/*'}).Count){
             foreach($a in $actions){if((Pm-Hash (Pm-Child $project $a.Key)) -ne $a.Hash){throw 'Project changed before staging; commit refused.'}}
-            $gitArguments=@('-C',$project,'add','--')+@($actions|ForEach-Object {$_.Key});& $script:coordinator {param($a) Up-GitOk $a 10 $null} $gitArguments|Out-Null
+            # Hook files live inside .git and are never committed.
+            $tracked=@($actions|Where-Object {$_.Key -notlike '.git/*'})
+            $gitArguments=@('-C',$project,'add','--')+@($tracked|ForEach-Object {$_.Key});& $script:coordinator {param($a) Up-GitOk $a 10 $null} $gitArguments|Out-Null
             $staged=(& $script:coordinator {param($p) Up-GitOk @('-C',$p,'diff','--cached','--name-only') 5 $null} $project) -split "`n"|Where-Object {$_}
-            if(@(Compare-Object @($actions.Key|Sort-Object) @($staged|Sort-Object)).Count){throw 'Index changed concurrently; commit refused.'}
-            & $script:coordinator {param($p) Up-GitOk @('-C',$p,'commit','-m','chore(arch): migrate project governance safely') 30 $null} $project|Out-Null
+            if(@(Compare-Object @($tracked|ForEach-Object {$_.Key}|Sort-Object) @($staged|Sort-Object)).Count){throw 'Index changed concurrently; commit refused.'}
+            # --no-verify: this governance-only commit is made by the framework itself and must not be judged by the review it installs.
+            & $script:coordinator {param($p) Up-GitOk @('-C',$p,'commit','--no-verify','-m','chore(arch): migrate project governance safely') 30 $null} $project|Out-Null
             $r.Commit=(& $script:coordinator {param($p) Up-GitOk @('-C',$p,'rev-parse','HEAD') 5 $null} $project).Trim()
         }
     }catch{

@@ -158,6 +158,41 @@ Test 'git projects get a restore point at the pre-migration HEAD' {
     Assert ($r.Code -eq 0 -and $r.RestoreRef -match '^refs/agent-ops/pre-migration/') ($r|ConvertTo-Json -Depth 4)
     Assert ((& git -C $f.ProjectPath rev-parse $r.RestoreRef).Trim() -eq $head) 'Restore point does not match HEAD'
 }
+function GitFixture {
+    $f=Fixture;& git init -q -b main $f.ProjectPath
+    & git -C $f.ProjectPath config user.name Tests;& git -C $f.ProjectPath config user.email tests@localhost
+    [IO.File]::WriteAllText((Join-Path $f.ProjectPath 'code.txt'),'v1');& git -C $f.ProjectPath add -- code.txt;& git -C $f.ProjectPath commit -q --no-verify -m base
+    return $f
+}
+Test 'git projects receive the automatic pre-commit review; repeat is up to date and rollback removes it' {
+    $f=GitFixture;$hook=Join-Path $f.ProjectPath '.git/hooks/pre-commit';$launcher=Join-Path $f.ProjectPath '.git/hooks/agent-ops-pre-commit.ps1'
+    $p=Invoke-ProjectMigration @f
+    Assert ($p.GitHook -eq 'READY' -and @($p.Actions|Where-Object {$_.Key -like '.git/hooks/*'}).Count -eq 2) ($p|ConvertTo-Json -Depth 4)
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    Assert ($r.Code -eq 0 -and (Test-Path $hook) -and (Test-Path $launcher)) ($r|ConvertTo-Json -Depth 4)
+    Assert ([IO.File]::ReadAllText($hook) -match 'agent-ops:pre-commit') 'Hook is not the Agent Ops review'
+    Assert ([IO.File]::ReadAllBytes($launcher)[0] -eq 0xEF) 'Launcher lacks the UTF-8 BOM Windows PowerShell needs'
+    $again=Invoke-ProjectMigration @f
+    Assert ($again.UpToDate -eq $true -and $again.GitHook -eq 'UP_TO_DATE' -and $again.Actions.Count -eq 0) ($again|ConvertTo-Json -Depth 4)
+    $back=Invoke-ProjectMigration @f -Mode Rollback -Journal $r.JournalId
+    Assert ($back.Code -eq 0 -and -not (Test-Path $hook) -and -not (Test-Path $launcher)) ($back|ConvertTo-Json -Depth 4)
+}
+Test 'an already migrated git project without the review is not up to date until it gets it' {
+    $f=GitFixture;$r=Invoke-ProjectMigration @f -Mode Apply
+    Remove-Item (Join-Path $f.ProjectPath '.git/hooks/pre-commit'),(Join-Path $f.ProjectPath '.git/hooks/agent-ops-pre-commit.ps1')
+    $p=Invoke-ProjectMigration @f
+    Assert ($p.UpToDate -eq $false -and $p.GitHook -eq 'READY') ($p|ConvertTo-Json -Depth 4)
+}
+Test 'a pre-commit hook from another tool is reported, never touched, and the rest of the migration proceeds' {
+    $f=GitFixture;$hook=Join-Path $f.ProjectPath '.git/hooks/pre-commit';[IO.File]::WriteAllText($hook,"#!/bin/sh`necho otro`n")
+    $r=Invoke-ProjectMigration @f -Mode Apply
+    Assert ($r.Code -eq 0 -and $r.GitHook -eq 'HOOK_REVIEW_REQUIRED' -and (Test-Path (Join-Path $f.ProjectPath 'AGENTS.md'))) ($r|ConvertTo-Json -Depth 4)
+    Assert ([IO.File]::ReadAllText($hook) -match 'otro' -and -not @($r.Actions|Where-Object {$_.Key -like '.git/*'}).Count) 'Foreign hook replaced'
+}
+Test 'a project without Git gets no hook actions' {
+    $f=Fixture;$p=Invoke-ProjectMigration @f
+    Assert ($p.GitHook -eq 'NOT_GIT' -and -not @($p.Actions|Where-Object {$_.Key -like '.git/*'}).Count) ($p|ConvertTo-Json -Depth 4)
+}
 Test 'rollback returns every file of the project to its exact previous state' {
     $f=Fixture;$ctx=Join-Path $f.ProjectPath '.context';[IO.Directory]::CreateDirectory($ctx)|Out-Null
     [IO.File]::WriteAllText((Join-Path $ctx 'systemPatterns.md'),'patrones propios')

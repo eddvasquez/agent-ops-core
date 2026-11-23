@@ -6,6 +6,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Added
+- Revisión automática al guardar (hook `pre-commit` de Git): cada commit, también los hechos a mano, se frena si falta su línea en el changelog o si añade una contraseña o clave, y el aviso explica cómo arreglarlo. La migración la instala en cada proyecto con Git, con respaldo y reversión; nunca sustituye un hook de otra herramienta. Nuevos `scripts/pre-commit-check.ps1`, `scripts/install-git-hook.ps1`, `PreCommitCheck.psm1` y `SecretScan.psm1`; pruebas en `tests/pre-commit.tests.ps1`.
 - Análisis de harness engineering (`docs/analisis-harness-engineering.md`): contraste del marco con OpenAI, Anthropic, LangChain y Endor Labs, tabla de mecanismos comunes a Codex, Antigravity y Claude Code (hooks `SessionStart`, `PreToolUse`, `PostToolUse` y `Stop`) y oportunidades de mejora priorizadas para pasar del cumplimiento por buena fe al automático.
 
 ## [3.7.0] - 2026-11-23

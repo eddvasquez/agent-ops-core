@@ -50,6 +50,11 @@ jobs:
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/commit.tests.ps1
           exit $LASTEXITCODE
+      - name: Automatic pre-commit review (Git hook)
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/pre-commit.tests.ps1
+          exit $LASTEXITCODE
       - name: Repository hygiene (encoding and agent instructions)
         shell: pwsh
         run: |

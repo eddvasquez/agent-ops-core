@@ -44,15 +44,20 @@ function Test-SemVer([string]$v){ return ($v -and $v -match ('^'+$script:semver+
 
 function Test-AgentOpsVersioning {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$RepositoryPath,[string]$Base='',[string]$Head='HEAD')
+    param([Parameter(Mandatory)][string]$RepositoryPath,[string]$Base='',[string]$Head='HEAD',[switch]$Staged)
     $issues=New-Object Collections.Generic.List[string];$warnings=New-Object Collections.Generic.List[string];$artifacts=@()
     try{
         $root=(Resolve-Path -LiteralPath $RepositoryPath).Path
         $files=Vr-Paths (Vr-Git $root @('ls-files','-z','--cached','--others','--exclude-standard'))
         $files=@($files|Where-Object {Test-Path -LiteralPath (Join-Path $root $_) -PathType Leaf})
 
-        # Changed paths: an explicit range (CI) or the working tree against HEAD (handoff).
+        # Changed paths: an explicit range (CI), the index against HEAD (pre-commit) or the working tree against HEAD (handoff).
         if($Base){$changed=Vr-Paths (Vr-Git $root @('diff','--name-only','-z',$Base,$Head))}
+        elseif($Staged){
+            $hasHead=$null -ne (Vr-Git $root @('rev-parse','--verify','-q','HEAD') -AllowFailure)
+            $against=$(if($hasHead){'HEAD'}else{'4b825dc642cb6eb9a060e54bf8d69288fbee4904'})
+            $changed=Vr-Paths (Vr-Git $root @('diff','--cached','--name-only','-z',$against))
+        }
         else{
             $hasHead=$null -ne (Vr-Git $root @('rev-parse','--verify','-q','HEAD') -AllowFailure)
             $changed=@()
