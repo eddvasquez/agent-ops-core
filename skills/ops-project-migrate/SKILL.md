@@ -67,6 +67,8 @@ Ejecutar `-Mode Apply` con las mismas rutas y el candidato revisado si correspon
 - `RestoreRef`, una referencia oculta de Git `refs/agent-ops/pre-migration/<id>` al `HEAD` previo, que no mueve ramas;
 - el registro `.context/agent-ops.json`, con la versión del marco que sigue el proyecto.
 
+En proyectos con Git, la migración instala también la revisión automática al guardar (`.git/hooks/pre-commit`). `GitHook` indica `READY`, `UP_TO_DATE`, `NOT_GIT` o `HOOK_REVIEW_REQUIRED` (hay un hook de otra herramienta o `core.hooksPath`: no se toca y se avisa al usuario para integrarla a mano). Deshacer la migración también la quita.
+
 **Deshacer:** `-Mode Rollback -Journal <JournalId>` devuelve cada archivo migrado a su contenido exacto anterior y elimina los que la migración creó. Si alguno se editó después, no toca nada y devuelve `ROLLBACK_REVIEW_REQUIRED`.
 
 **No para esta versión:** `-Mode Defer` lo recuerda en el estado privado de la instalación, solo para la plantilla vigente.

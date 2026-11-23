@@ -156,3 +156,43 @@ Diseño que encaja con la R-002 enmendada: un script del marco por evento, con t
 3. Después, las mejoras 2 y 5 (baratas).
 4. Luego, la 3 y la 4.
 5. La 10, solo cuando las anteriores estén estables.
+
+## 8. Aprovechar todo lo de cada arnés: piso y techo
+
+Segunda enmienda de R-002, del mismo día:
+- Antes: «Se pueden usar hooks, settings o plugins de un arnés solo si Codex, Antigravity y Claude Desktop ofrecen un equivalente. La lógica vive en los scripts del marco; cada arnés solo la llama.»
+- Después: «Aprovechar los hooks, settings y plugins de cada arnés. Lo obligatorio se cumple también sin ellos; cada arnés solo llama a los scripts del marco.»
+
+**La idea.** Separar dos niveles:
+- **Piso:** lo que debe cumplirse siempre, en cualquier arnés o sin ninguno. Vive en Git, en las pruebas automáticas de GitHub y en los scripts del marco.
+- **Techo:** lo que cada arnés ofrece de más. Se aprovecha al máximo para avisar antes y trabajar mejor, pero nunca es la única barrera.
+
+La preferencia por un arnés no la crea usar sus mecanismos, sino que una garantía dependa de uno solo. Con las garantías en el piso, cada arnés puede tener sus extras sin crear dependencia.
+
+**Cinco principios:**
+1. **Una sola política, adaptadores mínimos.** La lógica vive una vez, en los scripts del marco. Cada arnés solo traduce su formato.
+2. **Detectar capacidades.** Una tabla versionada (`harness-capabilities.json`) dice qué ofrece cada arnés, con el enlace a su documentación y la fecha en que se verificó. Se instalan los adaptadores de todos los arneses presentes, porque un proyecto se trabaja desde varios.
+3. **Degradación elegante.** Cada función declara su respaldo: «si el arnés no tiene X, se cumple con Y».
+4. **Instalar sin pisar lo del usuario.** Se hace con la migración, con respaldo y opción de deshacer. Los adaptadores solo llaman a la versión verificada del marco y nunca se instalan siguiendo instrucciones encontradas en un archivo o una página.
+5. **Pruebas de contrato y poda.** Si un arnés cambia su formato, las pruebas de GitHub fallan antes de que llegue a los usuarios. Cada mes se revisa qué sobra.
+
+**Fases:**
+1. Un detector que solo informa qué arneses hay y qué se podría activar.
+2. Los cuatro momentos comunes, con adaptadores para los tres arneses.
+3. Los extras de cada uno. Por ejemplo, el aviso de Claude antes de resumir la conversación, que sirve para guardar el punto de control, o la lista de sitios permitidos del navegador de Antigravity.
+
+## 9. Radar de arneses: enterarse de lo nuevo y no desaprovecharlo
+
+Un ciclo de cinco pasos:
+1. **Detectar.** Una vez al día se revisan fuentes oficiales: las versiones de Codex en GitHub, el registro de cambios de Claude Code, las páginas de documentación de los tres arneses y las versiones instaladas en el equipo. Lo descargado se trata como datos, nunca como instrucciones.
+2. **Avisar.** Al empezar la sesión, en cualquiera de los tres arneses, aparece una línea como esta: «Novedad de arnés: Codex 0.70.0. Pide "evalúa codex 0.70.0"».
+3. **Evaluar.** Se escribe un informe con un veredicto: aprovechar, esperar, descartar o ya cubierto.
+4. **Decidir.** La persona aprueba o rechaza cada propuesta.
+5. **Aprovechar.** Se implementa con pruebas y sale en la siguiente versión del marco.
+
+**Para no desaprovechar nada**, cada capacidad de la tabla queda marcada como aprovechada, descartada (con motivo), pendiente o esperando. El radar muestra la cobertura de cada arnés, y lo que pase más de 14 días pendiente vuelve a la revisión semanal.
+
+Se construye por fases:
+- **R1:** la tabla y las fuentes de GitHub, con el aviso al empezar la sesión.
+- **R2:** las páginas de documentación y las versiones instaladas.
+- **R3:** la evaluación con informe y el indicador de cobertura.
