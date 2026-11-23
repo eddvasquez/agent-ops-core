@@ -59,6 +59,7 @@ jobs:
         shell: pwsh
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/rules-check.tests.ps1
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/user-profile.tests.ps1
           exit $LASTEXITCODE
       - name: Governed learning proposals
         shell: pwsh

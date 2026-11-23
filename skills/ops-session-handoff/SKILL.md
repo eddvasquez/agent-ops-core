@@ -30,6 +30,12 @@ La decisión de actualización de este paso autoriza únicamente los cambios del
 4. `UPDATED` permite releer las instrucciones del marco desde `ActivePath` antes de auditar el proyecto. `READY_NEXT_SESSION` o `PREPARING` conservan la versión de esta sesión. Una candidata preparada con consentimiento previo se aplica al comenzar otro MODO ENTRADA, no a mitad de una conversación o trabajo.
 5. `OFFLINE_CACHED` permite continuar con la instalación verificada e informar brevemente que no pudo comprobarse GitHub. `LOCAL_DEV` identifica una instalación de desarrollo sin actualización automática. `NOT_INSTALLED` o `MIGRATION_REQUIRED` requieren instalación/migración explícita, nunca un `git pull` alternativo. Con `ACTIVATION_REVIEW_REQUIRED`, no eliminar el guard ni sobrescribir ediciones: informar del journal y revisar la recuperación. Con `BUSY`, usar `CanStartWork` y reintentar de forma acotada; un guard de activación impide cargar instrucciones mezcladas. `BUSY` también puede llegar tras **Actualizar ahora** si coincide con una sincronización: la aprobación se conserva, así que se reintenta el mismo `Apply` sin volver a preguntar.
 
+### Paso 0a: Perfil del usuario (lenguaje)
+Tras la consulta `-Action Check` del Paso 0 y antes de mostrar al usuario cualquier pregunta o reporte (incluidas las elecciones de los pasos 0 y 0b):
+1. Ejecutar `& "$ActivePath/scripts/user-profile.ps1" -Action Get`.
+2. Si `AskInterview` es verdadero, hacer la entrevista de `references/lenguaje.md`: como máximo 3 preguntas, una por mensaje, que se pueden saltar. Guardarla con `-Action Set` (o `-Skipped`).
+3. Desde ese momento, todo lo que lee el usuario usa su `Register` y su `Detail` según `references/lenguaje.md`. Lo que leen los agentes sigue siendo técnico.
+
 ### Paso 0b: ¿El proyecto está al día con la versión activa?
 Se ejecuta también al retomar un chat antiguo, porque MODO ENTRADA corre en cada turno nuevo sobre el proyecto.
 1. Ejecutar `& "$ActivePath/scripts/migrate-project.ps1" -ProjectPath <proyecto> -Mode Plan`. Es solo lectura: no escribe en el proyecto ni en el estado.
@@ -61,7 +67,7 @@ Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquie
   - `CLEAN` o `NO_CHECKPOINT`: nada que recuperar.
 
 ### Paso 3: Entrega del Reporte de 5 Puntos
-Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explícito del usuario**:
+Entrega ÚNICAMENTE estos 5 puntos y **detén tu turno esperando el "OK" explícito del usuario**. Redáctalos según el perfil del Paso 0a: con `plain`, en lenguaje llano y con el glosario de `references/lenguaje.md` (por ejemplo, «cambios sin guardar» en lugar de «working tree sucio»):
 1. **Auditoría Git vs. Contexto:** Estado real del repositorio frente a `activeContext.md`.
 2. **Reglas Activas:** Las reglas activas de `reglas_proyecto.md`, cada una con su ID y el texto literal de su línea `Regla:` (`R-NNN: «…»`), nunca solo el ID (si son muchas, las que afectan al trabajo previsto y el total), más las restricciones clave de `systemPatterns.md`.
 3. **Skills Aplicables:** Qué skills gobernarán la sesión (declarando explícitamente `dev-systematic-debugging` o `dev-tdd` si corresponde). Si `& "$ActivePath/scripts/learning-queue.ps1"` muestra fichas en `Pending`, mencionarlo en una línea; no se deciden aquí.

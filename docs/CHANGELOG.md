@@ -5,6 +5,9 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Lenguaje según la persona (Protocolo 9): el marco pregunta una sola vez a cada usuario a qué se dedica, si le resultan familiares términos como «commit» o «push» y cuánto detalle quiere, y le habla en consecuencia. Por defecto, lenguaje llano con el término técnico entre paréntesis solo cuando le sirve. El perfil se guarda en el equipo, no en el proyecto, y vale para todos sus proyectos.
+- `scripts/user-profile.ps1` (`UserProfile.psm1`) consulta y guarda ese perfil; pruebas en `tests/user-profile.tests.ps1`.
 
 ## [3.6.0] - 2026-11-23
 ### Added
