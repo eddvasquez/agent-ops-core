@@ -201,6 +201,50 @@ Test 'the real fetcher reaches the network code: a closed port fails as a networ
     try{& $m {param($u) Hr-Fetch $u} 'http://127.0.0.1:9/'|Out-Null}catch{$msg=$_.Exception.Message}
     Assert ($msg -and $msg -notmatch 'Hr-HttpGet|no se reconoce|is not recognized') "Unexpected failure: $msg"
 }
+Test 'evaluating a novelty prepares one report in docs/radar with its sources and related capabilities' {
+    $s=NewDir 'estado';$repo=NewDir 'agent-ops-core';[IO.Directory]::CreateDirectory((Join-Path $repo 'scripts'))|Out-Null
+    [IO.File]::WriteAllText((Join-Path $repo 'release-contract.json'),'{}',$utf8);Copy-Item $table (Join-Path $repo 'scripts/harness-capabilities.json')
+    Invoke-AgentOpsHarnessRadar -ProjectPath $repo -Action Check -StateDir $s -Path $table -Fetcher (Net -codex '0.172.0') -Now $now|Out-Null
+    $e=Invoke-AgentOpsHarnessRadar -ProjectPath $repo -Action Evaluate -StateDir $s -Path $table -Harness 'codex' -Version '0.172.0' -Now $now
+    Assert ($e.Code -eq 0 -and $e.Status -eq 'REPORT_READY' -and $e.Report -match 'docs[\\/]radar[\\/]2026-11-24-codex-0\.172\.0\.md$') ($e|ConvertTo-Json -Depth 5)
+    $text=[IO.File]::ReadAllText($e.Report)
+    Assert ($text -match '(?m)^- Veredicto: PENDIENTE$' -and $text -match 'https://api\.github\.com/repos/openai/codex/releases/latest' -and $text -match 'hook\.PreToolUse') $text
+    [IO.File]::AppendAllText($e.Report,"`nNota manual.`n")
+    $again=Invoke-AgentOpsHarnessRadar -ProjectPath $repo -Action Evaluate -StateDir $s -Path $table -Harness 'codex' -Version '0.172.0' -Now $now
+    Assert ($again.Report -eq $e.Report -and [IO.File]::ReadAllText($e.Report) -match 'Nota manual') 'A second evaluation overwrote the report'
+}
+Test 'evaluation is only for whoever maintains the framework' {
+    $s=NewDir 'estado'
+    $e=Invoke-AgentOpsHarnessRadar -ProjectPath $consumer -Action Evaluate -StateDir $s -Path $table -Harness 'codex' -Version '0.172.0' -Now $now
+    Assert ($e.Status -eq 'NOT_MAINTAINER' -and -not $e.Report) ($e|ConvertTo-Json -Depth 5)
+}
+Test 'a novelty cannot be closed with a report that has no verdict; with a verdict it is closed and recorded' {
+    $s=NewDir 'estado';$repo=NewDir 'agent-ops-core';[IO.Directory]::CreateDirectory((Join-Path $repo 'scripts'))|Out-Null
+    [IO.File]::WriteAllText((Join-Path $repo 'release-contract.json'),'{}',$utf8);Copy-Item $table (Join-Path $repo 'scripts/harness-capabilities.json')
+    Invoke-AgentOpsHarnessRadar -ProjectPath $repo -Action Check -StateDir $s -Path $table -Fetcher (Net -codex '0.172.0') -Now $now|Out-Null
+    $e=Invoke-AgentOpsHarnessRadar -ProjectPath $repo -Action Evaluate -StateDir $s -Path $table -Harness 'codex' -Version '0.172.0' -Now $now
+    $refused=Invoke-AgentOpsHarnessRadar -ProjectPath $repo -Action Ack -StateDir $s -Path $table -Harness 'codex' -Version '0.172.0' -Report $e.Report -Now $now
+    Assert ($refused.Code -eq 1 -and ($refused.Issues -join ' ') -match 'veredicto') ($refused|ConvertTo-Json -Depth 5)
+    $t2=[IO.File]::ReadAllText($e.Report).Replace('- Veredicto: PENDIENTE','- Veredicto: ESPERAR');[IO.File]::WriteAllText($e.Report,$t2,$utf8)
+    $ok=Invoke-AgentOpsHarnessRadar -ProjectPath $repo -Action Ack -StateDir $s -Path $table -Harness 'codex' -Version '0.172.0' -Report $e.Report -Now $now
+    Assert ($ok.Code -eq 0 -and $ok.Verdict -eq 'ESPERAR') ($ok|ConvertTo-Json -Depth 5)
+    $n=Invoke-AgentOpsHarnessRadar -ProjectPath $repo -Action Notice -StateDir $s -Path $table -Now $now
+    Assert (-not @($n.Lines).Count) ($n|ConvertTo-Json -Depth 5)
+}
+Test 'coverage counts the capabilities of each harness by status' {
+    $c=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Coverage -Path $table -Now $now
+    $codex=@($c.Coverage|Where-Object {$_.Harness -eq 'codex'})[0]
+    Assert ($c.Code -eq 0 -and $codex.Total -eq 8 -and ($codex.Aprovechada+$codex.Pendiente+$codex.Esperando+$codex.Descartada) -eq 8) ($c|ConvertTo-Json -Depth 5)
+    Assert ($c.Lines.Count -eq 3 -and $c.Lines[0] -match 'aprovechadas') ($c|ConvertTo-Json -Depth 5)
+}
+Test 'a novelty without a decision for more than 14 days says so' {
+    $s=NewDir 'estado'
+    Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net -codex '0.172.0') -Now $now|Out-Null
+    $n=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Notice -StateDir $s -Path $table -Now $now.AddDays(15)
+    Assert (@($n.Lines).Count -eq 1 -and $n.Lines[0] -match 'sin decisión desde hace 15 días') ($n|ConvertTo-Json -Depth 5)
+    $fresh=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Notice -StateDir $s -Path $table -Now $now.AddDays(3)
+    Assert ($fresh.Lines[0] -notmatch 'sin decisión') ($fresh|ConvertTo-Json -Depth 5)
+}
 Test 'the entry script prints JSON and the notice lines' {
     $s=NewDir 'estado'
     $engine=(Get-Process -Id $PID).Path

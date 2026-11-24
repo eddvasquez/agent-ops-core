@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+### Added
+- «evalúa X» usa `harness-radar.ps1 -Action Evaluate` y se cierra con `-Action Ack -Report`, que exige veredicto; `-Action Coverage` resume lo aprovechado de cada arnés.
 
 ## [2.7.0] - 2026-11-24
 ### Added
