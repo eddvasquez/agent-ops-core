@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [2.9.0] - 2026-11-24
 ### Added
 - MODO ENTRADA ejecuta el sensor de higiene del proyecto y menciona sus hallazgos en el reporte, sin borrar ni guardar nada sin la aprobación del usuario.
 
@@ -43,10 +45,3 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 ### Changed
 - MODO ENTRADA: las skills críticas (`dev-tdd`, `dev-systematic-debugging` y las que declare el proyecto) vuelven al criterio del 1 %; el resto mantiene el criterio de dominio.
 - MODO SALIDA: el estado de pruebas registra las suites ejecutadas, su n.º de pruebas y las exenciones concedidas por el usuario.
-
-## [2.0.0] - 2026-11-20
-### Added
-- MODO SALIDA: captura de aprendizajes reutilizables y presentación de las fichas de riesgo bajo de la sesión; procedimiento completo en `references/aprendizaje.md`, que solo se lee al cerrar.
-- MODO ENTRADA: aviso de una línea si hay fichas de aprendizaje pendientes (`learning-queue.ps1`).
-### Changed
-- **BREAKING:** una skill es obligatoria cuando la tarea entra en el dominio que declara su descripción, en lugar de con cualquier probabilidad de ayudar (Protocolo 3).

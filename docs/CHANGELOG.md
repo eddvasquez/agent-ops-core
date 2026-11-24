@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.14.0] - 2026-11-24
 ### Added
 - Sensor de higiene del proyecto (`scripts/project-hygiene.ps1`, solo lectura): al empezar la sesión avisa de copias de skills del hub dentro del proyecto (idénticas o distintas), archivos provisionales con más de 7 días en `scratch/`, `tmp/` o `.tmp/` y gobernanza sin guardar en el historial. Nunca borra ni cambia nada; la decisión es del usuario en cada proyecto.
 
@@ -58,8 +60,3 @@ epo-hygiene analiza la estructura de cada suite y exige la limpieza a cualquier 
 ### Added
 - Lenguaje según la persona (Protocolo 9): el marco pregunta una sola vez a cada usuario a qué se dedica, si le resultan familiares términos como «commit» o «push» y cuánto detalle quiere, y le habla en consecuencia. Por defecto, lenguaje llano con el término técnico entre paréntesis solo cuando le sirve. El perfil se guarda en el equipo, no en el proyecto, y vale para todos sus proyectos.
 - `scripts/user-profile.ps1` (`UserProfile.psm1`) consulta y guarda ese perfil; pruebas en `tests/user-profile.tests.ps1`.
-
-## [3.6.0] - 2026-11-23
-### Added
-- Las reglas se citan con el texto literal de su línea `Regla:` (Protocolo 8): al confirmar una regla nueva, en reportes, relevos y commits, y en las enmiendas como antes → después. Quien trabaja en varios proyectos entiende a qué se refiere «R-008» sin abrir el archivo.
-- `check-rules.ps1` devuelve `Warnings` con las reglas cuya línea `Regla:` supera 40 palabras. Es un aviso: no bloquea la compuerta.

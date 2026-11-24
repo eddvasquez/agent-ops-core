@@ -1,5 +1,10 @@
 # Historial de versiones anteriores
 
+## [3.6.0] - 2026-11-23
+### Added
+- Las reglas se citan con el texto literal de su línea `Regla:` (Protocolo 8): al confirmar una regla nueva, en reportes, relevos y commits, y en las enmiendas como antes → después. Quien trabaja en varios proyectos entiende a qué se refiere «R-008» sin abrir el archivo.
+- `check-rules.ps1` devuelve `Warnings` con las reglas cuya línea `Regla:` supera 40 palabras. Es un aviso: no bloquea la compuerta.
+
 ## [3.5.1] - 2026-11-21
 
 ### Changed
