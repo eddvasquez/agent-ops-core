@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [2.8.0] - 2026-11-24
 ### Added
 - «evalúa X» usa `harness-radar.ps1 -Action Evaluate` y se cierra con `-Action Ack -Report`, que exige veredicto; `-Action Coverage` resume lo aprovechado de cada arnés.
 
@@ -46,10 +48,3 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 - MODO ENTRADA: aviso de una línea si hay fichas de aprendizaje pendientes (`learning-queue.ps1`).
 ### Changed
 - **BREAKING:** una skill es obligatoria cuando la tarea entra en el dominio que declara su descripción, en lugar de con cualquier probabilidad de ayudar (Protocolo 3).
-
-## [1.4.0] - 2026-11-19
-### Added
-- MODO SALIDA: los entregables deben existir como archivos y pasar la revisión semántica cuando hay reglas sin patrón.
-- MODO SALIDA: red de seguridad opcional con `harvest-instructions.ps1` para detectar indicaciones de la sesión que no se registraron.
-### Changed
-- MODO ENTRADA, Paso 0: `BUSY` tras «Actualizar ahora» se reintenta sin volver a preguntar, porque la aprobación se conserva.

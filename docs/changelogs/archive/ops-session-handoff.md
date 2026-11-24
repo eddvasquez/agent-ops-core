@@ -1,5 +1,12 @@
 # Historial de versiones anteriores: ops-session-handoff
 
+## [1.4.0] - 2026-11-19
+### Added
+- MODO SALIDA: los entregables deben existir como archivos y pasar la revisión semántica cuando hay reglas sin patrón.
+- MODO SALIDA: red de seguridad opcional con `harvest-instructions.ps1` para detectar indicaciones de la sesión que no se registraron.
+### Changed
+- MODO ENTRADA, Paso 0: `BUSY` tras «Actualizar ahora» se reintenta sin volver a preguntar, porque la aprobación se conserva.
+
 ## [1.3.0] - 2026-11-19
 ### Added
 - Paso 0b de MODO ENTRADA: si el proyecto no está al día con la versión activa, muestra qué cambiaría y ofrece Migrar ahora / Más tarde / No para esta versión, con garantía de reversión.
