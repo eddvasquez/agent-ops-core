@@ -320,7 +320,7 @@ Test 'a project without harness instruction files reports an empty inventory' {
 }
 Test 'a short synchronization in progress is awaited instead of returning busy' {
     $f=Fixture;$ready=Join-Path (Split-Path $f.ConfigPath) 'sync-holder-ready'
-    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value)); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 3}finally{$m.ReleaseMutex();$m.Dispose()}'
+    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+$(if($env:AGENT_OPS_LOCK_NAMESPACE){"-"+$env:AGENT_OPS_LOCK_NAMESPACE}))); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 3}finally{$m.ReleaseMutex();$m.Dispose()}'
     $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
     $child=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -WindowStyle Hidden -PassThru
     try{
@@ -330,6 +330,11 @@ Test 'a short synchronization in progress is awaited instead of returning busy' 
         $r=Invoke-ProjectMigration @f
         Assert ($r.Code -eq 0 -and $r.Status -eq 'PLANNED') ($r|ConvertTo-Json -Depth 5)
     }finally{if(-not $child.WaitForExit(10000)){$child.Kill()};$child.Dispose()}
+}
+Test 'an update held by the real installation never makes the suite busy (own lock namespace)' {
+    $f=Fixture;$held=Start-HeldRealLock 'Update'
+    try{$r=Invoke-ProjectMigration @f}finally{Stop-HeldRealLock $held}
+    Assert ($r.Code -ne 3 -and $r.Status -ne 'BUSY') ($r|ConvertTo-Json -Depth 4)
 }
 Write-Host "Migration results: $passed passed, $failed failed. Fixtures: $base"
 if(-not $failed){Remove-TestFixtures $base}

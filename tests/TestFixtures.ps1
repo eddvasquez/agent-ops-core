@@ -19,3 +19,25 @@ function Clear-StaleTestFixtures([int]$OlderThanHours=48){
     }
 }
 Clear-StaleTestFixtures
+# Locks: every suite gets its own namespace, so it never waits on (or blocks) this computer's real installation.
+# Real processes never set AGENT_OPS_LOCK_NAMESPACE, so their lock names stay exactly as before.
+$env:AGENT_OPS_LOCK_NAMESPACE='tests-'+[guid]::NewGuid().ToString('N').Substring(0,12)
+
+# Holds a lock with its real installation name from another process (in the same thread Windows would let the
+# suite take it again), returning once it is held. Stop it with Stop-HeldRealLock.
+function Start-HeldRealLock([string]$Name){
+    $ready=Join-Path ([IO.Path]::GetTempPath()) ('aoc-lock-'+[guid]::NewGuid().ToString('N')+'.ready')
+    $real='Local\AgentOps'+$Name+'-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    $job=Start-Job -ArgumentList $real,$ready -ScriptBlock {
+        param($name,$ready)
+        $m=New-Object Threading.Mutex($false,$name);$null=$m.WaitOne()
+        [IO.File]::WriteAllText($ready,'held')
+        Start-Sleep -Seconds 120
+        $m.ReleaseMutex()
+    }
+    for($i=0;$i -lt 300 -and -not [IO.File]::Exists($ready);$i++){Start-Sleep -Milliseconds 100}
+    if(-not [IO.File]::Exists($ready)){Stop-Job $job;Remove-Job $job -Force;throw "Could not hold the real $Name lock."}
+    Remove-Item -LiteralPath $ready -Force
+    return $job
+}
+function Stop-HeldRealLock($Job){if($Job){Stop-Job $Job -ErrorAction SilentlyContinue;Remove-Job $Job -Force -ErrorAction SilentlyContinue}}

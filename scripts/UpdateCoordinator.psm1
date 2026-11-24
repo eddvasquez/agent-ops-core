@@ -16,7 +16,8 @@ function Up-Read($path){
     else{$value=ConvertFrom-Json $json}
     & $script:library {param($v) ConvertTo-SyncMap $v} $value
 }
-function Up-Mutex($name){New-Object Threading.Mutex($false,('Local\AgentOps'+$name+'-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))}
+# Same naming as SkillsSync Get-SyncLockName, inline: the stable bootstrap keeps no new dependencies.
+function Up-Mutex($name){$n='Local\AgentOps'+$name+'-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;if($env:AGENT_OPS_LOCK_NAMESPACE){$n+='-'+$env:AGENT_OPS_LOCK_NAMESPACE};New-Object Threading.Mutex($false,$n)}
 function Up-Lock($mutex,[int]$milliseconds=0){try{return $mutex.WaitOne($milliseconds)}catch [Threading.AbandonedMutexException]{return $true}}
 function Up-Arguments([string[]]$values){
     $quoted=foreach($v in $values){

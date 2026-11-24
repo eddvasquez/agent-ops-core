@@ -77,7 +77,7 @@ Test 'update now prepares and activates exactly the approved SHA' {
 Test 'activation waits for a short synchronization already in progress instead of failing' {
     $f=Fixture;$new=Publish $f;Detect $f $new;Run $f 'Prepare' 'A' $new|Out-Null
     $ready=Join-Path $f.Parameters.StateDir 'sync-holder-ready'
-    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value)); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 3}finally{$m.ReleaseMutex();$m.Dispose()}'
+    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+$(if($env:AGENT_OPS_LOCK_NAMESPACE){"-"+$env:AGENT_OPS_LOCK_NAMESPACE}))); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 3}finally{$m.ReleaseMutex();$m.Dispose()}'
     $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
     $child=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -WindowStyle Hidden -PassThru
     try{
@@ -91,7 +91,7 @@ Test 'activation waits for a short synchronization already in progress instead o
 Test 'a synchronization longer than the wait returns busy and keeps the approved candidate' {
     $f=Fixture;$new=Publish $f;Detect $f $new;Run $f 'Prepare' 'A' $new|Out-Null
     $ready=Join-Path $f.Parameters.StateDir 'long-holder-ready'
-    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value)); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 13}finally{$m.ReleaseMutex();$m.Dispose()}'
+    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+$(if($env:AGENT_OPS_LOCK_NAMESPACE){"-"+$env:AGENT_OPS_LOCK_NAMESPACE}))); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 13}finally{$m.ReleaseMutex();$m.Dispose()}'
     $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
     $child=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -WindowStyle Hidden -PassThru
     try{
@@ -330,6 +330,11 @@ Test 'migration CLI runs from the verified active release with registered config
     $entry=Join-Path $state.Active.Path 'scripts/migrate-project.ps1'
     $json=& (Get-Process -Id $PID).Path -NoProfile -ExecutionPolicy Bypass -File $entry -ProjectPath $project -ConfigPath $f.ConfigPath -Mode Apply|Out-String
     Assert ($LASTEXITCODE -eq 0 -and ($json|ConvertFrom-Json).Status -eq 'MIGRATED') ('Managed CLI failed: '+$json)
+}
+Test 'an update held by the real installation never makes the suite busy (own lock namespace)' {
+    $f=Fixture;$held=Start-HeldRealLock 'Update'
+    try{$r=Invoke-AgentOpsUpdate -ConfigPath $f.ConfigPath -Action Check -Verifier $script:proof -TaskController $script:tasks}finally{Stop-HeldRealLock $held}
+    Assert ($r.Code -ne 3 -and $r.Status -ne 'BUSY') ($r|ConvertTo-Json -Depth 4)
 }
 Write-Host "Update results: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}

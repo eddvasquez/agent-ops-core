@@ -41,6 +41,13 @@ function Assert-SyncNoLink([string]$Path) {
 }
 # One watcher per installation: the lock is scoped to the user and the installation's state directory,
 # so a separate installation (a test fixture, for instance) never contends with the running watcher.
+# Per-user lock name. Test suites set AGENT_OPS_LOCK_NAMESPACE so they never collide with the real installation;
+# real processes never set it, so their names stay exactly as in earlier releases.
+function Get-SyncLockName([string]$Name) {
+    $name = 'Local\AgentOps' + $Name + '-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    if ($env:AGENT_OPS_LOCK_NAMESPACE) { $name += '-' + $env:AGENT_OPS_LOCK_NAMESPACE }
+    return $name
+}
 function Get-SyncWatcherMutexName([string]$StateDir) {
     $key = [IO.Path]::GetFullPath($StateDir).TrimEnd([char]'\', [char]'/').ToLowerInvariant()
     $sha = [Security.Cryptography.SHA256]::Create()
@@ -268,7 +275,7 @@ function Invoke-SkillSync {
             }
         }
         $identity = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-        $mutex = New-Object Threading.Mutex($false, ('Local\AgentOpsSkillsSync-' + $identity))
+        $mutex = New-Object Threading.Mutex($false, (Get-SyncLockName 'SkillsSync'))
         try { $locked = $mutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $locked = $true }
         if (-not $locked) { $result.Code=3; return [pscustomobject]$result }
         $statePath = Get-SyncChild $StateDir 'state.json'
@@ -482,7 +489,7 @@ function Restore-SkillRescue {
         $dirs=@($saved.Directories|Where-Object Root -eq $SourceRoot)
         $result.PlannedFiles=$files.Count
         $identity=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-        $mutex=New-Object Threading.Mutex($false,('Local\AgentOpsSkillsSync-'+$identity))
+        $mutex=New-Object Threading.Mutex($false,(Get-SyncLockName 'SkillsSync'))
         try{$owned=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$owned=$true}
         if(-not $owned){$result.Code=3;return [pscustomobject]$result}
         foreach($dir in $dirs){Get-SyncChild $Destination $dir.Key|Out-Null}

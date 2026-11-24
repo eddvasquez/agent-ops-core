@@ -28,13 +28,20 @@ function Framework{
     return $r
 }
 function State{$s=Join-Path $script:base ('state-'+[guid]::NewGuid().ToString('N').Substring(0,6));[IO.Directory]::CreateDirectory($s)|Out-Null;return $s}
+# Launches the hook the way a harness does: no console of its own, stdin piped, stdout read as UTF-8 bytes.
 function Hook([string]$harness,[string]$json,[string]$stateDir){
-    $engine=(Get-Process -Id $PID).Path
-    $old=$env:AGENT_OPS_STATE_DIR;$env:AGENT_OPS_STATE_DIR=$stateDir;$pref=$ErrorActionPreference;$ErrorActionPreference='Continue'
-    try{$out=$json|& $engine -NoProfile -ExecutionPolicy Bypass -File (Join-Path $source 'scripts/turn-gate-hook.ps1') -Harness $harness 2>&1|Out-String;return @{Exit=$LASTEXITCODE;Out=$out.Trim()}}
-    finally{$env:AGENT_OPS_STATE_DIR=$old;$ErrorActionPreference=$pref}
+    $psi=New-Object Diagnostics.ProcessStartInfo
+    $psi.FileName=(Get-Process -Id $PID).Path
+    $psi.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $source 'scripts/turn-gate-hook.ps1')+'" -Harness '+$harness
+    $psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
+    $psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
+    $psi.StandardOutputEncoding=New-Object Text.UTF8Encoding($false)
+    $psi.EnvironmentVariables['AGENT_OPS_STATE_DIR']=$stateDir
+    $p=[Diagnostics.Process]::Start($psi)
+    $p.StandardInput.Write($json);$p.StandardInput.Close()
+    $out=$p.StandardOutput.ReadToEnd();$null=$p.StandardError.ReadToEnd();$p.WaitForExit()
+    return @{Exit=$p.ExitCode;Out=$out.Trim()}
 }
-
 Test 'without code changes the turn may end' {
     $r=Framework;$g=Test-AgentOpsTurnGate -ProjectPath $r -StateDir (State) -SessionId 's1'
     Assert ($g.Decision -eq 'ALLOW') ($g|ConvertTo-Json -Depth 5)
@@ -96,6 +103,7 @@ Test 'Claude Code adapter: block is {decision:block,reason} and allow prints not
     $o=Hook 'claude' $in $s
     $j=$o.Out|ConvertFrom-Json
     Assert ($o.Exit -eq 0 -and $j.decision -eq 'block' -and $j.reason -match 'tool\.ps1') ($o|ConvertTo-Json)
+    Assert ($j.reason -match 'cambios de código' -and $j.reason -match 'explícaselo') "Accents garbled: $($j.reason)"
     Invoke-AgentOpsTestRun -ProjectPath $r -Suites @('ok')|Out-Null
     $o=Hook 'claude' $in $s
     Assert ($o.Exit -eq 0 -and -not $o.Out) ($o|ConvertTo-Json)

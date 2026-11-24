@@ -133,7 +133,7 @@ function Invoke-ProjectMigration {
         if($cfg -isnot [hashtable] -or -not $cfg.HubDir -or -not $cfg.Targets -or -not $cfg.StateDir){throw 'Invalid installation configuration.'}
         if((Pm-Root (Split-Path ([IO.Path]::GetFullPath($ConfigPath)))) -ne (Pm-Root $cfg.StateDir)){throw 'Configuration belongs to a different state directory.'}
         $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-        $updateLock=New-Object Threading.Mutex($false,('Local\AgentOpsUpdate-'+$sid));try{$u=$updateLock.WaitOne(0)}catch [Threading.AbandonedMutexException]{$u=$true}
+        $updateLock=New-Object Threading.Mutex($false,(& $script:engine {Get-SyncLockName 'Update'}));try{$u=$updateLock.WaitOne(0)}catch [Threading.AbandonedMutexException]{$u=$true}
         if(-not $u){$r.Code=3;$r.Status='BUSY';return [pscustomobject]$r}
         $release=if($ReleaseResolver){& $ReleaseResolver $ConfigPath}else{& $script:coordinator {param($p) Get-AgentOpsActiveRelease -ConfigPath $p} $ConfigPath}
         if($release.Mode -ne 'MANAGED'){throw 'A managed, verified release is required.'}
@@ -149,7 +149,7 @@ function Invoke-ProjectMigration {
             & $script:engine {param($p,$t,$s) Get-SkillSyncConfiguration -HubDir $p -Targets @($t) -StateDir $s} $project $tree $cfg.StateDir|Out-Null
         }
         # The watcher runs a full synchronization every few minutes; wait for it briefly before reporting BUSY.
-        $syncLock=New-Object Threading.Mutex($false,('Local\AgentOpsSkillsSync-'+$sid));try{$l=$syncLock.WaitOne(10000)}catch [Threading.AbandonedMutexException]{$l=$true}
+        $syncLock=New-Object Threading.Mutex($false,(& $script:engine {Get-SyncLockName 'SkillsSync'}));try{$l=$syncLock.WaitOne(10000)}catch [Threading.AbandonedMutexException]{$l=$true}
         if(-not $l){$r.Code=3;$r.Status='BUSY';return [pscustomobject]$r}
         $projectId=Pm-BytesHash ([Text.Encoding]::UTF8.GetBytes($project.ToLowerInvariant()))
         $private=Pm-Child $cfg.StateDir ('migrations/'+$projectId);$pending=Pm-Child $private 'pending.json'

@@ -243,7 +243,7 @@ Test 'backup corruption fails closed before any overwrite' {
 Test 'another process holding the user mutex returns busy without writing' {
     $p=Fixture;Put $p.HubDir 'demo/SKILL.md' 'base'|Out-Null
     $ready=Join-Path (Split-Path $p.HubDir -Parent) 'mutex-ready'
-    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value)); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 3}finally{$m.ReleaseMutex();$m.Dispose()}'
+    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+$(if($env:AGENT_OPS_LOCK_NAMESPACE){"-"+$env:AGENT_OPS_LOCK_NAMESPACE}))); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 3}finally{$m.ReleaseMutex();$m.Dispose()}'
     $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
     $child=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -WindowStyle Hidden -PassThru
     try {
@@ -269,6 +269,12 @@ Test 'watcher lock is scoped to its installation state directory' {
     Assert ($a -like 'Local\AgentOpsSkillsWatcher-*') "Unexpected lock name $a"
     Assert ($a -eq (& $m { Get-SyncWatcherMutexName 'c:\agentops\statea\' })) 'Same installation must share one watcher lock'
     Assert ($a -ne (& $m { Get-SyncWatcherMutexName 'C:\AgentOps\StateB' })) 'Separate installations (tests included) must not share the watcher lock'
+}
+Test 'a synchronization held by the real installation never blocks the suite (own lock namespace)' {
+    $p=Fixture;Put $p.HubDir 'demo/SKILL.md' 'hub'|Out-Null
+    $held=Start-HeldRealLock 'SkillsSync'
+    try{$r=Invoke-SkillSync @p -Mode Plan}finally{Stop-HeldRealLock $held}
+    Assert ($r.Code -ne 3) ($r|ConvertTo-Json -Depth 4)
 }
 Write-Host "Results: $script:Passed passed, $script:Failed failed. Fixtures: $script:TestRoot"
 if(-not $script:Failed){Remove-TestFixtures $script:TestRoot}
