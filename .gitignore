@@ -30,3 +30,8 @@ scratch/
 !/skills/sync_antigravity_junctions.bat
 __pycache__/
 *.py[cod]
+
+# Configuracion local de los arneses (piloto de la comprobacion al terminar el turno): no se publica.
+/.claude/settings.local.json
+/.codex/
+/.agents/
