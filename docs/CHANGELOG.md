@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.13.0] - 2026-11-24
 ### Added
 - Comprobación al terminar el turno (piloto en el repositorio del marco): un hook Stop común a Claude Code, Codex y Antigravity devuelve al agente a trabajar si hay cambios de código sin pruebas en verde de ese mismo estado. La evidencia la registra scripts/run-tests.ps1, no el agente; como mucho dos devoluciones seguidas por sesión. Se instala con scripts/install-turn-gate.ps1 en archivos locales que no se publican. Primera capacidad de la tabla de arneses que pasa a «aprovechada».
 - .gitignore excluye la configuración local de los arneses (.claude/settings.local.json, .codex/, .agents/).
@@ -62,12 +64,3 @@ epo-hygiene analiza la estructura de cada suite y exige la limpieza a cualquier 
 
 ### Fixed
 - Evita crear un changelog raíz que oculte el historial existente en `docs/CHANGELOG.md` al migrar un proyecto.
-
-## [3.5.0] - 2026-11-20
-### Added
-- **Reanudación desde cualquier arnés con terminal.** `checkpoint.ps1 -Request` guarda la petición literal del usuario (las 5 últimas) y `resume-session.ps1` la devuelve como `UserRequests`, así que retomar ya no depende de leer la conversación del arnés anterior.
-- Lectura de conversaciones de **Antigravity/Gemini** en `resume-session.ps1` y `harvest-instructions.ps1`. Una conversación cuenta para el proyecto que más menciona entre sus carpetas hermanas; las dudosas se descartan. ChatGPT figura como no compatible y se explica el motivo: sus conversaciones solo están en el servidor.
-
-### Fixed
-- La lectura de conversaciones ya no falla con la sesión en curso del arnés, que sigue escribiendo en su archivo.
-- `resume-session.ps1` solo lee las conversaciones modificadas desde el inicio de la sesión: en este equipo pasa de unos 20 s a menos de 2 s.
