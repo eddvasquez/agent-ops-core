@@ -1,58 +1,286 @@
 {
   "SchemaVersion": 1,
-  "Statuses": ["aprovechada", "pendiente", "esperando", "descartada"],
+  "Statuses": [
+    "aprovechada",
+    "pendiente",
+    "esperando",
+    "descartada"
+  ],
   "Harnesses": {
     "claude-code": {
       "Name": "Claude Code",
-      "Detect": { "Dirs": [".claude"], "Commands": ["claude"] },
+      "Detect": {
+        "Dirs": [
+          ".claude"
+        ],
+        "Commands": [
+          "claude"
+        ]
+      },
       "Baseline": "2.1.330",
       "Sources": [
-        { "Id": "claude-code-changelog", "Kind": "markdown-changelog", "Url": "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md" }
+        {
+          "Id": "claude-code-changelog",
+          "Kind": "markdown-changelog",
+          "Url": "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md"
+        },
+        {
+          "Id": "claude-code-hooks",
+          "Kind": "doc-page",
+          "Url": "https://code.claude.com/docs/en/hooks"
+        },
+        {
+          "Id": "claude-code-settings",
+          "Kind": "doc-page",
+          "Url": "https://code.claude.com/docs/en/settings"
+        },
+        {
+          "Id": "claude-code-plugins",
+          "Kind": "doc-page",
+          "Url": "https://code.claude.com/docs/en/plugins"
+        }
       ],
       "Capabilities": [
-        { "Id": "hook.SessionStart", "Status": "pendiente", "Doc": "https://code.claude.com/docs/en/hooks", "VerifiedAt": "2026-11-23", "Fallback": "MODO ENTRADA por instrucciones de AGENTS.md" },
-        { "Id": "hook.PreToolUse", "Status": "pendiente", "Doc": "https://code.claude.com/docs/en/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Revisión al guardar (pre-commit) y CI" },
-        { "Id": "hook.PostToolUse", "Status": "pendiente", "Doc": "https://code.claude.com/docs/en/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Punto de control al cerrar cada paso" },
-        { "Id": "hook.Stop", "Status": "pendiente", "Doc": "https://code.claude.com/docs/en/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Revisión al guardar y MODO SALIDA" },
-        { "Id": "hook.PreCompact", "Status": "pendiente", "Doc": "https://code.claude.com/docs/en/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Punto de control al cerrar cada paso" },
-        { "Id": "hook.SubagentStop", "Status": "pendiente", "Doc": "https://code.claude.com/docs/en/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Revisión en contexto limpio del Protocolo 8" },
-        { "Id": "settings.permissions.deny", "Status": "pendiente", "Doc": "https://code.claude.com/docs/en/settings", "VerifiedAt": "2026-11-23", "Fallback": "Búsqueda de contraseñas al guardar" },
-        { "Id": "plugin.hooks", "Status": "pendiente", "Doc": "https://code.claude.com/docs/en/plugins", "VerifiedAt": "2026-11-23", "Fallback": "Instalación de hooks por la migración" }
-      ]
+        {
+          "Id": "hook.SessionStart",
+          "Status": "pendiente",
+          "Doc": "https://code.claude.com/docs/en/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "MODO ENTRADA por instrucciones de AGENTS.md"
+        },
+        {
+          "Id": "hook.PreToolUse",
+          "Status": "pendiente",
+          "Doc": "https://code.claude.com/docs/en/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Revisión al guardar (pre-commit) y CI"
+        },
+        {
+          "Id": "hook.PostToolUse",
+          "Status": "pendiente",
+          "Doc": "https://code.claude.com/docs/en/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Punto de control al cerrar cada paso"
+        },
+        {
+          "Id": "hook.Stop",
+          "Status": "pendiente",
+          "Doc": "https://code.claude.com/docs/en/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Revisión al guardar y MODO SALIDA"
+        },
+        {
+          "Id": "hook.PreCompact",
+          "Status": "pendiente",
+          "Doc": "https://code.claude.com/docs/en/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Punto de control al cerrar cada paso"
+        },
+        {
+          "Id": "hook.SubagentStop",
+          "Status": "pendiente",
+          "Doc": "https://code.claude.com/docs/en/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Revisión en contexto limpio del Protocolo 8"
+        },
+        {
+          "Id": "settings.permissions.deny",
+          "Status": "pendiente",
+          "Doc": "https://code.claude.com/docs/en/settings",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Búsqueda de contraseñas al guardar"
+        },
+        {
+          "Id": "plugin.hooks",
+          "Status": "pendiente",
+          "Doc": "https://code.claude.com/docs/en/plugins",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Instalación de hooks por la migración"
+        }
+      ],
+      "VersionCommand": "claude"
     },
     "codex": {
       "Name": "Codex",
-      "Detect": { "Dirs": [".codex"], "Commands": ["codex"] },
+      "Detect": {
+        "Dirs": [
+          ".codex"
+        ],
+        "Commands": [
+          "codex"
+        ]
+      },
       "Baseline": "0.171.0",
       "Sources": [
-        { "Id": "codex-releases", "Kind": "github-release", "Url": "https://api.github.com/repos/openai/codex/releases/latest" }
+        {
+          "Id": "codex-releases",
+          "Kind": "github-release",
+          "Url": "https://api.github.com/repos/openai/codex/releases/latest"
+        },
+        {
+          "Id": "codex-hooks",
+          "Kind": "doc-page",
+          "Url": "https://learn.chatgpt.com/docs/hooks"
+        },
+        {
+          "Id": "codex-config-reference",
+          "Kind": "doc-page",
+          "Url": "https://learn.chatgpt.com/docs/config-file/config-reference"
+        },
+        {
+          "Id": "codex-config-basic",
+          "Kind": "doc-page",
+          "Url": "https://learn.chatgpt.com/docs/config-file/config-basic"
+        }
       ],
       "Capabilities": [
-        { "Id": "hook.SessionStart", "Status": "pendiente", "Doc": "https://learn.chatgpt.com/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "MODO ENTRADA por instrucciones de AGENTS.md" },
-        { "Id": "hook.PreToolUse", "Status": "pendiente", "Doc": "https://learn.chatgpt.com/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Revisión al guardar (pre-commit) y CI" },
-        { "Id": "hook.PostToolUse", "Status": "pendiente", "Doc": "https://learn.chatgpt.com/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Punto de control al cerrar cada paso" },
-        { "Id": "hook.Stop", "Status": "pendiente", "Doc": "https://learn.chatgpt.com/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Revisión al guardar y MODO SALIDA" },
-        { "Id": "hook.PermissionRequest", "Status": "pendiente", "Doc": "https://learn.chatgpt.com/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Aprobación del usuario en el arnés" },
-        { "Id": "config.permissions.filesystem", "Status": "pendiente", "Doc": "https://learn.chatgpt.com/docs/config-file/config-reference", "VerifiedAt": "2026-11-23", "Fallback": "Búsqueda de contraseñas al guardar" },
-        { "Id": "requirements.managed-hooks", "Status": "esperando", "Doc": "https://learn.chatgpt.com/docs/config-file/config-reference", "VerifiedAt": "2026-11-23", "Fallback": "Hooks de usuario o de proyecto" },
-        { "Id": "plugin.hooks", "Status": "pendiente", "Doc": "https://learn.chatgpt.com/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Instalación de hooks por la migración" }
-      ]
+        {
+          "Id": "hook.SessionStart",
+          "Status": "pendiente",
+          "Doc": "https://learn.chatgpt.com/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "MODO ENTRADA por instrucciones de AGENTS.md"
+        },
+        {
+          "Id": "hook.PreToolUse",
+          "Status": "pendiente",
+          "Doc": "https://learn.chatgpt.com/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Revisión al guardar (pre-commit) y CI"
+        },
+        {
+          "Id": "hook.PostToolUse",
+          "Status": "pendiente",
+          "Doc": "https://learn.chatgpt.com/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Punto de control al cerrar cada paso"
+        },
+        {
+          "Id": "hook.Stop",
+          "Status": "pendiente",
+          "Doc": "https://learn.chatgpt.com/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Revisión al guardar y MODO SALIDA"
+        },
+        {
+          "Id": "hook.PermissionRequest",
+          "Status": "pendiente",
+          "Doc": "https://learn.chatgpt.com/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Aprobación del usuario en el arnés"
+        },
+        {
+          "Id": "config.permissions.filesystem",
+          "Status": "pendiente",
+          "Doc": "https://learn.chatgpt.com/docs/config-file/config-reference",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Búsqueda de contraseñas al guardar"
+        },
+        {
+          "Id": "requirements.managed-hooks",
+          "Status": "esperando",
+          "Doc": "https://learn.chatgpt.com/docs/config-file/config-reference",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Hooks de usuario o de proyecto"
+        },
+        {
+          "Id": "plugin.hooks",
+          "Status": "pendiente",
+          "Doc": "https://learn.chatgpt.com/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Instalación de hooks por la migración"
+        }
+      ],
+      "VersionCommand": "codex"
     },
     "antigravity": {
       "Name": "Antigravity",
-      "Detect": { "Dirs": [".agents", ".agent"], "Commands": ["agy"] },
+      "Detect": {
+        "Dirs": [
+          ".agents",
+          ".agent"
+        ],
+        "Commands": [
+          "agy"
+        ]
+      },
       "Baseline": "",
-      "Sources": [],
+      "Sources": [
+        {
+          "Id": "antigravity-hooks",
+          "Kind": "doc-page",
+          "Url": "https://antigravity.google/docs/hooks"
+        },
+        {
+          "Id": "antigravity-permissions",
+          "Kind": "doc-page",
+          "Url": "https://antigravity.google/docs/permissions"
+        },
+        {
+          "Id": "antigravity-plugins",
+          "Kind": "doc-page",
+          "Url": "https://antigravity.google/docs/plugins"
+        }
+      ],
       "Capabilities": [
-        { "Id": "hook.SessionStart", "Status": "pendiente", "Doc": "https://antigravity.google/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "MODO ENTRADA por instrucciones de AGENTS.md" },
-        { "Id": "hook.PreToolUse", "Status": "pendiente", "Doc": "https://antigravity.google/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Revisión al guardar (pre-commit) y CI" },
-        { "Id": "hook.PostToolUse", "Status": "pendiente", "Doc": "https://antigravity.google/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Punto de control al cerrar cada paso" },
-        { "Id": "hook.Stop", "Status": "pendiente", "Doc": "https://antigravity.google/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Revisión al guardar y MODO SALIDA" },
-        { "Id": "hook.PreInvocation", "Status": "pendiente", "Doc": "https://antigravity.google/docs/hooks", "VerifiedAt": "2026-11-23", "Fallback": "Punto de control al cerrar cada paso" },
-        { "Id": "permissions.deny", "Status": "pendiente", "Doc": "https://antigravity.google/docs/permissions", "VerifiedAt": "2026-11-23", "Fallback": "Búsqueda de contraseñas al guardar" },
-        { "Id": "browser.allowlist", "Status": "pendiente", "Doc": "https://antigravity.google/docs/ide/allowlist-denylist", "VerifiedAt": "2026-11-23", "Fallback": "Aprobación del usuario en el arnés" },
-        { "Id": "plugin.hooks", "Status": "pendiente", "Doc": "https://antigravity.google/docs/plugins", "VerifiedAt": "2026-11-23", "Fallback": "Instalación de hooks por la migración" }
-      ]
+        {
+          "Id": "hook.SessionStart",
+          "Status": "pendiente",
+          "Doc": "https://antigravity.google/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "MODO ENTRADA por instrucciones de AGENTS.md"
+        },
+        {
+          "Id": "hook.PreToolUse",
+          "Status": "pendiente",
+          "Doc": "https://antigravity.google/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Revisión al guardar (pre-commit) y CI"
+        },
+        {
+          "Id": "hook.PostToolUse",
+          "Status": "pendiente",
+          "Doc": "https://antigravity.google/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Punto de control al cerrar cada paso"
+        },
+        {
+          "Id": "hook.Stop",
+          "Status": "pendiente",
+          "Doc": "https://antigravity.google/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Revisión al guardar y MODO SALIDA"
+        },
+        {
+          "Id": "hook.PreInvocation",
+          "Status": "pendiente",
+          "Doc": "https://antigravity.google/docs/hooks",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Punto de control al cerrar cada paso"
+        },
+        {
+          "Id": "permissions.deny",
+          "Status": "pendiente",
+          "Doc": "https://antigravity.google/docs/permissions",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Búsqueda de contraseñas al guardar"
+        },
+        {
+          "Id": "browser.allowlist",
+          "Status": "pendiente",
+          "Doc": "https://antigravity.google/docs/ide/allowlist-denylist",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Aprobación del usuario en el arnés"
+        },
+        {
+          "Id": "plugin.hooks",
+          "Status": "pendiente",
+          "Doc": "https://antigravity.google/docs/plugins",
+          "VerifiedAt": "2026-11-23",
+          "Fallback": "Instalación de hooks por la migración"
+        }
+      ],
+      "VersionCommand": "agy"
     }
   }
 }

@@ -18,9 +18,19 @@ function Fetcher([hashtable]$map){
 }
 $codexUrl='https://api.github.com/repos/openai/codex/releases/latest'
 $claudeUrl='https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md'
-function Net([string]$codex='0.171.0',[string]$claude='2.1.330'){
-    Fetcher @{$codexUrl=('{"tag_name":"rust-v'+$codex+'","name":"'+$codex+'","prerelease":false}');$claudeUrl=("# Changelog`n`n## $claude`n`n- Algo nuevo.`n`n## 2.1.300`n")}
+# Every documentation page declared in the table, served as stable HTML unless a test overrides it.
+$docPages=@(); $tj=[IO.File]::ReadAllText($table)|ConvertFrom-Json
+foreach($hp in $tj.Harnesses.PSObject.Properties){foreach($src in @($hp.Value.Sources)){if($src.Kind -eq 'doc-page'){$docPages+=@($src)}}}
+$sourceCount=@($tj.Harnesses.PSObject.Properties|ForEach-Object {@($_.Value.Sources)}).Count
+$agHooks=@($docPages|Where-Object {$_.Id -eq 'antigravity-hooks'})[0]
+function Net([string]$codex='0.171.0',[string]$claude='2.1.330',[hashtable]$docs=@{}){
+    $map=@{$codexUrl=('{"tag_name":"rust-v'+$codex+'","name":"'+$codex+'","prerelease":false}');$claudeUrl=("# Changelog`n`n## $claude`n`n- Algo nuevo.`n`n## 2.1.300`n")}
+    foreach($d in $docPages){$map[$d.Url]=$(if($docs.ContainsKey($d.Id)){$docs[$d.Id]}else{"<html><head><script>var build='x1';</script></head><body><h1>$($d.Id)</h1><p>PreToolUse Stop</p></body></html>"})}
+    Fetcher $map
 }
+# Installed versions: none unless a test says otherwise, so no real program is ever started.
+$noVersions={param([string]$command) $null}
+$PSDefaultParameterValues['Invoke-AgentOpsHarnessRadar:VersionResolver']=$noVersions
 $now=[datetime]'2026-11-24T10:00:00Z'
 # A copy of the framework repository (where the maintainer works) and an ordinary consumer project.
 $fw=NewDir 'agent-ops-core';[IO.Directory]::CreateDirectory((Join-Path $fw 'scripts'))|Out-Null
@@ -97,21 +107,98 @@ Test 'each source is checked at most once a day' {
     $s=NewDir 'estado'
     Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net) -Now $now|Out-Null
     $r=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Fetcher @{}) -Now $now.AddHours(2)
-    Assert ($r.Code -eq 0 -and -not @($r.Failures).Count -and @($r.Skipped).Count -eq 2) ($r|ConvertTo-Json -Depth 5)
+    Assert ($r.Code -eq 0 -and -not @($r.Failures).Count -and @($r.Skipped).Count -eq $sourceCount) ($r|ConvertTo-Json -Depth 5)
     $later=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net -codex '0.173.0') -Now $now.AddHours(25)
     Assert (@($later.Novelties).Count -eq 1) ($later|ConvertTo-Json -Depth 5)
 }
 Test 'a dead source is reported but never blocks: code 0 and no notice' {
     $s=NewDir 'estado'
     $r=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Fetcher @{}) -Now $now
-    Assert ($r.Code -eq 0 -and @($r.Failures).Count -eq 2 -and -not @($r.Novelties).Count) ($r|ConvertTo-Json -Depth 5)
+    Assert ($r.Code -eq 0 -and @($r.Failures).Count -eq $sourceCount -and -not @($r.Novelties).Count) ($r|ConvertTo-Json -Depth 5)
 }
 Test 'downloaded text is data: a hostile version string is rejected and nothing runs' {
     $s=NewDir 'estado';$flag=Join-Path $s 'ran.txt'
     $evil=Fetcher @{$codexUrl=('{"tag_name":"$(New-Item '+$flag+')","name":"x"}');$claudeUrl="# Changelog`n`n## 9.9.9; Remove-Item C:\`n"}
     $r=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher $evil -Now $now
     Assert (-not (Test-Path $flag)) 'Downloaded text was executed'
-    Assert (-not @($r.Novelties).Count -and @($r.Failures).Count -eq 2) ($r|ConvertTo-Json -Depth 5)
+    Assert (-not @($r.Novelties).Count -and @($r.Failures).Count -eq $sourceCount) ($r|ConvertTo-Json -Depth 5)
+}
+Test 'the first visit to a documentation page only records its fingerprint' {
+    $s=NewDir 'estado'
+    $r=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net) -Now $now
+    Assert ($r.Code -eq 0 -and -not @($r.Novelties).Count -and -not @($r.Failures).Count) ($r|ConvertTo-Json -Depth 5)
+    Assert ($docPages.Count -ge 9 -and $agHooks) 'The table must declare the hooks, permissions and plugins pages of the three harnesses'
+}
+Test 'a changed documentation page produces one notice; page noise such as scripts does not' {
+    $s=NewDir 'estado'
+    Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net) -Now $now|Out-Null
+    $noise="<html><head><script>var build='x2';</script></head><body><h1>antigravity-hooks</h1><p>PreToolUse   Stop</p></body></html>"
+    $quiet=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net -docs @{'antigravity-hooks'=$noise}) -Now $now.AddHours(25)
+    Assert (-not @($quiet.Novelties).Count) ($quiet|ConvertTo-Json -Depth 5)
+    $changed="<html><body><h1>antigravity-hooks</h1><p>PreToolUse Stop PreCompact</p></body></html>"
+    $r=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net -docs @{'antigravity-hooks'=$changed}) -Now $now.AddHours(50)
+    Assert (@($r.Novelties).Count -eq 1) ($r|ConvertTo-Json -Depth 5)
+    Assert (@($r.Lines).Count -eq 1 -and $r.Lines[0] -match 'Antigravity' -and $r.Lines[0] -match 'documentación' -and $r.Lines[0] -match 'evalúa antigravity antigravity-hooks') ($r|ConvertTo-Json -Depth 5)
+}
+Test 'acknowledging a documentation change silences it' {
+    $s=NewDir 'estado'
+    Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net) -Now $now|Out-Null
+    Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net -docs @{'antigravity-hooks'='<p>nuevo evento</p>'}) -Now $now.AddHours(25)|Out-Null
+    $a=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Ack -StateDir $s -Path $table -Harness 'antigravity' -Source 'antigravity-hooks' -Now $now
+    Assert ($a.Code -eq 0) ($a|ConvertTo-Json -Depth 5)
+    $n=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Notice -StateDir $s -Path $table -Now $now
+    Assert (-not @($n.Lines).Count) ($n|ConvertTo-Json -Depth 5)
+}
+Test 'a new version installed on this computer produces a notice; the first reading is only a baseline' {
+    $s=NewDir 'estado'
+    $v1={param([string]$command) if($command -eq 'agy'){'1.1.0'}else{$null}}
+    $v2={param([string]$command) if($command -eq 'agy'){'agy 1.2.0 (build 77)'}else{$null}}
+    $r=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net) -VersionResolver $v1 -Now $now
+    Assert (-not @($r.Novelties).Count) ($r|ConvertTo-Json -Depth 5)
+    $r=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net) -VersionResolver $v2 -Now $now.AddHours(25)
+    Assert (@($r.Novelties).Count -eq 1 -and $r.Lines[0] -match 'en este equipo' -and $r.Lines[0] -match '1\.1\.0' -and $r.Lines[0] -match 'evalúa antigravity 1\.2\.0') ($r|ConvertTo-Json -Depth 5)
+}
+Test 'an installed version already announced upstream is not announced twice' {
+    $s=NewDir 'estado'
+    $old={param([string]$command) if($command -eq 'claude'){'2.1.330 (Claude Code)'}else{$null}}
+    $new={param([string]$command) if($command -eq 'claude'){'2.1.331 (Claude Code)'}else{$null}}
+    Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net) -VersionResolver $old -Now $now|Out-Null
+    $r=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net -claude '2.1.331') -VersionResolver $new -Now $now.AddHours(25)
+    Assert (@($r.Lines|Where-Object {$_ -match '2\.1\.331'}).Count -eq 1) ($r|ConvertTo-Json -Depth 5)
+}
+Test 'a program that fails to report its version never blocks' {
+    $s=NewDir 'estado'
+    $broken={param([string]$command) throw 'se colgó'}
+    $r=Invoke-AgentOpsHarnessRadar -ProjectPath $fw -Action Check -StateDir $s -Path $table -Fetcher (Net) -VersionResolver $broken -Now $now
+    Assert ($r.Code -eq 0 -and -not @($r.Novelties).Count) ($r|ConvertTo-Json -Depth 5)
+}
+Test 'downloaded bytes are always read as UTF-8, whatever the server declares' {
+    $m=Get-Module HarnessRadar
+    $plain=[Text.Encoding]::UTF8.GetBytes('<p>Configuración: año, señal y ñandú</p>')
+    $withBom=[byte[]](@(0xEF,0xBB,0xBF)+$plain)
+    Assert ((& $m {param($b) Hr-DecodeBody $b} $plain) -eq '<p>Configuración: año, señal y ñandú</p>') 'UTF-8 without BOM misread'
+    Assert ((& $m {param($b) Hr-DecodeBody $b} $withBom) -eq '<p>Configuración: año, señal y ñandú</p>') 'UTF-8 with BOM misread'
+}
+Test 'permanent and temporary redirects are followed, a redirect loop is not' {
+    $m=Get-Module HarnessRadar
+    $body=[Text.Encoding]::UTF8.GetBytes('<p>ñandú</p>')
+    $site={param([string]$url)
+        switch($url){
+            'https://docs.test/old'{@{Status=308;Location='/new';Bytes=$null}}
+            'https://docs.test/new'{@{Status=302;Location='https://docs.test/page';Bytes=$null}}
+            'https://docs.test/page'{@{Status=200;Location=$null;Bytes=$body}}
+            default{@{Status=301;Location=$url;Bytes=$null}}
+        }}.GetNewClosure()
+    Assert ((& $m {param($u,$g) Hr-FollowRedirects $u $g} 'https://docs.test/old' $site) -eq '<p>ñandú</p>') 'Redirect chain not followed'
+    $loop=$false;try{& $m {param($u,$g) Hr-FollowRedirects $u $g} 'https://docs.test/loop' $site|Out-Null}catch{$loop=$true}
+    Assert $loop 'A redirect loop must fail instead of hanging'
+    $fail=$false;try{& $m {param($u,$g) Hr-FollowRedirects $u $g} 'https://docs.test/x' {param($u) @{Status=500;Location=$null;Bytes=$null}}|Out-Null}catch{$fail=$true}
+    Assert $fail 'A server error must fail'
+}
+Test 'the real fetcher reaches the network code: a closed port fails as a network error' {
+    $m=Get-Module HarnessRadar;$msg=''
+    try{& $m {param($u) Hr-Fetch $u} 'http://127.0.0.1:9/'|Out-Null}catch{$msg=$_.Exception.Message}
+    Assert ($msg -and $msg -notmatch 'Hr-HttpGet|no se reconoce|is not recognized') "Unexpected failure: $msg"
 }
 Test 'the entry script prints JSON and the notice lines' {
     $s=NewDir 'estado'
