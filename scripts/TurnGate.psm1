@@ -33,22 +33,79 @@ function Get-AgentOpsCodeFingerprint {
 
 # Runs the project's suites with the current engine and records evidence only if every suite is green
 # and the code did not change while they ran.
+# Which suites cover the uncommitted code: a suite file itself; for a script or module, every suite that loads
+# it directly or through modules that import it. Shared test helpers, CI or anything unresolved select all.
+function Get-AgentOpsSuitesForChanges {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$ProjectPath)
+    $root=(Resolve-Path -LiteralPath $ProjectPath).Path
+    $suites=@(Get-ChildItem (Join-Path $root 'tests') -Filter '*.tests.ps1' -ErrorAction SilentlyContinue)
+    $all=@($suites|ForEach-Object {$_.Name -replace '\.tests\.ps1$',''}|Sort-Object)
+    $changed=@((Get-AgentOpsCodeFingerprint -ProjectPath $root).Files)
+    $res=[ordered]@{Suites=@();All=$false;Files=$changed}
+    if(-not $changed.Count){return [pscustomobject]$res}
+    $code=@(Get-ChildItem (Join-Path $root 'scripts') -File -ErrorAction SilentlyContinue)
+    $text=@{};foreach($f in @($code)+@($suites)){$text[$f.FullName]=[IO.File]::ReadAllText($f.FullName)}
+    $picked=@()
+    foreach($path in $changed){
+        if($path -match '^tests/([^/]+)\.tests\.ps1$'){$picked+=$Matches[1];continue}
+        if($path -match '^(tests|\.github)/'){$res.All=$true;break}
+        # Closure: the changed file plus every script/module that references a name already in the set.
+        $names=@([IO.Path]::GetFileName($path));$grew=$true
+        while($grew){
+            $grew=$false
+            foreach($f in $code){
+                if($names -contains $f.Name){continue}
+                foreach($n in $names){if($text[$f.FullName].IndexOf($n,[StringComparison]::OrdinalIgnoreCase) -ge 0){$names+=$f.Name;$grew=$true;break}}
+            }
+        }
+        $cover=@($suites|Where-Object {$s=$text[$_.FullName];@($names|Where-Object {$s.IndexOf($_,[StringComparison]::OrdinalIgnoreCase) -ge 0}).Count}|ForEach-Object {$_.Name -replace '\.tests\.ps1$',''})
+        if(-not $cover.Count){$res.All=$true;break}
+        $picked+=$cover
+    }
+    $res.Suites=$(if($res.All){$all}else{@($picked|Sort-Object -Unique)})
+    return [pscustomobject]$res
+}
+
+# Runs suites as separate processes sharing this console (some suites start git or PowerShell that need one),
+# up to -Parallel at a time (each suite has its own temp folder and lock
+# namespace, so they do not collide). Evidence is recorded only if all are green and the code did not change.
 function Invoke-AgentOpsTestRun {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$ProjectPath,[string[]]$Suites=@())
+    param([Parameter(Mandatory)][string]$ProjectPath,[string[]]$Suites=@(),[int]$Parallel=1,[switch]$Changed)
     $res=[ordered]@{Code=1;Status='RED';Fingerprint=$null;Results=@();Evidence=$null;Issues=@()}
+    $temp=@()
     try{
         $root=(Resolve-Path -LiteralPath $ProjectPath).Path
         $before=Get-AgentOpsCodeFingerprint -ProjectPath $root;$res.Fingerprint=$before.Fingerprint
-        $names=$(if($Suites.Count){$Suites}else{@(Get-ChildItem (Join-Path $root 'tests') -Filter '*.tests.ps1'|ForEach-Object {$_.Name -replace '\.tests\.ps1$',''})})
-        $engine=(Get-Process -Id $PID).Path
-        foreach($n in $names){
-            $file=Join-Path $root "tests/$n.tests.ps1"
-            if(-not [IO.File]::Exists($file)){$res.Results+=@([pscustomobject]@{Suite=$n;Exit=-1;Summary='no existe'});continue}
-            $pref=$ErrorActionPreference;$ErrorActionPreference='Continue'
-            try{$out=& $engine -NoProfile -ExecutionPolicy Bypass -File $file 2>&1|Out-String;$exit=$LASTEXITCODE}finally{$ErrorActionPreference=$pref}
-            $res.Results+=@([pscustomobject]@{Suite=$n;Exit=$exit;Summary=(($out.Trim() -split "`n")[-1]).Trim()})
+        if($Changed){
+            $names=@((Get-AgentOpsSuitesForChanges -ProjectPath $root).Suites)
+            if(-not $names.Count){$res.Code=0;$res.Status='NOTHING_TO_RUN';return [pscustomobject]$res}
+        }elseif($Suites.Count){$names=$Suites}
+        else{$names=@(Get-ChildItem (Join-Path $root 'tests') -Filter '*.tests.ps1'|ForEach-Object {$_.Name -replace '\.tests\.ps1$',''})}
+        $engine=(Get-Process -Id $PID).Path;$slots=[Math]::Max(1,$Parallel)
+        $queue=New-Object Collections.Queue;foreach($n in $names){$queue.Enqueue($n)}
+        $running=@();$done=@{}
+        while($queue.Count -or $running.Count){
+            while($queue.Count -and $running.Count -lt $slots){
+                $n=$queue.Dequeue();$file=Join-Path $root "tests/$n.tests.ps1"
+                if(-not [IO.File]::Exists($file)){$done[$n]=[pscustomobject]@{Suite=$n;Exit=-1;Summary='no existe'};continue}
+                $out=[IO.Path]::GetTempFileName();$err=[IO.Path]::GetTempFileName();$temp+=@($out,$err)
+                $proc=Start-Process -FilePath $engine -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$file`"") -RedirectStandardOutput $out -RedirectStandardError $err -NoNewWindow -PassThru
+                $null=$proc.Handle  # keeps the exit code available after the process ends
+                $running+=@([pscustomobject]@{Suite=$n;Process=$proc;Out=$out})
+            }
+            $finished=@($running|Where-Object {$_.Process.HasExited})
+            if(-not $finished.Count){$null=$running[0].Process.WaitForExit(250);continue}
+            foreach($r in $finished){
+                $r.Process.WaitForExit()
+                $lines=@([IO.File]::ReadAllLines($r.Out)|Where-Object {$_.Trim()})
+                $done[$r.Suite]=[pscustomobject]@{Suite=$r.Suite;Exit=$r.Process.ExitCode;Summary=$(if($lines.Count){$lines[-1].Trim()}else{''})}
+                $r.Process.Dispose()
+            }
+            $running=@($running|Where-Object {$finished -notcontains $_})
         }
+        $res.Results=@($names|ForEach-Object {$done[$_]})
         $after=Get-AgentOpsCodeFingerprint -ProjectPath $root
         if(@($res.Results|Where-Object {$_.Exit -ne 0}).Count){return [pscustomobject]$res}
         if($after.Fingerprint -ne $before.Fingerprint){$res.Issues=@('El código cambió mientras corrían las pruebas; vuelve a ejecutarlas.');return [pscustomobject]$res}
@@ -58,9 +115,9 @@ function Invoke-AgentOpsTestRun {
         [IO.File]::WriteAllText($path,($evidence|ConvertTo-Json -Depth 5),(New-Object Text.UTF8Encoding($false)))
         $res.Code=0;$res.Status='GREEN';$res.Evidence=$path
     }catch{$res.Issues=@($_.Exception.Message)}
+    finally{foreach($f in $temp){Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue}}
     return [pscustomobject]$res
 }
-
 function Tg-Counter([string]$stateDir,[string]$sessionId){
     $dir=Join-Path $stateDir 'turn-gate';[IO.Directory]::CreateDirectory($dir)|Out-Null
     return Join-Path $dir ((Tg-Sha ([Text.Encoding]::UTF8.GetBytes([string]$sessionId))).Substring(0,16)+'.json')
@@ -142,4 +199,4 @@ function Install-AgentOpsTurnGate {
     }catch{$res.Code=1;$res.Status='FAILED';$res.Issues=@($_.Exception.Message)}
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function Get-AgentOpsCodeFingerprint,Invoke-AgentOpsTestRun,Test-AgentOpsTurnGate,Install-AgentOpsTurnGate
+Export-ModuleMember -Function Get-AgentOpsCodeFingerprint,Get-AgentOpsSuitesForChanges,Invoke-AgentOpsTestRun,Test-AgentOpsTurnGate,Install-AgentOpsTurnGate

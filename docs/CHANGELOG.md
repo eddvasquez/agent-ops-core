@@ -5,7 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
-
+### Added
+- Pruebas mucho más rápidas: `run-tests.ps1 -Changed` ejecuta solo las suites que cubren el código sin guardar (las que cargan cada script o módulo, directa o indirectamente; si cambia algo común, como el flujo de GitHub o un auxiliar de pruebas, todas). Un cambio típico pasó de 10-20 minutos a menos de 1. `-Parallel N` ejecuta N suites a la vez; queda desactivado por defecto. Cada suite comparte la consola del ejecutor, porque algunas lanzan Git o PowerShell y sin consola fallaban.
 ## [3.15.0] - 2026-11-24
 ### Added
 - Protección de credenciales antes de cada acción del agente: cuando una herramienta va a leer, editar o mostrar un archivo de credenciales (.env, claves .pem/.key, credentials/secrets de datos, google-ads.yaml, .npmrc…), Claude Code y Antigravity preguntan al usuario y Codex, que no permite preguntar, la bloquea y el agente explica qué necesita. Solo cuentan rutas y comandos, nunca el texto que se escribe. Se instala una vez por usuario con scripts/install-secret-guard.ps1 y protege todos los proyectos; un lanzador estable usa siempre la versión activa. hook.PreToolUse pasa a «aprovechada» en los tres arneses.
