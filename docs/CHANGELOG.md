@@ -5,8 +5,11 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.11.0] - 2026-11-24
 ### Added
-- Limpieza obligatoria y automática de las pruebas (R-011): cada suite del marco borra su carpeta temporal al terminar en verde, la conserva si falla y, al empezar, barre las de más de 48 horas (	ests/TestFixtures.ps1). epo-hygiene analiza la estructura de cada suite y exige la limpieza a cualquier suite nueva.
+- Limpieza obligatoria y automática de las pruebas (R-011): cada suite del marco borra su carpeta temporal al terminar en verde, la conserva si falla y, al empezar, barre las de más de 48 horas (	ests/TestFixtures.ps1). 
+epo-hygiene analiza la estructura de cada suite y exige la limpieza a cualquier suite nueva.
 - Protocolo 3 de AGENTS.md: las pruebas de cada proyecto crean sus archivos temporales en una carpeta propia y la borran al terminar en verde; si fallan, la conservan para revisar el fallo y se borra sola después.
 
 ## [3.10.0] - 2026-11-24
@@ -65,7 +68,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Fixed
 - `harvest-instructions.ps1 -Since` fallaba siempre (`FAILED`) en lugar de filtrar por fecha.
-
-## [3.3.0] - 2026-11-20
-### Changed
-- **Protocolo 3 en dos niveles.** Las skills críticas (`dev-tdd`, `dev-systematic-debugging` y las que declare cada proyecto en `reglas_proyecto.md`) vuelven al criterio del 1 %, sin excepciones salvo exención expresa del usuario. `dev-tdd` cubre cualquier cambio en algo que se ejecuta, también en código existente. Antes de cada commit, las suites afectadas deben estar en verde, con evidencia en `activeContext.md`. El resto de skills mantiene el criterio de dominio.

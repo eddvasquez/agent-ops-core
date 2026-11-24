@@ -1,5 +1,9 @@
 # Historial de versiones anteriores
 
+## [3.3.0] - 2026-11-20
+### Changed
+- **Protocolo 3 en dos niveles.** Las skills críticas (`dev-tdd`, `dev-systematic-debugging` y las que declare cada proyecto en `reglas_proyecto.md`) vuelven al criterio del 1 %, sin excepciones salvo exención expresa del usuario. `dev-tdd` cubre cualquier cambio en algo que se ejecuta, también en código existente. Antes de cada commit, las suites afectadas deben estar en verde, con evidencia en `activeContext.md`. El resto de skills mantiene el criterio de dominio.
+
 ## [3.2.0] - 2026-11-20
 ### Changed
 - **Protocolo 9 con varias perspectivas:** si el usuario citó varios profesionales, el agente aplica sin preguntar los que encajan con cada solicitud (hasta 4) y nombra los excluidos. Responde con una síntesis que señala dónde discrepan. La sugerencia inicial admite selección múltiple, y los cambios del panel rigen para el resto de la sesión.

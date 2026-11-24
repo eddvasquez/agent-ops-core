@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `dev-tdd`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [1.2.0] - 2026-11-24
 ### Added
 - Las pruebas usan su propia carpeta temporal, la borran al pasar, la conservan con su ruta al fallar y barren al empezar los restos con más de 48 horas.
 
