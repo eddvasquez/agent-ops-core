@@ -89,5 +89,17 @@ try{
 }catch{$failures.Add("Clear-StaleTestFixtures: $($_.Exception.Message)")}
 if($failures.Count -eq $before){$passed++;Write-Host 'PASS leftovers older than 48 h are swept automatically; recent and foreign folders are kept'}
 
+# 6. Promoting to stable races GitHub: right after the tests finish, branch protection can still report
+#    "Required status check ... is in progress" for a few seconds (3.9.1 and 3.11.0 failed that way).
+#    The push must retry on exactly that rejection, a bounded number of times, and fail on anything else.
+$before=$failures.Count
+$workflow=[IO.File]::ReadAllText((Join-Path $source '.github/workflows/windows-tests.yml'))
+$promote=[regex]::Match($workflow,'(?s)- name: Promote only this tested SHA.*$').Value
+if($promote -notmatch 'for attempt in [0-9 ]+; do'){$failures.Add('promote: the push to stable must be retried a bounded number of times')}
+if($promote -notmatch "grep -q 'is in progress'"){$failures.Add('promote: only the "is in progress" rejection may be retried')}
+if($promote -notmatch 'sleep [1-9][0-9]*'){$failures.Add('promote: retries must wait between attempts')}
+if($promote -match '(?m)^\s*git push origin "\$GITHUB_SHA:refs/heads/stable"\s*$'){$failures.Add('promote: a single unretried push to stable is still present')}
+if($failures.Count -eq $before){$passed++;Write-Host 'PASS promotion to stable retries only while GitHub still reports the tests in progress'}
+
 if($failures.Count){$failures|ForEach-Object {Write-Host "FAIL $_"};Write-Host "Repository hygiene: $passed passed, $($failures.Count) failures.";exit 1}
 Write-Host "Repository hygiene: $passed passed."

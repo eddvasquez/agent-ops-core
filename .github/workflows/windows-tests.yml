@@ -133,4 +133,13 @@ jobs:
             fi
             git merge-base --is-ancestor "$current" "$GITHUB_SHA"
           fi
-          git push origin "$GITHUB_SHA:refs/heads/stable"
+          # Right after the tests finish, branch protection can still see them "in progress" for a few
+          # seconds. Retry only that rejection, a bounded number of times; anything else fails at once.
+          for attempt in 1 2 3 4 5 6; do
+            if out="$(git push origin "$GITHUB_SHA:refs/heads/stable" 2>&1)"; then echo "$out"; exit 0; fi
+            echo "$out"
+            if ! printf '%s' "$out" | grep -q 'is in progress'; then exit 1; fi
+            echo "Required checks still reported in progress (attempt $attempt); retrying in 10 s."
+            sleep 10
+          done
+          exit 1
