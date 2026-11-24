@@ -198,7 +198,8 @@ function CrashActivation($f,$sha){
     $body='Import-Module '''+$moduleLiteral+''' -Force; $controller={param($action,$config,$previous) if($action -eq "Suspend"){@{Present=$false;Enabled=$false;Running=$false}}else{[Environment]::Exit(99)}}; Invoke-AgentOpsUpdate -ConfigPath '''+$configLiteral+''' -Action Apply -SessionId A -CandidateSha '''+$sha+''' -TaskController $controller|Out-Null'
     $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
     $child=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-EncodedCommand',$encoded) -WindowStyle Hidden -PassThru
-    try{if(-not $child.WaitForExit(20000)){$child.Kill();throw 'Crash fixture timed out'};Assert ($child.ExitCode -eq 99) ('Crash fixture did not reach probing: '+$child.ExitCode)}finally{$child.Dispose()}
+    # The child only has to reach activation probing; on a loaded machine that took over 20 s (false failures).
+    try{if(-not $child.WaitForExit(60000)){$child.Kill();throw 'Crash fixture timed out'};Assert ($child.ExitCode -eq 99) ('Crash fixture did not reach probing: '+$child.ExitCode)}finally{$child.Dispose()}
 }
 Test 'abrupt exit after deployment is recovered before starting the next session' {
     $f=Fixture;$new=Publish $f;Run $f|Out-Null;Run $f 'Prepare' 'A' $new|Out-Null

@@ -50,7 +50,7 @@
         },
         {
           "Id": "hook.PreToolUse",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://code.claude.com/docs/en/hooks",
           "VerifiedAt": "2026-11-23",
           "Fallback": "Revisión al guardar (pre-commit) y CI"
@@ -143,7 +143,7 @@
         },
         {
           "Id": "hook.PreToolUse",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://learn.chatgpt.com/docs/hooks",
           "VerifiedAt": "2026-11-23",
           "Fallback": "Revisión al guardar (pre-commit) y CI"
@@ -232,7 +232,7 @@
         },
         {
           "Id": "hook.PreToolUse",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://antigravity.google/docs/hooks",
           "VerifiedAt": "2026-11-23",
           "Fallback": "Revisión al guardar (pre-commit) y CI"

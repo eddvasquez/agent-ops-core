@@ -60,6 +60,11 @@ jobs:
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/project-hygiene.tests.ps1
           exit $LASTEXITCODE
+      - name: Credential guard (before each tool action)
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/secret-guard.tests.ps1
+          exit $LASTEXITCODE
       - name: End-of-turn check (turn gate) and test evidence
         shell: pwsh
         run: |
