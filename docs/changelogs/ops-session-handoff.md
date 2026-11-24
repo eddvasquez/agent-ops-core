@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+### Added
+- MODO ENTRADA ejecuta el sensor de higiene del proyecto y menciona sus hallazgos en el reporte, sin borrar ni guardar nada sin la aprobación del usuario.
 
 ## [2.8.0] - 2026-11-24
 ### Added

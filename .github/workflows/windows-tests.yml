@@ -55,6 +55,11 @@ jobs:
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/harness-radar.tests.ps1
           exit $LASTEXITCODE
+      - name: Project hygiene sensor (read-only)
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/project-hygiene.tests.ps1
+          exit $LASTEXITCODE
       - name: End-of-turn check (turn gate) and test evidence
         shell: pwsh
         run: |
