@@ -1,5 +1,10 @@
 # Historial de versiones anteriores
 
+## [3.7.0] - 2026-11-23
+### Added
+- Lenguaje según la persona (Protocolo 9): el marco pregunta una sola vez a cada usuario a qué se dedica, si le resultan familiares términos como «commit» o «push» y cuánto detalle quiere, y le habla en consecuencia. Por defecto, lenguaje llano con el término técnico entre paréntesis solo cuando le sirve. El perfil se guarda en el equipo, no en el proyecto, y vale para todos sus proyectos.
+- `scripts/user-profile.ps1` (`UserProfile.psm1`) consulta y guarda ese perfil; pruebas en `tests/user-profile.tests.ps1`.
+
 ## [3.6.0] - 2026-11-23
 ### Added
 - Las reglas se citan con el texto literal de su línea `Regla:` (Protocolo 8): al confirmar una regla nueva, en reportes, relevos y commits, y en las enmiendas como antes → después. Quien trabaja en varios proyectos entiende a qué se refiere «R-008» sin abrir el archivo.
