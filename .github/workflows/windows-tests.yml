@@ -55,6 +55,11 @@ jobs:
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/harness-radar.tests.ps1
           exit $LASTEXITCODE
+      - name: End-of-turn check (turn gate) and test evidence
+        shell: pwsh
+        run: |
+          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/turn-gate.tests.ps1
+          exit $LASTEXITCODE
       - name: Automatic pre-commit review (Git hook)
         shell: pwsh
         run: |
