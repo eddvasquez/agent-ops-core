@@ -5,6 +5,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/SessionCheckpoint.psm1') -Force
 $base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-checkpoint-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($base)|Out-Null
 $passed=0;$failed=0
 function Assert($v,$m){if(-not $v){throw $m}}
@@ -144,4 +145,5 @@ Test 'the command-line entry points return JSON and the exit code' {
     Assert ($LASTEXITCODE -eq 0 -and (($o -join "`n")|ConvertFrom-Json).Status -eq 'CLOSED') ($o -join "`n")
 }
 Write-Host "Checkpoint results: $passed passed, $failed failed. Fixtures: $base"
+if(-not $failed){Remove-TestFixtures $base}
 if($failed){exit 1}

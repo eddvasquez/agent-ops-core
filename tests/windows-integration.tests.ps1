@@ -6,6 +6,7 @@ $cli=Join-Path $repo 'scripts/sync-skills.ps1'
 $watch=Join-Path $repo 'scripts/watch-skills.ps1'
 $task=Join-Path $repo 'scripts/manage-skills-watcher.ps1'
 $base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-integration-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($base) | Out-Null
 $failures=0; $passed=0
 function Assert($condition,$message){if(-not $condition){throw $message}}
@@ -150,4 +151,5 @@ Test 'explicit local development install never auto-pulls; existing non-Git fold
     Assert ($LASTEXITCODE -eq 1 -and [IO.File]::ReadAllText((Join-Path $occupied 'keep.txt')) -eq 'keep') 'Installer removed existing folder'
 }
 Write-Host "Integration results: $passed passed, $failures failed. Fixtures: $base"
+if(-not $failures){Remove-TestFixtures $base}
 if($failures){exit 1}

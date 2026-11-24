@@ -4,8 +4,11 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/Versioning.psm1') -Force
 $script:passed=0
+# One root per run, one subfolder per case: the whole run is removed at the end when it passes.
+$script:fixtures=Join-Path ([IO.Path]::GetTempPath()) ('aoc-versioning-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 function New-Fixture {
-    $root=Join-Path ([IO.Path]::GetTempPath()) ('aoc-versioning-'+[guid]::NewGuid().ToString('N'))
+    $root=Join-Path $script:fixtures ([guid]::NewGuid().ToString('N').Substring(0,8))
     [IO.Directory]::CreateDirectory($root)|Out-Null
     & git init -q -b main $root
     return $root
@@ -167,3 +170,4 @@ if($LASTEXITCODE -ne 1 -or ($json|ConvertFrom-Json).Code -ne 1){throw 'CLI did n
 $script:passed++;Write-Host 'PASS CLI reports JSON and exit code'
 
 Write-Host "Versioning: $script:passed passed."
+Remove-TestFixtures $script:fixtures

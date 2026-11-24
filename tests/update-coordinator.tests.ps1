@@ -5,6 +5,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/UpdateCoordinator.psm1') -Force
 $script:base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-update-tests-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($script:base)|Out-Null
 $script:passed=0;$script:failed=0
 $script:proof={param($repo,$sha,$seconds) @{Verified=$true;Sha=$sha;Summary=@('Fixture release');Workflow='windows-tests.yml'}}
@@ -331,4 +332,5 @@ Test 'migration CLI runs from the verified active release with registered config
     Assert ($LASTEXITCODE -eq 0 -and ($json|ConvertFrom-Json).Status -eq 'MIGRATED') ('Managed CLI failed: '+$json)
 }
 Write-Host "Update results: $script:passed passed, $script:failed failed. Fixtures: $script:base"
+if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

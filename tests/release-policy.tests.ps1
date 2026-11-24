@@ -4,6 +4,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/UpdateCoordinator.psm1') -Force
 $root=Join-Path ([IO.Path]::GetTempPath()) ('aoc-policy-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($root)|Out-Null
 Copy-Item -LiteralPath (Join-Path $source 'scripts') -Destination $root -Recurse
 Copy-Item -LiteralPath (Join-Path $source 'release-contract.json') -Destination $root
@@ -77,3 +78,4 @@ $rejected=@($published|Where-Object {-not (Test-LegacyAllowed $_)})
 if($rejected.Count){throw ('Installed bootstraps would reject this release: '+($rejected -join ', '))}
 Write-Host "PASS every published file ($($published.Count)) passes the frozen bootstrap allowlist"
 Write-Host "Release policy: 8 passed. Fixture: $root"
+Remove-TestFixtures $root

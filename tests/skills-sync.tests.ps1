@@ -4,6 +4,7 @@ param([switch]$IncludeLinkTest)
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot '../scripts/SkillsSync.psm1') -Force
 $script:TestRoot = Join-Path ([IO.Path]::GetTempPath()) ('aoc-tests-' + [guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($script:TestRoot) | Out-Null
 $script:Passed = 0
 $script:Failed = 0
@@ -270,4 +271,5 @@ Test 'watcher lock is scoped to its installation state directory' {
     Assert ($a -ne (& $m { Get-SyncWatcherMutexName 'C:\AgentOps\StateB' })) 'Separate installations (tests included) must not share the watcher lock'
 }
 Write-Host "Results: $script:Passed passed, $script:Failed failed. Fixtures: $script:TestRoot"
+if(-not $script:Failed){Remove-TestFixtures $script:TestRoot}
 if ($script:Failed) { exit 1 }

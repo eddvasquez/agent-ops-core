@@ -4,6 +4,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/UserProfile.psm1') -Force
 $script:base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-profile-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($script:base)|Out-Null
 $script:passed=0;$script:failed=0
 function Assert($c,$m){if(-not $c){throw $m}}
@@ -55,4 +56,5 @@ Test 'CLI prints JSON and exits with the result code' {
 }
 Remove-Item -LiteralPath $script:base -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "User profile: $script:passed passed, $script:failed failed."
+if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

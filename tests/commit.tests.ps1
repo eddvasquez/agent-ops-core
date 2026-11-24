@@ -5,6 +5,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/AgentOpsCommit.psm1') -Force
 $script:base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-commit-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($script:base)|Out-Null
 $script:passed=0;$script:failed=0
 $utf8=New-Object Text.UTF8Encoding($false)
@@ -117,4 +118,5 @@ Test 'CLI through powershell -File accepts several comma-separated paths' {
     Assert ($LASTEXITCODE -eq 0 -and @(($json|ConvertFrom-Json).Files).Count -eq 2) $json
 }
 Write-Host "Commit tool: $script:passed passed, $script:failed failed. Fixtures: $script:base"
+if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

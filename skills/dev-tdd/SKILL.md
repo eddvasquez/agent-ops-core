@@ -59,6 +59,7 @@ flowchart TD
    - Prohibido agregar abstracciones prematuras, parámetros no testeados o lógica para casos futuros que aún no tienen una prueba roja asociada.
 3. **Verificación:**
    - Ejecutar la suite de pruebas. El test debe pasar al 100% en conjunto con las pruebas anteriores.
+   - **Archivos temporales:** cada ejecución usa su propia carpeta temporal y la borra al terminar en verde. Si falla, la conserva e indica su ruta en el informe; al empezar, la suite borra los restos de ejecuciones anteriores con más de 48 horas.
 
 ---
 

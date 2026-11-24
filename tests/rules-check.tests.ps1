@@ -4,6 +4,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/RulesCheck.psm1') -Force
 $script:base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-rules-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($script:base)|Out-Null
 $script:passed=0;$script:failed=0
 $utf8=New-Object Text.UTF8Encoding($false)
@@ -191,4 +192,5 @@ Test 'a long Regla line is a warning that does not block the gate' {
     Assert ($w.Count -eq 1 -and $w[0] -match 'R-010' -and $w[0] -match '41') ($r|ConvertTo-Json -Depth 6)
 }
 Write-Host "Rules check: $script:passed passed, $script:failed failed."
+if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

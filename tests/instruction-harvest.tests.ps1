@@ -4,6 +4,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/InstructionHarvest.psm1') -Force
 $base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-harvest-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($base)|Out-Null
 $passed=0;$failed=0
 function Assert($v,$m){if(-not $v){throw $m}}
@@ -152,4 +153,5 @@ Test 'transcripts untouched since -Since are not read' {
     Assert ($t.Count -eq 1 -and $t[0].Harness -eq 'codex') ('Stale transcripts were read: '+(@($t|ForEach-Object {$_.Harness+':'+$_.Text}) -join ' | '))
 }
 Write-Host "Harvest results: $passed passed, $failed failed. Fixtures: $base"
+if(-not $failed){Remove-TestFixtures $base}
 if($failed){exit 1}

@@ -4,6 +4,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/ProjectMigration.psm1') -Force
 $base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-migrations-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($base)|Out-Null
 $passed=0;$failed=0
 function Assert($v,$m){if(-not $v){throw $m}}
@@ -331,4 +332,5 @@ Test 'a short synchronization in progress is awaited instead of returning busy' 
     }finally{if(-not $child.WaitForExit(10000)){$child.Kill()};$child.Dispose()}
 }
 Write-Host "Migration results: $passed passed, $failed failed. Fixtures: $base"
+if(-not $failed){Remove-TestFixtures $base}
 if($failed){exit 1}

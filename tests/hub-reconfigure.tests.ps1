@@ -5,6 +5,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/UpdateCoordinator.psm1') -Force
 $script:base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-hub-tests-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($script:base)|Out-Null
 $script:passed=0;$script:failed=0
 function Assert($condition,$message){if(-not $condition){throw $message}}
@@ -100,4 +101,5 @@ Test 'CLI returns JSON and the exit code without touching scheduled tasks' {
     Assert ($LASTEXITCODE -eq 0 -and ($json|ConvertFrom-Json).Status -eq 'RECONFIGURED') $json
 }
 Write-Host "Hub reconfiguration: $script:passed passed, $script:failed failed. Fixtures: $script:base"
+if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

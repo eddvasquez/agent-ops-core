@@ -4,6 +4,7 @@ $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/LearningProposals.psm1') -Force
 $base=Join-Path ([IO.Path]::GetTempPath()) ('aoc-learning-'+[guid]::NewGuid().ToString('N'))
+. (Join-Path $PSScriptRoot 'TestFixtures.ps1')
 [IO.Directory]::CreateDirectory($base)|Out-Null
 $passed=0;$failed=0
 function Assert($v,$m){if(-not $v){throw $m}}
@@ -150,4 +151,5 @@ Test 'the command-line wrappers return the same JSON contract and exit code' {
 
 Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "Passed: $passed Failed: $failed"
+if(-not $failed){Remove-TestFixtures $base}
 if($failed){exit 1}
