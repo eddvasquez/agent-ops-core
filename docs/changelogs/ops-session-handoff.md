@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [2.7.0] - 2026-11-24
 ### Added
 - MODO ENTRADA explica cómo marcar vistos los cambios de documentación del radar (-Source), además de las versiones nuevas o instaladas.
 
@@ -49,7 +51,3 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 - MODO SALIDA: red de seguridad opcional con `harvest-instructions.ps1` para detectar indicaciones de la sesión que no se registraron.
 ### Changed
 - MODO ENTRADA, Paso 0: `BUSY` tras «Actualizar ahora» se reintenta sin volver a preguntar, porque la aprobación se conserva.
-
-## [1.3.0] - 2026-11-19
-### Added
-- Paso 0b de MODO ENTRADA: si el proyecto no está al día con la versión activa, muestra qué cambiaría y ofrece Migrar ahora / Más tarde / No para esta versión, con garantía de reversión.

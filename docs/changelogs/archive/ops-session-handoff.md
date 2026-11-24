@@ -1,5 +1,9 @@
 # Historial de versiones anteriores: ops-session-handoff
 
+## [1.3.0] - 2026-11-19
+### Added
+- Paso 0b de MODO ENTRADA: si el proyecto no está al día con la versión activa, muestra qué cambiaría y ofrece Migrar ahora / Más tarde / No para esta versión, con garantía de reversión.
+
 ## [1.2.0] - 2026-11-19
 ### Changed
 - MODO SALIDA hace los commits con `commit.ps1` (rutas explícitas, mensaje por archivo, parada en el primer fallo) y solo hace push si los commits devolvieron código 0.
