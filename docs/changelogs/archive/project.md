@@ -1,5 +1,13 @@
 # Historial de versiones anteriores
 
+## [3.5.1] - 2026-11-21
+
+### Changed
+- Actualiza la guía de entrada para reflejar los nueve protocolos, la recuperación de sesiones y el alcance real del marco 3.5.0.
+
+### Fixed
+- Evita crear un changelog raíz que oculte el historial existente en `docs/CHANGELOG.md` al migrar un proyecto.
+
 ## [3.5.0] - 2026-11-20
 ### Added
 - **Reanudación desde cualquier arnés con terminal.** `checkpoint.ps1 -Request` guarda la petición literal del usuario (las 5 últimas) y `resume-session.ps1` la devuelve como `UserRequests`, así que retomar ya no depende de leer la conversación del arnés anterior.

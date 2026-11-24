@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.13.1] - 2026-11-24
 ### Fixed
 - Las pruebas ya no comparten los bloqueos de sistema con la instalación real del equipo: cada suite usa su propio espacio de nombres (AGENT_OPS_LOCK_NAMESPACE, fijado por 	ests/TestFixtures.ps1), así que ni las pruebas fallan ni la instalación responde «ocupado» mientras corren. Los procesos reales conservan exactamente los mismos nombres.
 - La comprobación al terminar el turno lee y escribe UTF-8 directamente: en Windows PowerShell 5.1 los acentos del aviso salían rotos y una entrada con marca BOM hacía que dejara terminar sin comprobar.
@@ -59,11 +61,3 @@ epo-hygiene analiza la estructura de cada suite y exige la limpieza a cualquier 
 ### Added
 - Las reglas se citan con el texto literal de su línea `Regla:` (Protocolo 8): al confirmar una regla nueva, en reportes, relevos y commits, y en las enmiendas como antes → después. Quien trabaja en varios proyectos entiende a qué se refiere «R-008» sin abrir el archivo.
 - `check-rules.ps1` devuelve `Warnings` con las reglas cuya línea `Regla:` supera 40 palabras. Es un aviso: no bloquea la compuerta.
-
-## [3.5.1] - 2026-11-21
-
-### Changed
-- Actualiza la guía de entrada para reflejar los nueve protocolos, la recuperación de sesiones y el alcance real del marco 3.5.0.
-
-### Fixed
-- Evita crear un changelog raíz que oculte el historial existente en `docs/CHANGELOG.md` al migrar un proyecto.
