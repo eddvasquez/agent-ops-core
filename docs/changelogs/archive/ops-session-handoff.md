@@ -1,5 +1,10 @@
 # Historial de versiones anteriores: ops-session-handoff
 
+## [2.1.0] - 2026-11-20
+### Changed
+- MODO ENTRADA: las skills críticas (`dev-tdd`, `dev-systematic-debugging` y las que declare el proyecto) vuelven al criterio del 1 %; el resto mantiene el criterio de dominio.
+- MODO SALIDA: el estado de pruebas registra las suites ejecutadas, su n.º de pruebas y las exenciones concedidas por el usuario.
+
 ## [2.0.0] - 2026-11-20
 ### Added
 - MODO SALIDA: captura de aprendizajes reutilizables y presentación de las fichas de riesgo bajo de la sesión; procedimiento completo en `references/aprendizaje.md`, que solo se lee al cerrar.

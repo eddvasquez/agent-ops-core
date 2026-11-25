@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [2.10.0] - 2026-11-25
 ### Added
 - MODO SALIDA: publicar por hitos terminados; tras el push, esperar a GitHub en segundo plano con `wait-ci.ps1` en lugar de quedarse mirando (R-013).
 - MODO SALIDA, en el repositorio de Agent Ops Core: tras guardar una versión terminada, `publish-local.ps1` la prueba en las dos versiones de PowerShell y la instala en este PC para todos los proyectos (R-014).
@@ -43,8 +45,3 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 ### Added
 - MODO ENTRADA, Paso 2: `resume-session.ps1` detecta una sesión cortada (`INTERRUPTED`/`DIVERGED`) y su siguiente paso exacto. Quien recibe completa el MODO SALIDA pendiente.
 - Punto de control por paso con `checkpoint.ps1` y MODO SALIDA MÍNIMO cuando la cuota visible baja de ~10 %. MODO SALIDA cierra el checkpoint antes del commit de relevo.
-
-## [2.1.0] - 2026-11-20
-### Changed
-- MODO ENTRADA: las skills críticas (`dev-tdd`, `dev-systematic-debugging` y las que declare el proyecto) vuelven al criterio del 1 %; el resto mantiene el criterio de dominio.
-- MODO SALIDA: el estado de pruebas registra las suites ejecutadas, su n.º de pruebas y las exenciones concedidas por el usuario.

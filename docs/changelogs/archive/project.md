@@ -1,5 +1,9 @@
 # Historial de versiones anteriores
 
+## [3.9.1] - 2026-11-23
+### Fixed
+- El radar de arneses solo avisa dentro del repositorio de Agent Ops Core, a quien lo mantiene (R-010). En cualquier otro proyecto responde `NOT_MAINTAINER`, sin consultar la red ni mostrar nada.
+
 ## [3.9.0] - 2026-11-23
 ### Added
 - Radar de arneses (primera fase): `scripts/harness-radar.ps1` revisa una vez al día las versiones nuevas de Codex y Claude Code en sus fuentes oficiales y deja un aviso de una línea («Novedad de arnés: … Pide "evalúa …"») que se puede marcar como visto. Una fuente caída nunca bloquea y el texto descargado se trata como datos.

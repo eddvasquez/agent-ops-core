@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.18.0] - 2026-11-25
 ### Added
 - Aviso al empezar cada sesión en Claude Code, Codex y Antigravity: en un proyecto que sigue Agent Ops Core, el arnés le dice al agente que haga el MODO ENTRADA antes de tocar nada, y le da un resumen local y sin red (archivos sin guardar, si la sesión anterior se cortó y si hay una actualización verificada pendiente). Nunca copia lo que dejó escrito la sesión anterior. Tras compactar la conversación (Claude Code y Codex) vuelve a darle las reglas activas del proyecto, literales (Protocolo 8). En otras carpetas no dice nada y, si algo falla, la sesión empieza igual. Se instala una vez por usuario con `scripts/install-session-start.ps1` y conserva los demás hooks de inicio. `hook.SessionStart` pasa a «aprovechada» en los tres arneses (3 de 8).
 - Antes de compactar la conversación, Claude Code recibe instrucciones para el resumen: conservar literalmente las peticiones y correcciones del usuario, las reglas registradas, el plan con su siguiente paso exacto, qué archivos están sin guardar o sin publicar, las decisiones pendientes y los resultados de pruebas. Solo en proyectos que siguen Agent Ops Core; nunca impide la compactación. `hook.PreCompact` pasa a «aprovechada» en Claude Code (4 de 8). Codex ignora lo que se le diga en ese momento y Antigravity no lo tiene: a ambos se les vuelven a dar las reglas al empezar tras compactar.
@@ -80,7 +82,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Fixed
 - El radar lee siempre las páginas como UTF-8 y sigue las redirecciones permanentes (308): Windows PowerShell 5.1 y PowerShell 7 obtienen la misma huella y ninguna página mudada queda sin leer.
-
-## [3.9.1] - 2026-11-23
-### Fixed
-- El radar de arneses solo avisa dentro del repositorio de Agent Ops Core, a quien lo mantiene (R-010). En cualquier otro proyecto responde `NOT_MAINTAINER`, sin consultar la red ni mostrar nada.
