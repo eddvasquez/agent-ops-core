@@ -5,6 +5,9 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Plugin de Agent Ops Core para Antigravity (`install-antigravity-plugin.ps1`): reúne en `~/.gemini/config/plugins/agent-ops-core` el aviso al empezar la sesión, la protección de credenciales y el registro de actividad, más dos reglas nativas: una siempre activa con lo esencial del marco (MODO ENTRADA, reglas del proyecto, aceptación y esperas) y otra que se activa sola al tocar archivos de credenciales. Se valida con `agy plugin validate --strict` y solo entonces sustituye a las entradas sueltas de `hooks.json`; los demás instaladores ya no las vuelven a añadir. `plugin.hooks` pasa a «aprovechada» en Antigravity (5 de 8).
+
 
 ## [3.19.0] - 2026-11-25
 ### Added

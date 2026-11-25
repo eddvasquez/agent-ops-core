@@ -274,9 +274,9 @@
         },
         {
           "Id": "plugin.hooks",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://antigravity.google/docs/plugins",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "Instalación de hooks por la migración"
         }
       ],

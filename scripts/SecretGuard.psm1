@@ -171,7 +171,8 @@ function Install-AgentOpsSecretGuard {
             return $c}
         & $edit $AntigravityHooksPath {param($c)
             if($c.Contains('agent-ops-secret-guard')){$c.Remove('agent-ops-secret-guard')}
-            if(-not $Uninstall){$c['agent-ops-secret-guard']=[ordered]@{PreToolUse=@([ordered]@{matcher='view_file|write_to_file|replace_file_content|multi_replace_file_content|run_command|grep_search';hooks=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=15})})}}
+            # With the Antigravity plugin installed, its hooks live in the plugin: no loose entry.
+            if(-not $Uninstall -and -not [IO.File]::Exists((Join-Path (Split-Path -Parent $AntigravityHooksPath) 'plugins/agent-ops-core/plugin.json'))){$c['agent-ops-secret-guard']=[ordered]@{PreToolUse=@([ordered]@{matcher='view_file|write_to_file|replace_file_content|multi_replace_file_content|run_command|grep_search';hooks=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=15})})}}
             return $c}
         # Codex native profile (text edit of config.toml: top-level key before the first table, block at the end).
         $current=$(if([IO.File]::Exists($CodexConfigPath)){[IO.File]::ReadAllText($CodexConfigPath)}else{''})

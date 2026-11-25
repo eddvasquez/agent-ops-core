@@ -197,8 +197,8 @@ function Install-AgentOpsSessionStart {
         & $edit $AntigravityHooksPath {param($c)
             if($c.Contains('agent-ops-session-start')){$c.Remove('agent-ops-session-start')}
             if($c.Contains('agent-ops-activity')){$c.Remove('agent-ops-activity')}
-            if(-not $Uninstall){$c['agent-ops-activity']=[ordered]@{PostToolUse=@([ordered]@{matcher='write_to_file|replace_file_content|multi_replace_file_content|run_command';hooks=@([ordered]@{type='command';command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$launcher`" -Hook post-tool -Harness antigravity";timeout=10})})}}
-            if(-not $Uninstall){$c['agent-ops-session-start']=[ordered]@{SessionStart=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=20})}}
+            if(-not $Uninstall -and -not [IO.File]::Exists((Join-Path (Split-Path -Parent $AntigravityHooksPath) 'plugins/agent-ops-core/plugin.json'))){$c['agent-ops-activity']=[ordered]@{PostToolUse=@([ordered]@{matcher='write_to_file|replace_file_content|multi_replace_file_content|run_command';hooks=@([ordered]@{type='command';command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$launcher`" -Hook post-tool -Harness antigravity";timeout=10})})}}
+            if(-not $Uninstall -and -not [IO.File]::Exists((Join-Path (Split-Path -Parent $AntigravityHooksPath) 'plugins/agent-ops-core/plugin.json'))){$c['agent-ops-session-start']=[ordered]@{SessionStart=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=20})}}
             return $c}
         $res.Files=@($changed)
         if($changed.Count){$res.Status=$(if($Uninstall){'REMOVED'}else{'INSTALLED'})}elseif($Uninstall){$res.Status='NOT_INSTALLED'}
