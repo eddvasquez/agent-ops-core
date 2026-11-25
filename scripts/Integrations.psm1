@@ -107,7 +107,7 @@ function Update-AgentOpsBootstrap {
     if(-not $state -or -not $watch){$res.Status='NOT_INSTALLED';return [pscustomobject]$res}
     $installer=Join-Path ([string]$state.Active.Path) 'install.ps1'
     if(-not $Runner){$Runner={param($i,$h,$t) & $i -HubDir $h -Targets $t -SkipTask|Out-Null;$LASTEXITCODE}}
-    try{$code=& $Runner $installer ([string]$watch.HubDir) @($watch.Targets);if($code -eq 0 -or $null -eq $code){$res.Code=0;$res.Status='UPDATED'}else{$res.Issues=@("install.ps1 terminó con código $code")}}catch{$res.Issues=@($_.Exception.Message)}
+    try{$code=& $Runner $installer ([string]$watch.HubDir) @($watch.Targets);if($code -eq 0 -or $null -eq $code){$res.Code=0;$res.Status='UPDATED'}else{$res.Issues=@("install.ps1 exited with code $code")}}catch{$res.Issues=@($_.Exception.Message)}
     return [pscustomobject]$res
 }
 Export-ModuleMember -Function Resolve-AgentOpsIntegrationHome,Sync-AgentOpsIntegrations,Invoke-AgentOpsIntegrationsIfNeeded,Update-AgentOpsBootstrap,Get-AgentOpsConsent,Set-AgentOpsConsent
