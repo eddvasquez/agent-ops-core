@@ -42,7 +42,8 @@ function New-AgentOpsLocalProof {
     $dir=Join-Path ([IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')) ('aoc-localrelease-'+[guid]::NewGuid().ToString('N').Substring(0,12))
     $made=$false
     try{
-        if(((Invoke-Git -RepositoryPath $root -Arguments @('status','--porcelain','--untracked-files=all')).Output).Trim()){$res.Code=2;$res.Status='LOCAL_DIRTY';$res.Issues=@('Guarda (commit) o descarta los cambios: solo se prueba un estado guardado.');return [pscustomobject]$res}
+        # Only the commit is tested (in a copy): uncommitted changes are left out, so work can go on meanwhile.
+        if(((Invoke-Git -RepositoryPath $root -Arguments @('status','--porcelain','--untracked-files=all')).Output).Trim()){$res.Issues=@('Hay cambios sin guardar: no se incluyen; se prueba el último commit.')}
         $sha=((Invoke-Git -RepositoryPath $root -Arguments @('rev-parse','HEAD')).Output).Trim().ToLowerInvariant();$res.Sha=$sha
         $null=Invoke-Git -RepositoryPath $root -Arguments @('worktree','add','--detach','--quiet',$dir,$sha);$made=$true
         foreach($edition in 'Desktop','Core'){

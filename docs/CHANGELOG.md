@@ -6,11 +6,17 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Added
+- Petición de permiso en Codex (`PermissionRequest`): cuando Codex va a pedir aprobación (por ejemplo, para salir del aislamiento) y la orden o el parche nombra credenciales, se niega con la misma explicación que antes de cada acción. Así una salida del aislamiento no puede esquivar el perfil que niega leer claves privadas. En cualquier otro caso no decide: sigue tu aprobación normal, y nunca aprueba por ti. `hook.PermissionRequest` pasa a «aprovechada» en Codex (5 de 8).
+- El canal local se niega (`BOOTSTRAP_TOO_OLD`) si el arranque que comprueba cada sesión no entiende versiones locales, y explica cómo actualizarlo desde `stable` con `install.ps1`; antes la instalación salía bien pero cada sesión respondía FAILED. El actualizador declara la capacidad con la línea `# capability: local-channel-v1`.
 - Al terminar un subagente (Claude Code, `SubagentStop`): si un revisor de aceptación editó el entregable durante la revisión o marcó puntos como cumplidos sin citarlo, se le devuelve a trabajar (R-017); una revisión pendiente no frena a subagentes de otras tareas y nunca entra en bucle. `hook.SubagentStop` pasa a «aprovechada» en Claude Code (7 de 8).
 - Registro de actividad «después de cada acción» en Claude Code, Codex y Antigravity: en un proyecto que sigue Agent Ops Core, cada acción que escribe o ejecuta queda anotada fuera del repositorio (herramienta, rutas relativas y, en las órdenes, solo si ejecutó pruebas y su resultado; nunca el texto de la orden ni el contenido). En Claude Code y Codex corre en segundo plano; Antigravity recibe respuesta al momento. Tras una sesión cortada, el aviso de inicio dice qué archivos tocó y cuántas pruebas lanzó desde su último punto de control. `hook.PostToolUse` pasa a «aprovechada» en los tres arneses.
 - Revisión de aceptación (R-016, R-017): `acceptance.ps1` fija antes de trabajar la petición literal del usuario, sus criterios y lo que no se toca (promesa, precio, garantía, tono… con patrón comprobable cuando se puede), y antes de entregar prepara una hoja para un revisor en contexto limpio que trae siempre las reglas, las fuentes y el contrato del proyecto. El revisor solo juzga, con una cita, y nunca cambia la oferta; una invariante perdida falla sola; como mucho tres rondas. La comprobación al terminar el turno no deja cerrar con una revisión empezada sin superar.
 - Mientras ya corren las pruebas de un estado, la comprobación al terminar el turno deja terminar (`RUNNING`) en lugar de devolver al agente a ejecutarlas, y le recuerda ofrecer al usuario esperar o adelantar algo que no dependa del resultado (R-015). Cada ejecución marca el proyecto mientras corre (`.context/test-runs/`); una marca solo cuenta si su proceso sigue vivo.
 - Permisos nativos para credenciales, sin lanzar ningún proceso. Claude Code: reglas «preguntar» para leer o editar `.env` (no los ejemplos), claves (.pem, .key, .pfx, .p12, id_rsa…), `google-ads.yaml`, `.npmrc`, `.tfstate`/`.tfvars` y similares; conservan las reglas propias del usuario. Codex: un perfil de permisos `agent-ops` que parte de `:workspace` y niega solo las claves privadas (el aislamiento también se lo impide a los programas que Codex ejecuta, por eso no incluye `.env` ni `google-ads.yaml`, que siguen con la protección actual); guarda copia de `config.toml` y no lo toca si ya define su propio aislamiento. `-Uninstall` lo deja exactamente como estaba. Antigravity queda «esperando»: sus permisos de archivos no admiten patrones.
+
+### Changed
+- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
+- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
 
 ### Fixed
 - Las pruebas del actualizador reintentan la comprobación de sesión cuando su plazo de 5 s para consultar el remoto se agota con el equipo cargado (respondía «sin red» sin fallo real); las que simulan estar sin red siguen terminando así.
@@ -29,6 +35,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Changed
 - El lanzador común de hooks se instala desde `HookIO.psm1` (`Install-AgentOpsHookLauncher`), compartido por la protección de credenciales y el aviso de inicio; su contenido no cambia.
 
+### Changed
+- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
+- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
+
 ### Fixed
 - La prueba del vigilante del actualizador daba 6 s a un PowerShell nuevo para arrancar y dar señal de vida: con el equipo cargado no llegaba y la prueba fallaba sin error real. Ahora espera hasta 60 s y termina en cuanto llega la señal.
 - La prueba de «sincronización más larga que la espera» del actualizador mantenía el bloqueo un tiempo fijo (13 s): con el equipo cargado se soltaba dentro de la espera y la prueba fallaba sin haber error. Ahora lo mantiene hasta que la prueba lo suelta.
@@ -38,6 +48,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Las suites lentas se reparten en partes que corren a la vez: con `run-tests.ps1 -Parallel N`, una suite que acepta `-Shard k/n` se ejecuta en N procesos, sus partes arrancan primero y el resultado se junta en uno (rojo si falla cualquier parte). La del actualizador pasó de 390 s a 155 s en un equipo de 8 núcleos.
 - `run-tests.ps1` elige por defecto cuántas a la vez según la capacidad real de la máquina, sin tope fijo (R-012): la mitad de los núcleos lógicos y 250 MB libres por parte (`-Parallel 1` las ejecuta de una en una). La tanda completa bajó de unos 10 min a 6,4 min.
 - Las pruebas de GitHub corren en 4 trabajos en paralelo por versión de PowerShell (dos mitades del actualizador, integración y gobernanza). Las comprobaciones que exige `stable` conservan su nombre y solo pasan si pasaron todas las partes: un trabajo saltado ya no puede contar como verde.
+
+### Changed
+- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
+- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
 
 ### Fixed
 - En GitHub, el paso que ejecutaba `rules-check` y `user-profile` solo comprobaba el resultado del segundo: un fallo de `rules-check` pasaba sin avisar. Ahora cuenta cada suite, y `repo-hygiene` exige que ninguna suite quede fuera, que cada resultado cuente y que se ejecuten todas las partes.
@@ -57,6 +71,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Added
 - Protección de credenciales antes de cada acción del agente: cuando una herramienta va a leer, editar o mostrar un archivo de credenciales (.env, claves .pem/.key, credentials/secrets de datos, google-ads.yaml, .npmrc…), Claude Code y Antigravity preguntan al usuario y Codex, que no permite preguntar, la bloquea y el agente explica qué necesita. Solo cuentan rutas y comandos, nunca el texto que se escribe. Se instala una vez por usuario con scripts/install-secret-guard.ps1 y protege todos los proyectos; un lanzador estable usa siempre la versión activa. hook.PreToolUse pasa a «aprovechada» en los tres arneses.
 
+### Changed
+- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
+- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
+
 ### Fixed
 - La prueba de recuperación tras un cierre brusco da 60 s (antes 20) al proceso simulado: con el equipo cargado fallaba sin que hubiera error.
 
@@ -65,6 +83,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Sensor de higiene del proyecto (`scripts/project-hygiene.ps1`, solo lectura): al empezar la sesión avisa de copias de skills del hub dentro del proyecto (idénticas o distintas), archivos provisionales con más de 7 días en `scratch/`, `tmp/` o `.tmp/` y gobernanza sin guardar en el historial. Nunca borra ni cambia nada; la decisión es del usuario en cada proyecto.
 
 ## [3.13.1] - 2026-11-24
+### Changed
+- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
+- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
+
 ### Fixed
 - Las pruebas ya no comparten los bloqueos de sistema con la instalación real del equipo: cada suite usa su propio espacio de nombres (`AGENT_OPS_LOCK_NAMESPACE`, fijado por `tests/TestFixtures.ps1`), así que ni las pruebas fallan ni la instalación responde «ocupado» mientras corren. Los procesos reales conservan exactamente los mismos nombres.
 - La comprobación al terminar el turno lee y escribe UTF-8 directamente: en Windows PowerShell 5.1 los acentos del aviso salían rotos y una entrada con marca BOM hacía que dejara terminar sin comprobar.
@@ -78,6 +100,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Added
 - Radar de arneses, tercera fase: `-Action Evaluate` prepara en `docs/radar/` el informe de cada novedad (fuentes oficiales y capacidades relacionadas); `-Action Ack -Report` solo la cierra con un veredicto válido (APROVECHAR, ESPERAR, DESCARTAR o YA CUBIERTO) y lo registra; `-Action Coverage` muestra cuántas capacidades de cada arnés se aprovechan; las novedades sin decisión durante más de 14 días lo dicen en su aviso.
 
+### Changed
+- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
+- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
+
 ### Fixed
 - La promoción a `stable` reintenta (hasta 6 veces, cada 10 s) solo cuando GitHub aún ve las pruebas «en curso» justo después de terminar; esa carrera hizo fallar la 3.9.1 y la 3.11.0. Cualquier otro rechazo falla al instante.
 
@@ -89,6 +115,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ## [3.10.0] - 2026-11-24
 ### Added
 - Radar de arneses, segunda fase: vigila también las páginas oficiales de hooks, ajustes y plugins de Claude Code, Codex y Antigravity (huella del texto visible: el ruido de la página no cuenta) y las versiones instaladas en el equipo (`claude`, `codex`, `agy`). Así Antigravity, que no publica versiones en GitHub, queda cubierto. Los cambios de documentación se marcan como vistos con `-Action Ack -Harness <id> -Source <página>`.
+
+### Changed
+- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
+- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
 
 ### Fixed
 - El radar lee siempre las páginas como UTF-8 y sigue las redirecciones permanentes (308): Windows PowerShell 5.1 y PowerShell 7 obtienen la misma huella y ninguna página mudada queda sin leer.

@@ -2,6 +2,8 @@
 Set-StrictMode -Version 2
 $script:library=Import-Module (Join-Path $PSScriptRoot 'SkillsSync.psm1') -Force -PassThru
 $script:core=@('dev-systematic-debugging','dev-tdd','ops-git-worktrees','ops-project-init','ops-project-migrate','ops-session-handoff')
+# capability: local-channel-v1
+# (The local channel checks for the line above in the bootstrap: an older bootstrap rejects local manifests.)
 # Local channel Git calls read a repository on this PC (no network): a loaded machine can take more than 5 s to start Git.
 $script:localGit=60
 function Up-Root($path){& $script:library {param($p) Get-SyncRoot $p} $path}
@@ -591,7 +593,11 @@ function Install-AgentOpsLocalRelease {
         $origin=(Up-Git @('-C',$src,'remote','get-url','origin') $script:localGit $GitRunner)
         $repo=$(if($origin.ExitCode -eq 0){try{Up-Repo ([string]$origin.Output).Trim()}catch{''}}else{''})
         if($repo -ne $s.Identity.RepoUrl){return (& $stop 'LOCAL_OTHER_REPOSITORY' 2 'The local repository is not the one this installation follows.')}
-        if(([string](Up-GitOk @('-C',$src,'status','--porcelain','--untracked-files=all') $script:localGit $GitRunner)).Trim()){return (& $stop 'LOCAL_DIRTY' 2 'Commit or discard the local changes first: only a committed state can be installed.')}
+        # Every session is checked by the bootstrap (InstallRoot), not by the active release: it must read local manifests.
+        $boot=Up-Child $s.Config.InstallRoot 'scripts/UpdateCoordinator.psm1'
+        if(-not [IO.File]::Exists($boot) -or [IO.File]::ReadAllText($boot) -notmatch '(?m)^# capability: local-channel-v1\s*$'){return (& $stop 'BOOTSTRAP_TOO_OLD' 2 'El arranque de esta instalacion no entiende versiones locales y responderia FAILED en cada sesion. Actualizalo desde stable con install.ps1 (cuando GitHub tenga una version con canal local) y vuelve a intentarlo.')}
+        # The release is built from the commit only: uncommitted changes never reach it, so they only earn a notice.
+        $dirtyNote=$(if(([string](Up-GitOk @('-C',$src,'status','--porcelain','--untracked-files=all') $script:localGit $GitRunner)).Trim()){'Hay cambios sin guardar en el repositorio: no se incluyen; se instala el ultimo commit.'}else{$null})
         $sha=([string](Up-GitOk @('-C',$src,'rev-parse','HEAD') $script:localGit $GitRunner)).Trim().ToLowerInvariant()
         if($s.Active -and $sha -eq $s.Active.Sha){return [pscustomobject](Up-Result $s 'UP_TO_DATE')}
         if($s.Active -and (Up-Git @('-C',$src,'merge-base','--is-ancestor',$s.Active.Sha,$sha) $script:localGit $GitRunner).ExitCode -ne 0){return (& $stop 'LOCAL_NOT_AHEAD' 2 'The local commit does not descend from the active version.')}
@@ -608,7 +614,8 @@ function Install-AgentOpsLocalRelease {
         elseif($previous){$s.LastVerifiedCI=@{Sha=$previous.Sha;Path=$previous.Path}}
         $s.Active.Source='local';$s.Active.Lineage=@($lineage|Select-Object -First 2000)
         Up-Save $s
-        return [pscustomobject](Up-Result $s 'UPDATED')
+        $done=Up-Result $s 'UPDATED';if($dirtyNote){$done.Issues=@($dirtyNote)}
+        return [pscustomobject]$done
     }catch{
         $message=$_.Exception.Message
         if($message.StartsWith('BUSY:')){return (& $stop 'BUSY' 3 $message)}

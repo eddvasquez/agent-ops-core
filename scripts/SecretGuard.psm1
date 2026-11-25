@@ -160,7 +160,15 @@ function Install-AgentOpsSecretGuard {
             if(@($ask).Count){$c['permissions']['ask']=@($ask)}elseif($c['permissions'].Contains('ask')){$c['permissions'].Remove('ask')}
             if(-not $c['permissions'].Count){$c.Remove('permissions')}
             return $c}
-        & $edit $CodexHooksPath {param($c) & $swap $c $(if($Uninstall){$null}else{[ordered]@{matcher='Bash|apply_patch|mcp__.*';hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook secret-guard -Harness codex";commandWindows=(& $win 'codex');timeout=15})}})}
+        & $edit $CodexHooksPath {param($c)
+            $c=& $swap $c $(if($Uninstall){$null}else{[ordered]@{matcher='Bash|apply_patch|mcp__.*';hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook secret-guard -Harness codex";commandWindows=(& $win 'codex');timeout=15})}})
+            # When Codex asks for approval (for example to leave the sandbox), a request that names a credential is denied too.
+            $existing=$(if($c['hooks'].Contains('PermissionRequest')){@($c['hooks']['PermissionRequest'])}else{@()})
+            $list=@($existing|Where-Object {$_ -and (($_|ConvertTo-Json -Depth 12 -Compress) -notmatch 'permission-request')})
+            if(-not $Uninstall){$list=@($list)+@([ordered]@{matcher='Bash|apply_patch|mcp__.*';hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook permission-request -Harness codex";commandWindows="powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$launcher`" -Hook permission-request -Harness codex";timeout=15})})}
+            if(@($list).Count){$c['hooks']['PermissionRequest']=@($list)}else{$c['hooks'].Remove('PermissionRequest')}
+            if(-not $c['hooks'].Count){$c.Remove('hooks')}
+            return $c}
         & $edit $AntigravityHooksPath {param($c)
             if($c.Contains('agent-ops-secret-guard')){$c.Remove('agent-ops-secret-guard')}
             if(-not $Uninstall){$c['agent-ops-secret-guard']=[ordered]@{PreToolUse=@([ordered]@{matcher='view_file|write_to_file|replace_file_content|multi_replace_file_content|run_command|grep_search';hooks=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=15})})}}

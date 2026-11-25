@@ -386,11 +386,26 @@ Test 'a local commit is refused without its own proof from both editions, with u
     $r=LocalInstall $f $src;Assert ($r.Code -ne 0 -and $r.Status -eq 'LOCAL_PROOF_MISSING' -and $r.ActiveSha -eq $f.OldSha) ($r|ConvertTo-Json -Depth 6)
     LocalProof $f $sha @('Desktop')|Out-Null
     $r=LocalInstall $f $src;Assert ($r.Status -eq 'LOCAL_PROOF_MISSING') 'A proof from one edition was accepted'
-    LocalProof $f ('f'*40)|Out-Null;LocalProof $f $sha|Out-Null;Put $src 'scripts/sin-guardar.ps1' 'x'
-    $r=LocalInstall $f $src;Assert ($r.Code -ne 0 -and $r.Status -eq 'LOCAL_DIRTY') ($r|ConvertTo-Json -Depth 6)
-    Remove-Item -LiteralPath (Join-Path $src 'scripts/sin-guardar.ps1')
+    LocalProof $f ('f'*40)|Out-Null;LocalProof $f $sha|Out-Null
     & git -C $src remote set-url origin (Join-Path (Split-Path -Parent $f.Remote) 'otro-repo')
     $r=LocalInstall $f $src;Assert ($r.Code -ne 0 -and $r.Status -eq 'LOCAL_OTHER_REPOSITORY') ($r|ConvertTo-Json -Depth 6)
+}
+Test 'uncommitted changes do not block a local install: the commit is installed and the user is told they are left out' {
+    $f=Fixture;$src=LocalSource $f;$sha=LocalCommit $src;LocalProof $f $sha|Out-Null
+    Put $src 'scripts/sin-guardar.ps1' 'x'
+    $r=LocalInstall $f $src
+    Assert ($r.Code -eq 0 -and $r.Status -eq 'UPDATED' -and $r.ActiveSha -eq $sha) ($r|ConvertTo-Json -Depth 6)
+    Assert ((@($r.Issues) -join ' ') -match 'sin guardar' -and (@($r.Issues) -join ' ') -match 'no se incluyen') ($r|ConvertTo-Json -Depth 6)
+    Assert (-not (Test-Path (Join-Path $r.ActivePath 'scripts/sin-guardar.ps1'))) 'An uncommitted file reached the release'
+}
+Test 'a local install is refused when the bootstrap that checks every session cannot read local releases' {
+    $f=Fixture;$src=LocalSource $f;$sha=LocalCommit $src;LocalProof $f $sha|Out-Null
+    # An older bootstrap (like 3.5.0 on a real machine) has no local-channel support: it would answer FAILED at every session.
+    $boot=Join-Path $f.Parameters.InstallRoot 'scripts/UpdateCoordinator.psm1'
+    [IO.File]::WriteAllText($boot,([IO.File]::ReadAllText($boot) -replace '# capability: local-channel-v1',''))
+    $r=LocalInstall $f $src
+    Assert ($r.Code -ne 0 -and $r.Status -eq 'BOOTSTRAP_TOO_OLD' -and $r.ActiveSha -eq $f.OldSha) ($r|ConvertTo-Json -Depth 6)
+    Assert ((@($r.Issues) -join ' ') -match 'install\.ps1') 'The user must be told how to update the bootstrap'
 }
 Test 'a local commit that does not descend from the active version is refused' {
     $f=Fixture;$src=LocalSource $f

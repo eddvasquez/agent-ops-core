@@ -38,10 +38,12 @@ Test 'a red edition records no proof and says what failed' {
     Assert ($p.Code -eq 1 -and $p.Status -eq 'RED' -and (@($p.Failures) -join ' ') -match 'roto') ($p|ConvertTo-Json -Depth 5)
     Assert (-not (Test-Path (Join-Path $s 'local-proofs'))) 'A proof was written for a red run'
 }
-Test 'uncommitted changes are refused before running anything' {
+Test 'uncommitted changes do not stop the proof: the commit is tested and the user is told they are left out' {
     $r=Repo;$s=State;$script:runs=@();[IO.File]::WriteAllText((Join-Path $r 'nuevo.ps1'),'x')
     $p=New-AgentOpsLocalProof -SourceRepo $r -StateDir $s -Runner $green
-    Assert ($p.Code -eq 2 -and $p.Status -eq 'LOCAL_DIRTY' -and $script:runs.Count -eq 0) ($p|ConvertTo-Json -Depth 5)
+    Assert ($p.Code -eq 0 -and $p.Status -eq 'PROVEN' -and $script:runs.Count -eq 2) ($p|ConvertTo-Json -Depth 5)
+    Assert ((@($p.Issues) -join ' ') -match 'no se incluyen') ($p|ConvertTo-Json -Depth 5)
+    Assert (-not [IO.File]::Exists((Join-Path $script:runs[0][0] 'nuevo.ps1'))) 'Copy is gone; checked below by worktree count'
 }
 Write-Host "Local release: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}

@@ -218,6 +218,36 @@ Test 'Codex configuration with its own sandbox settings is never changed' {
         Assert ([IO.File]::Exists($paths.CodexHooksPath)) 'The Codex hook must still be installed'
     }
 }
+Test 'Codex: a permission request that names a credential is denied with an explanation; anything else is left to the user, never allowed' {
+    $run={param($json)
+        $psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName=(Get-Process -Id $PID).Path
+        $psi.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $source 'scripts/permission-request-hook.ps1')+'" -Harness codex'
+        $psi.UseShellExecute=$false;$psi.CreateNoWindow=$true;$psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true;$psi.StandardOutputEncoding=$utf8
+        $p=[Diagnostics.Process]::Start($psi);$b=$utf8.GetBytes($json);$p.StandardInput.BaseStream.Write($b,0,$b.Length);$p.StandardInput.Close()
+        $o=$p.StandardOutput.ReadToEnd();$null=$p.StandardError.ReadToEnd();$p.WaitForExit();@{Exit=$p.ExitCode;Out=$o.Trim()}}
+    $r=& $run '{"hook_event_name":"PermissionRequest","tool_name":"Bash","tool_input":{"command":"cat ~/.ssh/id_rsa","description":"needs to run outside the sandbox"}}'
+    $j=$r.Out|ConvertFrom-Json
+    Assert ($r.Exit -eq 0 -and $j.hookSpecificOutput.hookEventName -eq 'PermissionRequest' -and $j.hookSpecificOutput.decision.behavior -eq 'deny' -and $j.hookSpecificOutput.decision.message -match 'credenciales') "deny: $($r.Out)"
+    $r=& $run '{"hook_event_name":"PermissionRequest","tool_name":"apply_patch","tool_input":{"command":"*** Begin Patch\n*** Update File: .env\n+X=1\n*** End Patch"}}'
+    Assert (($r.Out|ConvertFrom-Json).hookSpecificOutput.decision.behavior -eq 'deny') "patch on .env: $($r.Out)"
+    $r=& $run '{"hook_event_name":"PermissionRequest","tool_name":"Bash","tool_input":{"command":"npm test"}}'
+    Assert ($r.Exit -eq 0 -and -not $r.Out) "ordinary request must be left to the user: $($r.Out)"
+    $r=& $run '{roto'
+    Assert ($r.Exit -eq 0 -and -not $r.Out) "must not decide on a broken event: $($r.Out)"
+    Assert ((Get-Content (Join-Path $source 'scripts/permission-request-hook.ps1') -Raw) -notmatch "behavior='allow'") 'The hook must never allow on the user''s behalf'
+}
+Test 'install registers the Codex permission request hook, idempotently, and uninstall removes it' {
+    $home2=NewDir 'home';$state=NewDir 'state'
+    $paths=@{StateDir=$state;ClaudeSettingsPath=(Join-Path $home2 '.claude/settings.json');CodexHooksPath=(Join-Path $home2 '.codex/hooks.json');AntigravityHooksPath=(Join-Path $home2 '.gemini/config/hooks.json')}
+    Install-AgentOpsSecretGuard @paths|Out-Null
+    $x=[IO.File]::ReadAllText($paths.CodexHooksPath)|ConvertFrom-Json
+    $pr=@($x.hooks.PermissionRequest)
+    Assert ($pr.Count -eq 1 -and $pr[0].matcher -match 'Bash' -and $pr[0].hooks[0].commandWindows -match '-Hook permission-request -Harness codex') ($x|ConvertTo-Json -Depth 8)
+    Assert ((Install-AgentOpsSecretGuard @paths).Status -eq 'UP_TO_DATE') 'Not idempotent'
+    Install-AgentOpsSecretGuard @paths -Uninstall|Out-Null
+    $x=[IO.File]::ReadAllText($paths.CodexHooksPath)|ConvertFrom-Json
+    Assert (-not ($x.PSObject.Properties['hooks'] -and $x.hooks.PSObject.Properties['PermissionRequest'])) 'Uninstall left the hook'
+}
 Write-Host "Secret guard: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

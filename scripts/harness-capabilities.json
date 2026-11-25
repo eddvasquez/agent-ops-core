@@ -164,9 +164,9 @@
         },
         {
           "Id": "hook.PermissionRequest",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://learn.chatgpt.com/docs/hooks",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "Aprobación del usuario en el arnés"
         },
         {
@@ -253,9 +253,9 @@
         },
         {
           "Id": "hook.PreInvocation",
-          "Status": "pendiente",
+          "Status": "esperando",
           "Doc": "https://antigravity.google/docs/hooks",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "Punto de control al cerrar cada paso"
         },
         {
