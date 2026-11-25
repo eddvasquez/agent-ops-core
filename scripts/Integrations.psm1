@@ -7,6 +7,7 @@ Import-Module (Join-Path $PSScriptRoot 'HookIO.psm1')
 Import-Module (Join-Path $PSScriptRoot 'SecretGuard.psm1')
 Import-Module (Join-Path $PSScriptRoot 'SessionStart.psm1')
 Import-Module (Join-Path $PSScriptRoot 'AntigravityPlugin.psm1')
+Import-Module (Join-Path $PSScriptRoot 'AntigravityPermissions.psm1')
 $script:utf8=New-Object Text.UTF8Encoding($false)
 $script:bootCapability='(?m)^# capability: local-channel-v1\s*$'
 
@@ -18,7 +19,7 @@ function Get-AgentOpsConsent([string]$StateDir,[string]$Name){
 }
 function Set-AgentOpsConsent {
     [CmdletBinding()]
-    param([Parameter(Mandatory=$true)][string]$StateDir,[Parameter(Mandatory=$true)][ValidateSet('codex-profile')][string]$Name,[Parameter(Mandatory=$true)][ValidateSet('yes','no')][string]$Answer)
+    param([Parameter(Mandatory=$true)][string]$StateDir,[Parameter(Mandatory=$true)][ValidateSet('codex-profile','antigravity-permissions')][string]$Name,[Parameter(Mandatory=$true)][ValidateSet('yes','no')][string]$Answer)
     $path=Join-Path $StateDir 'consents.json';$c=Read-AgentOpsJsonFile $path
     $c[$Name]=[ordered]@{Answer=$Answer;At=[datetime]::UtcNow.ToString('o')}
     Write-AgentOpsJsonFile $path $c
@@ -44,7 +45,7 @@ function Sync-AgentOpsIntegrations {
     [CmdletBinding()]
     param([string]$StateDir=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'}),
           [string]$HomeDir='',[scriptblock]$AntigravityValidator)
-    $res=[ordered]@{Code=0;Status='UP_TO_DATE';Harnesses=@();Files=@();NeedsConsent=@();Bootstrap='UNKNOWN';Issues=@()}
+    $res=[ordered]@{Code=0;Status='UP_TO_DATE';Harnesses=@();Files=@();NeedsConsent=@();AntigravityRestart=$false;Bootstrap='UNKNOWN';Issues=@()}
     $state=In-Read (Join-Path $StateDir 'update-state.json')
     if(-not $state){$res.Status='NOT_INSTALLED';return [pscustomobject]$res}
     $res.Bootstrap=In-BootstrapState $state
@@ -69,6 +70,14 @@ function Sync-AgentOpsIntegrations {
         if($present.antigravity){
             $a=Install-AgentOpsAntigravityPlugin -StateDir $StateDir -ConfigDir (Join-Path $HomeDir '.gemini/config') -Validator $AntigravityValidator
             if($a.Code -ne 0){$res.Issues=@($res.Issues)+@('Antigravity: '+(@($a.Issues) -join '; '))}elseif($a.Status -ne 'UP_TO_DATE'){$changed+=@($a.Plugin)}
+            $agConsent=Get-AgentOpsConsent $StateDir 'antigravity-permissions'
+            if(-not $agConsent){$res.NeedsConsent=@($res.NeedsConsent)+@('antigravity-permissions')}
+            elseif($agConsent -eq 'yes'){
+                $agConfig=Join-Path $HomeDir '.gemini/config/config.json'
+                $ap=Install-AgentOpsAntigravityPermissions -ConfigPath $agConfig -HomeDir $HomeDir -BackupDir (Join-Path $StateDir 'backups')
+                if($ap.Code -ne 0){$res.Issues=@($res.Issues)+@('Antigravity permissions: '+(@($ap.Issues) -join '; '))}
+                elseif($ap.Status -eq 'UPDATED'){$changed+=@($agConfig);$res.AntigravityRestart=$true}
+            }
         }
         $res.Files=@($changed|Where-Object {$_ -and -not $_.StartsWith($scratch,[StringComparison]::OrdinalIgnoreCase)}|Select-Object -Unique)
         if($res.Files.Count){$res.Status='SYNCED'}
@@ -92,7 +101,9 @@ function Invoke-AgentOpsIntegrationsIfNeeded {
     $sha=$(if($state.Active -and $state.Active.PSObject.Properties['Sha']){[string]$state.Active.Sha}else{''})
     if($last -and [string]$last.Sha -eq $sha){
         $codexPending=([IO.Directory]::Exists((Join-Path $HomeDir '.codex')) -and -not (Get-AgentOpsConsent $StateDir 'codex-profile'))
-        return [pscustomobject]@{Status='SKIPPED';NeedsConsent=@($(if($codexPending){'codex-profile'}));Bootstrap=(In-BootstrapState $state);Issues=@()}
+        $agPending=([IO.Directory]::Exists((Join-Path $HomeDir '.gemini/config')) -and -not (Get-AgentOpsConsent $StateDir 'antigravity-permissions'))
+        $pending=@();if($codexPending){$pending+='codex-profile'};if($agPending){$pending+='antigravity-permissions'}
+        return [pscustomobject]@{Status='SKIPPED';NeedsConsent=$pending;AntigravityRestart=$false;Bootstrap=(In-BootstrapState $state);Issues=@()}
     }
     return (Sync-AgentOpsIntegrations -StateDir $StateDir -HomeDir $HomeDir -AntigravityValidator $AntigravityValidator)
 }

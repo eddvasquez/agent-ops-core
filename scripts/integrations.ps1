@@ -5,7 +5,7 @@
 #   -Action UpdateBootstrap   update the bootstrap from stable with this installation's hub and targets (after a yes)
 [CmdletBinding()]
 param([Parameter(Mandatory=$true)][ValidateSet('Status','Sync','Consent','UpdateBootstrap')][string]$Action,
-      [ValidateSet('codex-profile')][string]$Name='codex-profile',[ValidateSet('yes','no')][string]$Answer='')
+      [ValidateSet('codex-profile','antigravity-permissions')][string]$Name='codex-profile',[ValidateSet('yes','no')][string]$Answer='')
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Integrations.psm1') -Force
 $state=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'})

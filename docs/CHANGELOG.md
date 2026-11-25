@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Permisos nativos de Antigravity para carpetas de credenciales (`AntigravityPermissions.psm1`, integrado en `Integrations.psm1` y `session-start-hook.ps1`): tras pedir permiso una sola vez al usuario y guardar copia de respaldo, añade reglas `ask` en `~/.gemini/config/config.json` para las carpetas de credenciales existentes (`.ssh`, `gcloud`, `.aws`, `.azure`, `.kube`, `.docker`, `.git-credentials`, `.netrc`, `.npmrc`), respetando las decisiones previas del usuario y pidiendo reiniciar Antigravity cuando hay cambios. `permissions.deny` pasa a «aprovechada» en Antigravity (6 de 8).
 
 ## [3.20.1] - 2026-11-25
 ### Fixed

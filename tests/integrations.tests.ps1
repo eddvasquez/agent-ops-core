@@ -46,7 +46,7 @@ Test 'the Codex configuration is only changed with consent; asked once, and a no
     Assert ([IO.File]::ReadAllText($toml) -eq $before -and @($r.NeedsConsent) -contains 'codex-profile') ('Changed without consent or did not ask: '+($r|ConvertTo-Json -Depth 4))
     Set-AgentOpsConsent -StateDir $m.State -Name 'codex-profile' -Answer 'no'
     $r=Sync $m
-    Assert ([IO.File]::ReadAllText($toml) -eq $before -and -not @($r.NeedsConsent).Count) 'A no must not change it nor ask again'
+    Assert ([IO.File]::ReadAllText($toml) -eq $before -and -not (@($r.NeedsConsent) -contains 'codex-profile')) 'A no must not change it nor ask again'
     Set-AgentOpsConsent -StateDir $m.State -Name 'codex-profile' -Answer 'yes'
     Sync $m|Out-Null
     Assert ([IO.File]::ReadAllText($toml) -match 'default_permissions = "agent-ops"') 'A yes must apply the profile'
@@ -82,6 +82,32 @@ Test 'updating the bootstrap uses the real hub and targets of this installation 
     $r=Update-AgentOpsBootstrap -StateDir $m.State -Runner $runner
     $w=[IO.File]::ReadAllText((Join-Path $m.State 'watch-config.json'))|ConvertFrom-Json
     Assert ($r.Code -eq 0 -and $script:got.Hub -eq $w.HubDir -and (@($script:got.Targets) -join ';') -eq (@($w.Targets) -join ';') -and $script:got.Installer -like '*install.ps1') ($script:got|ConvertTo-Json -Depth 4)
+}
+Test 'Antigravity permissions are only added with consent; a no is never asked again; a yes asks for a restart' {
+    $m=Machine -harnesses @('gemini');$cfg=Join-Path $m.Home '.gemini/config/config.json'
+    [IO.File]::WriteAllText($cfg,'{"userSettings":{"globalPermissionGrants":{"allow":["command(git)"]}}}',$utf8)
+    [IO.Directory]::CreateDirectory((Join-Path $m.Home '.ssh'))|Out-Null
+    $before=[IO.File]::ReadAllText($cfg)
+    $r=Sync $m
+    Assert ([IO.File]::ReadAllText($cfg) -eq $before -and @($r.NeedsConsent) -contains 'antigravity-permissions' -and -not $r.AntigravityRestart) ('Changed without consent or did not ask: '+($r|ConvertTo-Json -Depth 4))
+    Set-AgentOpsConsent -StateDir $m.State -Name 'antigravity-permissions' -Answer 'no'
+    $r=Sync $m
+    Assert ([IO.File]::ReadAllText($cfg) -eq $before -and -not (@($r.NeedsConsent) -contains 'antigravity-permissions')) 'A no must not change it nor ask again'
+    Set-AgentOpsConsent -StateDir $m.State -Name 'antigravity-permissions' -Answer 'yes'
+    $r=Sync $m
+    $ask=@((([IO.File]::ReadAllText($cfg)|ConvertFrom-Json).userSettings.globalPermissionGrants.ask))
+    Assert ($r.Code -eq 0 -and $r.Status -eq 'SYNCED' -and $r.AntigravityRestart -and ($ask -join '|') -match '/\.ssh\)$') ('A yes must add the rule and ask for a restart: '+($r|ConvertTo-Json -Depth 4))
+    Assert (@($r.Files) -contains $cfg) 'The changed configuration is not reported'
+    $again=Sync $m
+    Assert (-not $again.AntigravityRestart) 'Asked for a restart with nothing changed'
+}
+Test 'pending consents for Codex and Antigravity are both kept, also when the adjustment is skipped' {
+    $m=Machine -harnesses @('claude','codex','gemini')
+    [IO.File]::WriteAllText((Join-Path $m.Home '.gemini/config/config.json'),'{"userSettings":{}}',$utf8)
+    $first=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin
+    Assert ((@($first.NeedsConsent)|Sort-Object) -join ',' -eq 'antigravity-permissions,codex-profile') ('Sync: '+(@($first.NeedsConsent) -join ','))
+    $skip=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin
+    Assert ($skip.Status -eq 'SKIPPED' -and ((@($skip.NeedsConsent)|Sort-Object) -join ',') -eq 'antigravity-permissions,codex-profile' -and -not $skip.AntigravityRestart) ('Skipped: '+($skip|ConvertTo-Json -Depth 4))
 }
 Test 'a state folder other than the real one never touches the real user folder unless one is given' {
     $m=Machine

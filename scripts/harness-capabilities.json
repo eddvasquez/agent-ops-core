@@ -260,10 +260,10 @@
         },
         {
           "Id": "permissions.deny",
-          "Status": "esperando",
+          "Status": "aprovechada",
           "Doc": "https://antigravity.google/docs/permissions",
           "VerifiedAt": "2026-11-25",
-          "Fallback": "Búsqueda de contraseñas al guardar"
+          "Fallback": "Reglas Ask (preguntar) para las carpetas fijas de credenciales; los patrones como **/.env, que Antigravity no admite, los cubre el hook del marco"
         },
         {
           "Id": "browser.allowlist",

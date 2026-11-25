@@ -18,6 +18,8 @@ try{
     try{
         Import-Module (Join-Path $PSScriptRoot 'Integrations.psm1');$i=Invoke-AgentOpsIntegrationsIfNeeded
         if($brief -and @($i.NeedsConsent) -contains 'codex-profile'){$brief+="`n- Pregunta UNA vez al usuario, con botones y en lenguaje llano: «Para proteger tus contraseñas también en Codex necesito ajustar su configuración (guardo una copia). ¿Lo hago?» y registra la respuesta con & `"`$ActivePath/scripts/integrations.ps1`" -Action Consent -Name codex-profile -Answer yes|no."}
+        if($brief -and @($i.NeedsConsent) -contains 'antigravity-permissions'){$brief+="`n- Pregunta UNA vez al usuario, con botones y en lenguaje llano: «Para que Antigravity te pregunte antes de leer tus contraseñas necesito ajustar su configuración (guardo una copia). ¿Lo hago?» y registra la respuesta con & `"`$ActivePath/scripts/integrations.ps1`" -Action Consent -Name antigravity-permissions -Answer yes|no. Si su salida trae AntigravityRestart true, pide al usuario que reinicie Antigravity."}
+        if($brief -and $i.PSObject.Properties['AntigravityRestart'] -and $i.AntigravityRestart){$brief+="`n- Dile al usuario que reinicie Antigravity para activar la protección de sus contraseñas."}
         if($brief -and $i.Bootstrap -eq 'OUTDATED'){$brief+="`n- El arranque del marco está desactualizado. Ofrece al usuario actualizarlo tú, sin pasos para él («¿Lo actualizo?»); con un sí: & `"`$ActivePath/scripts/integrations.ps1`" -Action UpdateBootstrap."}
     }catch{}
     # SecretGuard reloads HookIO with -Force, which unloads it here: load it again for the answer.

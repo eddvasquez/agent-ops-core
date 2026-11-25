@@ -1,11 +1,11 @@
 # Antigravity: permisos nativos para carpetas de credenciales
 
-Antigravity aplica sus permisos (Deny > Ask > Allow) antes que cualquier otra cosa, pero sus reglas de archivos solo aceptan **rutas exactas o carpetas**, no patrones como `**/.env`, y se configuran **desde su interfaz**: no hay un archivo que el marco pueda escribir. Por eso Agent Ops Core protege los archivos de credenciales de los proyectos con su hook (antes de cada acción) y con la regla `credenciales.md` de su plugin, y te propone añadir tú estas reglas para las carpetas de credenciales de tu usuario, que sí tienen ruta fija.
+Antigravity aplica sus permisos (Deny > Ask > Allow) antes que cualquier otra cosa, pero sus reglas de archivos solo aceptan **rutas exactas o carpetas**, no patrones como `**/.env`. Por eso Agent Ops Core protege los archivos de credenciales de los proyectos con su hook (antes de cada acción) y con la regla `credenciales.md` de su plugin, y añade automáticamente reglas **Ask** («preguntar») en `~/.gemini/config/config.json` para las carpetas fijas de credenciales que existan en tu equipo, tras pedirte permiso una sola vez.
 
 ## Cómo añadirlas
-1. Abre Antigravity → **Settings → Permissions** (o **Permissions → This Computer** si tienes agentes remotos).
-2. En la lista **Ask** («preguntar»), añade una regla `read_file(...)` por cada carpeta que exista en tu equipo.
-3. Antigravity quita la letra de unidad y usa `/` en Windows: `C:\Users\<usuario>\.ssh` se escribe `read_file(/Users/<usuario>/.ssh)`.
+1. Al iniciar sesión en un proyecto gobernado, el agente te preguntará una vez si quieres proteger tus carpetas de credenciales en Antigravity (el marco guarda una copia de respaldo antes de modificar `config.json`).
+2. Si aceptas, el marco añade una regla `read_file(...)` en la lista **Ask** por cada carpeta existente de la tabla inferior, respetando cualquier regla que ya hayas decidido en `allow`, `ask` o `deny`.
+3. **Reinicia Antigravity** para que los cambios surtan efecto. Si prefieres hacerlo a mano, también puedes añadirlas en Antigravity → **Settings → Permissions** (en Windows quita la letra de unidad y usa `/`, por ejemplo `read_file(/Users/<usuario>/.ssh)`).
 
 «Negar lectura» también niega escritura, y una regla sobre una carpeta cubre todo lo que contiene.
 
