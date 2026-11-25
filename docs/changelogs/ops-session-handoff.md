@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+
+## [2.12.0] - 2026-11-25
 ### Added
 - Paso 0c de MODO ENTRADA: como mucho una pregunta de integración (permiso de Codex o arranque desactualizado), con botones y en lenguaje llano; se registra con `integrations.ps1` y, si todo va bien, no se dice nada.
 
@@ -43,7 +45,3 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 ## [2.4.0] - 2026-11-23
 ### Changed
 - El reporte de entrada y el relevo citan cada regla con el texto literal de su línea `Regla:`, no solo su ID, para entenderla sin abrir `reglas_proyecto.md`.
-
-## [2.3.0] - 2026-11-20
-### Added
-- Punto de control por paso con `-Request`, la petición literal del usuario, para retomar desde cualquier arnés con terminal. La reanudación devuelve `UserRequests` y lee también Antigravity.

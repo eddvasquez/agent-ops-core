@@ -1,5 +1,9 @@
 # Historial de versiones anteriores: ops-session-handoff
 
+## [2.3.0] - 2026-11-20
+### Added
+- Punto de control por paso con `-Request`, la petición literal del usuario, para retomar desde cualquier arnés con terminal. La reanudación devuelve `UserRequests` y lee también Antigravity.
+
 ## [2.2.0] - 2026-11-20
 ### Added
 - MODO ENTRADA, Paso 2: `resume-session.ps1` detecta una sesión cortada (`INTERRUPTED`/`DIVERGED`) y su siguiente paso exacto. Quien recibe completa el MODO SALIDA pendiente.

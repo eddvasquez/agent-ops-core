@@ -1,5 +1,10 @@
 # Historial de versiones anteriores
 
+## [3.11.0] - 2026-11-24
+### Added
+- Limpieza obligatoria y automática de las pruebas (R-011): cada suite del marco borra su carpeta temporal al terminar en verde, la conserva si falla y, al empezar, barre las de más de 48 horas (`tests/TestFixtures.ps1`). `repo-hygiene` analiza la estructura de cada suite y exige la limpieza a cualquier suite nueva.
+- Protocolo 3 de AGENTS.md: las pruebas de cada proyecto crean sus archivos temporales en una carpeta propia y la borran al terminar en verde; si fallan, la conservan para revisar el fallo y se borra sola después.
+
 ## [3.10.0] - 2026-11-24
 ### Added
 - Radar de arneses, segunda fase: vigila también las páginas oficiales de hooks, ajustes y plugins de Claude Code, Codex y Antigravity (huella del texto visible: el ruido de la página no cuenta) y las versiones instaladas en el equipo (`claude`, `codex`, `agy`). Así Antigravity, que no publica versiones en GitHub, queda cubierto. Los cambios de documentación se marcan como vistos con `-Action Ack -Harness <id> -Source <página>`.

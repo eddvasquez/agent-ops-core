@@ -5,18 +5,17 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
-### Fixed
-- El ajuste automático de integraciones reconoce de verdad la instalación real: antes se creía aislado siempre y no ajustaba nada. Sus mensajes quedan en ASCII para Windows PowerShell 5.1.
-- Las pruebas ya no fallan cuando el vigilante de skills real está sincronizando: si la instalación real ya retiene su bloqueo, la prueba lo da por bueno en lugar de esperar 30 s a que lo suelte.
 
+## [3.20.0] - 2026-11-25
 ### Added
 - Skill `ops-session-handoff`: el MODO ENTRADA hace como mucho una pregunta de integración (permiso de Codex o arranque desactualizado), con botones y en lenguaje llano; si todo va bien, no dice nada.
 - Cero configuración tras cada actualización (`Integrations.psm1`, `integrations.ps1`): al empezar la primera sesión con una versión nueva, y al instalar, el marco ajusta solo sus hooks, el plugin de Antigravity y los permisos de Claude Code en las herramientas que tienes, sin crear nada para las que no. Lo que cambia la configuración propia de una herramienta (hoy, el perfil de permisos de Codex) se pregunta una sola vez y se recuerda (`consents.json`); un «no» no se vuelve a preguntar. Si el arranque del marco está desactualizado, el agente ofrece actualizarlo él (`-Action UpdateBootstrap`, con el hub y los destinos reales y sin tocar la tarea programada). Con una carpeta de estado que no es la real (pruebas), nunca toca la carpeta de usuario real.
 - El vigilante de skills ya no puede quedarse apagado sin que se note: al empezar cada sesión, si la instalación lo quiere activo y nadie lo apagó a propósito, se reactiva y se avisa al agente. Nunca durante una activación de versiones ni sobre una tarea de otra instalación. Apagarlo a propósito con `manage-skills-watcher.ps1 -Action Disable` queda registrado (`watcher-intent.json`) y se respeta. En este PC había quedado desactivado del 2026-11-20 al 2026-11-25.
-
-### Added
 - Plugin de Agent Ops Core para Antigravity (`install-antigravity-plugin.ps1`): reúne en `~/.gemini/config/plugins/agent-ops-core` el aviso al empezar la sesión, la protección de credenciales y el registro de actividad, más dos reglas nativas: una siempre activa con lo esencial del marco (MODO ENTRADA, reglas del proyecto, aceptación y esperas) y otra que se activa sola al tocar archivos de credenciales. Se valida con `agy plugin validate --strict` y solo entonces sustituye a las entradas sueltas de `hooks.json`; los demás instaladores ya no las vuelven a añadir. `plugin.hooks` pasa a «aprovechada» en Antigravity (5 de 8).
 
+### Fixed
+- El ajuste automático de integraciones reconoce de verdad la instalación real: antes se creía aislado siempre y no ajustaba nada. Sus mensajes quedan en ASCII para Windows PowerShell 5.1.
+- Las pruebas ya no fallan cuando el vigilante de skills real está sincronizando: si la instalación real ya retiene su bloqueo, la prueba lo da por bueno en lugar de esperar 30 s a que lo suelte.
 
 ## [3.19.0] - 2026-11-25
 ### Added
@@ -120,8 +119,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Fixed
 - La promoción a `stable` reintenta (hasta 6 veces, cada 10 s) solo cuando GitHub aún ve las pruebas «en curso» justo después de terminar; esa carrera hizo fallar la 3.9.1 y la 3.11.0. Cualquier otro rechazo falla al instante.
-
-## [3.11.0] - 2026-11-24
-### Added
-- Limpieza obligatoria y automática de las pruebas (R-011): cada suite del marco borra su carpeta temporal al terminar en verde, la conserva si falla y, al empezar, barre las de más de 48 horas (`tests/TestFixtures.ps1`). `repo-hygiene` analiza la estructura de cada suite y exige la limpieza a cualquier suite nueva.
-- Protocolo 3 de AGENTS.md: las pruebas de cada proyecto crean sus archivos temporales en una carpeta propia y la borran al terminar en verde; si fallan, la conservan para revisar el fallo y se borra sola después.
