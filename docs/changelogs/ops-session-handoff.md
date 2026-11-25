@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+### Added
+- Paso 0c de MODO ENTRADA: como mucho una pregunta de integración (permiso de Codex o arranque desactualizado), con botones y en lenguaje llano; se registra con `integrations.ps1` y, si todo va bien, no se dice nada.
 
 ## [2.11.0] - 2026-11-25
 ### Added

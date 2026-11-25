@@ -48,6 +48,9 @@ Se ejecuta también al retomar un chat antiguo, porque MODO ENTRADA corre en cad
 4. Preguntar: **Migrar ahora**, **Más tarde** (se volverá a ofrecer en la próxima sesión) o **No para esta versión** (`-Mode Defer`, que se recuerda en el estado privado, nunca en el proyecto). Esperar respuesta explícita; el silencio no elige.
 5. "Migrar ahora" sigue `ops-project-migrate`. Al terminar, informar del `JournalId` y, si el proyecto usa Git, del `RestoreRef`.
 
+### Paso 0c: Integraciones (una pregunta como mucho)
+Si el aviso de inicio pide una decisión de integración (permiso de Codex o arranque desactualizado), haz como mucho una pregunta, con botones y en lenguaje llano, y registra la respuesta con `& "$ActivePath/scripts/integrations.ps1" -Action Consent -Name codex-profile -Answer yes|no` o, tras un sí, `-Action UpdateBootstrap`. Si todo va bien, no digas nada.
+
 Este inicio se ejecuta al invocar MODO ENTRADA; detectar la apertura de cualquier chat requiere soporte del anfitrión. La tarea diaria solo comprueba novedades y no sustituye la decisión del usuario. macOS/Linux conservan su mecanismo anterior, pendiente de revisión equivalente.
 
 ### Paso 1: Lectura de Contexto y Mandato Anti-Racionalización
