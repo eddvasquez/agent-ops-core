@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.17.0] - 2026-11-24
 ### Added
 - Las suites lentas se reparten en partes que corren a la vez: con `run-tests.ps1 -Parallel N`, una suite que acepta `-Shard k/n` se ejecuta en N procesos, sus partes arrancan primero y el resultado se junta en uno (rojo si falla cualquier parte). La del actualizador pasó de 390 s a 155 s en un equipo de 8 núcleos.
 - `run-tests.ps1` elige por defecto cuántas a la vez según la capacidad real de la máquina, sin tope fijo (R-012): la mitad de los núcleos lógicos y 250 MB libres por parte (`-Parallel 1` las ejecuta de una en una). La tanda completa bajó de unos 10 min a 6,4 min.
@@ -67,10 +69,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ## [3.9.1] - 2026-11-23
 ### Fixed
 - El radar de arneses solo avisa dentro del repositorio de Agent Ops Core, a quien lo mantiene (R-010). En cualquier otro proyecto responde `NOT_MAINTAINER`, sin consultar la red ni mostrar nada.
-
-## [3.9.0] - 2026-11-23
-### Added
-- Radar de arneses (primera fase): `scripts/harness-radar.ps1` revisa una vez al día las versiones nuevas de Codex y Claude Code en sus fuentes oficiales y deja un aviso de una línea («Novedad de arnés: … Pide "evalúa …"») que se puede marcar como visto. Una fuente caída nunca bloquea y el texto descargado se trata como datos.
-- Tabla de capacidades de los arneses (`scripts/harness-capabilities.json`): qué ofrece cada uno, con enlace a su documentación, fecha de verificación, estado (aprovechada, pendiente, esperando o descartada) y respaldo, para que lo obligatorio no dependa de un solo arnés. Se valida con `harness-radar.ps1 -Action Validate`.
-- Detector de arneses (`harness-radar.ps1 -Action Detect`): informa qué arneses usa el proyecto y cuáles están instalados.
-- Análisis ampliado (`docs/analisis-harness-engineering.md`): aprovechar todo lo de cada arnés con «piso y techo», y el ciclo del radar.
