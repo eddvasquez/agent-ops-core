@@ -156,6 +156,49 @@ Test 'through the installed launcher the hook of the active release answers' {
     $o=$pr.StandardOutput.ReadToEnd();$null=$pr.StandardError.ReadToEnd();$pr.WaitForExit()
     Assert (($o|ConvertFrom-Json).hookSpecificOutput.additionalContext -match 'MODO ENTRADA') "Launcher output: $o"
 }
+function PreCompact([string]$json){
+    $psi=New-Object Diagnostics.ProcessStartInfo
+    $psi.FileName=(Get-Process -Id $PID).Path
+    $psi.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $source 'scripts/pre-compact-hook.ps1')+'" -Harness claude'
+    $psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
+    $psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
+    $psi.StandardOutputEncoding=$utf8
+    $p=[Diagnostics.Process]::Start($psi)
+    $bytes=$utf8.GetBytes($json);$p.StandardInput.BaseStream.Write($bytes,0,$bytes.Length);$p.StandardInput.Close()
+    $out=$p.StandardOutput.ReadToEnd();$null=$p.StandardError.ReadToEnd();$p.WaitForExit()
+    return @{Exit=$p.ExitCode;Out=$out.Trim()}
+}
+Test 'before a compaction the summary is told to keep the user''s words, the rules, the plan and the unsaved files' {
+    $p=Governed;Put $p 'cambio.ps1' 'x'
+    $t=Get-AgentOpsCompactInstructions -ProjectPath $p
+    Assert ($t -match 'literalmente' -and $t -match 'siguiente paso exacto' -and $t -match 'R-NNN') $t
+    Assert ($t -match '1 sin guardar: cambio\.ps1') "Unsaved file missing: $t"
+    Assert ($t -match 'R-001, R-003' -and $t -notmatch 'R-002') "Active rule IDs wrong: $t"
+    Assert ($t.Length -le 3000) "Too long: $($t.Length)"
+    Assert (-not (Get-AgentOpsCompactInstructions -ProjectPath (NewDir 'otro'))) 'Instructions given outside a governed project'
+}
+Test 'the before-compaction adapter answers plain text with accents, never blocks, and fails open' {
+    $p=Governed
+    $r=PreCompact (@{hook_event_name='PreCompact';session_id='s';cwd=$p;trigger='auto';custom_instructions=$null}|ConvertTo-Json -Compress)
+    Assert ($r.Exit -eq 0 -and $r.Out -match '^Instrucciones de Agent Ops Core' -and $r.Out -match 'petición' -and $r.Out -notmatch '"decision"') "Output: $($r.Out)"
+    $r=PreCompact '{roto'
+    Assert ($r.Exit -eq 0 -and -not $r.Out) "Did not fail open: $($r.Out)"
+}
+Test 'install adds the before-compaction hook only to Claude Code, idempotently, and uninstall removes it' {
+    $state=NewDir 'state';$claude=Join-Path $state 'claude.json'
+    [IO.File]::WriteAllText($claude,'{"hooks":{"PreCompact":[{"hooks":[{"type":"command","command":"otro-precompact"}]}]}}',$utf8)
+    $paths=@{StateDir=$state;ClaudeSettingsPath=$claude;CodexHooksPath=(Join-Path $state 'codex.json');AntigravityHooksPath=(Join-Path $state 'agy.json')}
+    Install-AgentOpsSessionStart @paths|Out-Null
+    $c=[IO.File]::ReadAllText($claude)|ConvertFrom-Json
+    $ours=@($c.hooks.PreCompact|Where-Object {($_|ConvertTo-Json -Depth 8) -match 'agent-ops-hook'})
+    Assert (@($c.hooks.PreCompact).Count -eq 2 -and $ours.Count -eq 1 -and $ours[0].matcher -eq 'manual|auto' -and ($ours[0].hooks[0].args -join ' ') -match '-Hook pre-compact -Harness claude') ($c|ConvertTo-Json -Depth 8)
+    $x=[IO.File]::ReadAllText($paths.CodexHooksPath)|ConvertFrom-Json
+    Assert (-not $x.hooks.PSObject.Properties['PreCompact']) 'Codex got a PreCompact hook (its stdout is ignored)'
+    Assert ((Install-AgentOpsSessionStart @paths).Status -eq 'UP_TO_DATE') 'Second install not idempotent'
+    Install-AgentOpsSessionStart @paths -Uninstall|Out-Null
+    $c=[IO.File]::ReadAllText($claude)|ConvertFrom-Json
+    Assert (@($c.hooks.PreCompact).Count -eq 1 -and $c.hooks.PreCompact[0].hooks[0].command -eq 'otro-precompact') ($c|ConvertTo-Json -Depth 8)
+}
 Write-Host "Session start: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

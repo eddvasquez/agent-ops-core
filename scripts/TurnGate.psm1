@@ -9,6 +9,7 @@ $script:maxReturns=2
 
 function Tg-Sha([byte[]]$bytes){$h=[Security.Cryptography.SHA256]::Create();try{([BitConverter]::ToString($h.ComputeHash($bytes))).Replace('-','').ToLowerInvariant()}finally{$h.Dispose()}}
 function Tg-Evidence([string]$root){Join-Path $root '.context/test-evidence.json'}
+function Tg-Head([string]$root){$r=Invoke-Git $root @('rev-parse','--verify','-q','HEAD') -AllowFailure;if($r.ExitCode -eq 0){$r.Output.Trim()}else{''}}
 
 # Fingerprint of the uncommitted code: changed, new or deleted code files and their exact content.
 function Get-AgentOpsCodeFingerprint {
@@ -28,7 +29,8 @@ function Get-AgentOpsCodeFingerprint {
     }
     $files=@($files|Sort-Object Path -Unique)
     $print=$(if($files.Count){Tg-Sha ([Text.Encoding]::UTF8.GetBytes((($files|ForEach-Object {"$($_.Path):$($_.Hash)"}) -join "`n")))}else{$null})
-    return [pscustomobject]@{Fingerprint=$print;Files=@($files|ForEach-Object {$_.Path})}
+    $hashes=[ordered]@{};foreach($f in $files){$hashes[$f.Path]=$f.Hash}
+    return [pscustomobject]@{Fingerprint=$print;Files=@($files|ForEach-Object {$_.Path});Hashes=$hashes}
 }
 
 # Runs the project's suites with the current engine and records evidence only if every suite is green
@@ -41,8 +43,23 @@ function Get-AgentOpsSuitesForChanges {
     $root=(Resolve-Path -LiteralPath $ProjectPath).Path
     $suites=@(Get-ChildItem (Join-Path $root 'tests') -Filter '*.tests.ps1' -ErrorAction SilentlyContinue)
     $all=@($suites|ForEach-Object {$_.Name -replace '\.tests\.ps1$',''}|Sort-Object)
-    $changed=@((Get-AgentOpsCodeFingerprint -ProjectPath $root).Files)
-    $res=[ordered]@{Suites=@();All=$false;Files=$changed}
+    $fp=Get-AgentOpsCodeFingerprint -ProjectPath $root
+    $changed=@($fp.Files);$res=[ordered]@{Suites=@();All=$false;Files=$changed;Since=$null}
+    # After a green run in this same PowerShell edition, only what changed since it. Same commit only: changes
+    # brought by Git would not show up. A run in the other edition never exempts this one.
+    $ev=Tg-Evidence $root
+    if([IO.File]::Exists($ev)){
+        try{
+            $all=[IO.File]::ReadAllText($ev)|ConvertFrom-Json;$edition=$PSVersionTable.PSEdition
+            $e=$(if($all.PSObject.Properties['ByEdition'] -and $all.ByEdition -and $all.ByEdition.PSObject.Properties[$edition]){$all.ByEdition.$edition}else{$null})
+            if($e -and $e.PSObject.Properties['Hashes'] -and $e.PSObject.Properties['Head'] -and $e.Head -and $e.Head -eq (Tg-Head $root)){
+                $old=@{};if($e.Hashes){foreach($pr in $e.Hashes.PSObject.Properties){$old[$pr.Name]=[string]$pr.Value}}
+                $since=@($changed|Where-Object {-not $old.ContainsKey($_) -or $old[$_] -ne $fp.Hashes[$_]})
+                $since+=@($old.Keys|Where-Object {-not $fp.Hashes.Contains($_)})
+                $changed=@($since|Sort-Object -Unique);$res.Files=$changed;$res.Since=[string]$e.Fingerprint
+            }
+        }catch{}
+    }
     if(-not $changed.Count){return [pscustomobject]$res}
     $code=@(Get-ChildItem (Join-Path $root 'scripts') -File -ErrorAction SilentlyContinue)
     $text=@{};foreach($f in @($code)+@($suites)){$text[$f.FullName]=[IO.File]::ReadAllText($f.FullName)}
@@ -86,9 +103,54 @@ function Tg-AcceptsShard([string]$file){
     $ast=[Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors)
     return [bool]($ast.ParamBlock -and @($ast.ParamBlock.Parameters|Where-Object {$_.Name.VariablePath.UserPath -eq 'Shard'}).Count)
 }
+# -Snapshot: the suites run on a copy of the current state (a worktree of HEAD plus every uncommitted change), so
+# the project can keep being edited meanwhile. The evidence belongs to the copied state and is written to the
+# project; the copy is always removed. Only aoc-snapshot-* folders directly under %TEMP% are ever deleted.
+function Tg-RemoveSnapshot([string]$root,[string]$dir){
+    $null=Invoke-Git $root @('worktree','remove','--force',$dir) -AllowFailure
+    $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
+    if([IO.Directory]::Exists($dir) -and (Split-Path -Parent $dir) -eq $temp -and (Split-Path -Leaf $dir) -like 'aoc-snapshot-*'){
+        Get-ChildItem -LiteralPath $dir -Recurse -Force -File -ErrorAction SilentlyContinue|ForEach-Object {if($_.IsReadOnly){$_.IsReadOnly=$false}}
+        Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    $null=Invoke-Git $root @('worktree','prune') -AllowFailure
+}
+function Tg-SnapshotRun([string]$projectPath,[string[]]$suites,[int]$parallel,[bool]$changed){
+    $res=[ordered]@{Code=1;Status='RED';Fingerprint=$null;Results=@();Evidence=$null;Issues=@();Snapshot=$null}
+    $root=(Resolve-Path -LiteralPath $projectPath).Path
+    $dir=Join-Path ([IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')) ('aoc-snapshot-'+[guid]::NewGuid().ToString('N').Substring(0,12))
+    try{
+        if(-not (Tg-Head $root)){throw 'La copia necesita al menos un commit en el repositorio.'}
+        $before=Get-AgentOpsCodeFingerprint -ProjectPath $root;$res.Fingerprint=$before.Fingerprint
+        $raw=(Invoke-Git $root @('-c','core.quotePath=false','status','--porcelain=v1','-z','--untracked-files=all')).Output
+        $null=Invoke-Git $root @('worktree','add','--detach','--quiet',$dir,'HEAD')
+        $items=@($raw -split "`0")
+        for($i=0;$i -lt $items.Count;$i++){
+            $e=$items[$i];if($e.Length -lt 4){continue}
+            $code=$e.Substring(0,2);$path=$e.Substring(3)
+            if($code -match 'R|C'){$i++;if($code -match 'R' -and $i -lt $items.Count){$gone=Join-Path $dir $items[$i];if([IO.File]::Exists($gone)){[IO.File]::Delete($gone)}}}
+            $from=Join-Path $root $path;$to=Join-Path $dir $path
+            if([IO.File]::Exists($from)){[IO.Directory]::CreateDirectory((Split-Path -Parent $to))|Out-Null;[IO.File]::Copy($from,$to,$true)}
+            elseif([IO.File]::Exists($to)){[IO.File]::Delete($to)}
+        }
+        $ev=Tg-Evidence $root
+        if([IO.File]::Exists($ev)){$dest=Tg-Evidence $dir;[IO.Directory]::CreateDirectory((Split-Path $dest))|Out-Null;[IO.File]::Copy($ev,$dest,$true)}
+        if((Get-AgentOpsCodeFingerprint -ProjectPath $dir).Fingerprint -ne $before.Fingerprint){throw 'La copia no reproduce el estado actual; ejecuta sin -Snapshot.'}
+        $res.Snapshot=$dir
+        $run=Invoke-AgentOpsTestRun -ProjectPath $dir -Suites $suites -Parallel $parallel -Changed:$changed
+        foreach($k in 'Code','Status','Results','Issues'){$res[$k]=$run.$k}
+        if($run.Code -eq 0 -and $run.Evidence){
+            $dest=Tg-Evidence $root;[IO.Directory]::CreateDirectory((Split-Path $dest))|Out-Null
+            [IO.File]::Copy($run.Evidence,$dest,$true);$res.Evidence=$dest
+        }
+    }catch{$res.Code=1;$res.Status='RED';$res.Issues=@($_.Exception.Message)}
+    finally{Tg-RemoveSnapshot $root $dir}
+    return [pscustomobject]$res
+}
 function Invoke-AgentOpsTestRun {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$ProjectPath,[string[]]$Suites=@(),[int]$Parallel=1,[switch]$Changed)
+    param([Parameter(Mandatory)][string]$ProjectPath,[string[]]$Suites=@(),[int]$Parallel=1,[switch]$Changed,[switch]$Snapshot)
+    if($Snapshot){return (Tg-SnapshotRun $ProjectPath $Suites $Parallel ([bool]$Changed))}
     $res=[ordered]@{Code=1;Status='RED';Fingerprint=$null;Results=@();Evidence=$null;Issues=@()}
     $temp=@()
     try{
@@ -144,9 +206,13 @@ function Invoke-AgentOpsTestRun {
         if(@($res.Results|Where-Object {$_.Exit -ne 0}).Count){return [pscustomobject]$res}
         if($after.Fingerprint -ne $before.Fingerprint){$res.Issues=@('El código cambió mientras corrían las pruebas; vuelve a ejecutarlas.');return [pscustomobject]$res}
         $edition=$PSVersionTable.PSEdition
-        $evidence=[ordered]@{SchemaVersion=1;Fingerprint=$before.Fingerprint;Files=$before.Files;Suites=@($res.Results|ForEach-Object {"$($_.Suite) ($edition): $($_.Summary)"});At=[datetime]::UtcNow.ToString('o')}
-        $path=Tg-Evidence $root;[IO.Directory]::CreateDirectory((Split-Path $path))|Out-Null
-        [IO.File]::WriteAllText($path,($evidence|ConvertTo-Json -Depth 5),(New-Object Text.UTF8Encoding($false)))
+        # Each edition keeps its own green base for -Changed; the gate reads the top-level fingerprint.
+        $byEdition=[ordered]@{};$path=Tg-Evidence $root
+        if([IO.File]::Exists($path)){try{$prev=[IO.File]::ReadAllText($path)|ConvertFrom-Json;if($prev.PSObject.Properties['ByEdition'] -and $prev.ByEdition){foreach($pr in $prev.ByEdition.PSObject.Properties){if($pr.Name -ne $edition){$byEdition[$pr.Name]=$pr.Value}}}}catch{}}
+        $byEdition[$edition]=[ordered]@{Fingerprint=$before.Fingerprint;Hashes=$before.Hashes;Head=(Tg-Head $root)}
+        $evidence=[ordered]@{SchemaVersion=1;Fingerprint=$before.Fingerprint;Files=$before.Files;ByEdition=$byEdition;Suites=@($res.Results|ForEach-Object {"$($_.Suite) ($edition): $($_.Summary)"});At=[datetime]::UtcNow.ToString('o')}
+        [IO.Directory]::CreateDirectory((Split-Path $path))|Out-Null
+        [IO.File]::WriteAllText($path,($evidence|ConvertTo-Json -Depth 8),(New-Object Text.UTF8Encoding($false)))
         $res.Code=0;$res.Status='GREEN';$res.Evidence=$path
     }catch{$res.Issues=@($_.Exception.Message)}
     finally{foreach($f in $temp){Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue}}

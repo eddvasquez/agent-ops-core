@@ -85,6 +85,40 @@ function Get-AgentOpsSessionBrief {
     return $text
 }
 
+# Before a compaction (Claude Code: stdout becomes instructions for the summary). What the summary must keep so
+# the next stretch of the session does not lose the user's words, the rules or the plan.
+$script:maxCompact=3000
+function Get-AgentOpsCompactInstructions {
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true)][string]$ProjectPath)
+    $root=Ss-Root $ProjectPath
+    if(-not (Ss-Governed $root)){return ''}
+    $out=New-Object Collections.Generic.List[string]
+    $out.Add('Instrucciones de Agent Ops Core para este resumen. Conserva, con las palabras exactas del usuario cuando las haya:')
+    $out.Add('1. Cada petición, corrección o rechazo del usuario en esta sesión, citado literalmente.')
+    $out.Add('2. Las reglas registradas o enmendadas (R-NNN) con su texto literal.')
+    $out.Add('3. El plan en curso: pasos hechos, paso actual y siguiente paso exacto.')
+    $out.Add('4. Los archivos modificados y si están guardados (commit), publicados (push) o solo en disco.')
+    $out.Add('5. Las decisiones o preguntas pendientes del usuario y las aprobaciones dadas (qué y para qué).')
+    $out.Add('6. Los resultados de pruebas con suite, número de pruebas y versión de PowerShell.')
+    $out.Add('No conviertas en un resumen vago lo que el usuario pidió; si algo es incierto, dilo así.')
+    $ErrorActionPreference='Continue'
+    $files=@(& git -C $root -c core.quotepath=false status --porcelain --untracked-files=all 2>$null|Where-Object {$_}|ForEach-Object {$_.Substring(3).Trim('"')})
+    if($LASTEXITCODE -eq 0 -and $files.Count){
+        $shown=@($files|Select-Object -First 15)
+        $more=$(if($files.Count -gt 15){" (y $($files.Count-15) más)"}else{''})
+        $out.Add("Estado en Git ahora: $($files.Count) sin guardar: $($shown -join ', ')$more.")
+    }
+    $rulesPath=Join-Path $root '.context/reglas_proyecto.md'
+    if([IO.File]::Exists($rulesPath)){
+        $ids=@(& (Get-Module RulesCheck) {param($p) (Read-AgentOpsRules $p).Rules} $rulesPath|Where-Object {$_.State -eq 'activa'}|ForEach-Object {$_.Id})
+        if($ids.Count){$out.Add("Reglas activas del proyecto: $($ids -join ', ') (texto en .context/reglas_proyecto.md).")}
+    }
+    $text=$out -join "`n"
+    if($text.Length -gt $script:maxCompact){$text=$text.Substring(0,$script:maxCompact-40)+"`n… (recortado)"}
+    return $text
+}
+
 # Answer in each harness's own format; an empty brief says nothing.
 function ConvertTo-AgentOpsSessionStartOutput([string]$Harness,[string]$Brief){
     if($Harness -eq 'antigravity'){
@@ -117,15 +151,19 @@ function Install-AgentOpsSessionStart {
             if(($c|ConvertTo-Json -Depth 12 -Compress) -ne $before){Write-AgentOpsJsonFile $path $c;$changed.Add($path)}
         }
         # Each entry is rebuilt from scratch: older versions are replaced, never duplicated; other hooks stay.
-        $swap={param($c,$entry)
+        $swap={param($c,$entry,[string]$event='SessionStart',[string]$pattern=$marker)
             if(-not $c.Contains('hooks')){$c['hooks']=[ordered]@{}}
-            $list=$(if($c['hooks'].Contains('SessionStart')){Ss-Without @($c['hooks']['SessionStart']) $marker}else{@()})
+            $list=$(if($c['hooks'].Contains($event)){Ss-Without @($c['hooks'][$event]) $pattern}else{@()})
             if($entry){$list=@($list)+@($entry)}
-            if(@($list).Count){$c['hooks']['SessionStart']=@($list)}elseif($c['hooks'].Contains('SessionStart')){$c['hooks'].Remove('SessionStart')}
+            if(@($list).Count){$c['hooks'][$event]=@($list)}elseif($c['hooks'].Contains($event)){$c['hooks'].Remove($event)}
             return $c}
         $claude=[ordered]@{matcher=$matcher;hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','session-start','-Harness','claude');timeout=20})}
         $codex=[ordered]@{matcher=$matcher;hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook session-start -Harness codex";commandWindows=(& $win 'codex');timeout=20;statusMessage='Agent Ops: preparando el inicio de sesión';additionalContextLimit=2500})}
-        & $edit $ClaudeSettingsPath {param($c) & $swap $c $(if($Uninstall){$null}else{$claude})}
+        # Claude Code only: before a compaction its stdout becomes instructions for the summary (Codex ignores it).
+        $compact=[ordered]@{matcher='manual|auto';hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','pre-compact','-Harness','claude');timeout=20})}
+        & $edit $ClaudeSettingsPath {param($c)
+            $c=& $swap $c $(if($Uninstall){$null}else{$claude})
+            & $swap $c $(if($Uninstall){$null}else{$compact}) 'PreCompact' 'agent-ops-hook\.ps1.{0,40}pre-compact'}
         & $edit $CodexHooksPath {param($c) & $swap $c $(if($Uninstall){$null}else{$codex})}
         & $edit $AntigravityHooksPath {param($c)
             if($c.Contains('agent-ops-session-start')){$c.Remove('agent-ops-session-start')}
@@ -136,4 +174,4 @@ function Install-AgentOpsSessionStart {
     }catch{$res.Code=1;$res.Status='FAILED';$res.Issues=@($_.Exception.Message)}
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function Get-AgentOpsSessionBrief,ConvertTo-AgentOpsSessionStartOutput,Install-AgentOpsSessionStart
+Export-ModuleMember -Function Get-AgentOpsSessionBrief,Get-AgentOpsCompactInstructions,ConvertTo-AgentOpsSessionStartOutput,Install-AgentOpsSessionStart

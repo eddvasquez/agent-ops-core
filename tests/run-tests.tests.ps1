@@ -130,6 +130,68 @@ Test 'a red suite reports which tests failed, also when it ran in parts' {
     $res=@($run.Results)[0]
     Assert (@($res.Failures).Count -eq 1 -and @($res.Failures)[0] -match '^\[2/2\] FAIL la prueba rota 2/2') ($run|ConvertTo-Json -Depth 5)
 }
+Test 'with -Snapshot the suites run on a copy: editing the project meanwhile does not spoil the run' {
+    # The suite edits the real project while it runs, as the agent would; without a copy the run is discarded.
+    $editor="`$main=`$env:AOC_TEST_MAIN;[IO.File]::AppendAllText((Join-Path `$main 'scripts/x.ps1'),'# editado')`nWrite-Host 'edit: 1 passed, 0 failed.'`nexit 0"
+    $r=Repo @{'tests/edit.tests.ps1'=$editor;'scripts/x.ps1'="'x'"}
+    Put $r 'scripts/x.ps1' "'y'"
+    $env:AOC_TEST_MAIN=$r
+    try{
+        $start=(Get-AgentOpsCodeFingerprint -ProjectPath $r).Fingerprint
+        $plain=Invoke-AgentOpsTestRun -ProjectPath $r -Suites edit -Parallel 1
+        Assert ($plain.Code -ne 0) 'Without -Snapshot an edit during the run must discard it'
+        Put $r 'scripts/x.ps1' "'y'";$start=(Get-AgentOpsCodeFingerprint -ProjectPath $r).Fingerprint
+        $run=Invoke-AgentOpsTestRun -ProjectPath $r -Suites edit -Parallel 1 -Snapshot
+        Assert ($run.Code -eq 0 -and $run.Status -eq 'GREEN' -and $run.Fingerprint -eq $start) ($run|ConvertTo-Json -Depth 5)
+        $ev=[IO.File]::ReadAllText((Join-Path $r '.context/test-evidence.json'))|ConvertFrom-Json
+        Assert ($ev.Fingerprint -eq $start) 'Evidence must belong to the state that was copied'
+        Assert ((Get-AgentOpsCodeFingerprint -ProjectPath $r).Fingerprint -ne $start) 'The real project should show the edit made during the run'
+    }finally{Remove-Item Env:AOC_TEST_MAIN -ErrorAction SilentlyContinue}
+}
+Test 'the copy holds exactly the current state (changed, new and deleted files) and is removed afterwards' {
+    $check="`$root=Split-Path -Parent `$PSScriptRoot`n`$ok=([IO.File]::ReadAllText((Join-Path `$root 'scripts/m.ps1')) -eq 'cambiado') -and [IO.File]::Exists((Join-Path `$root 'scripts/nuevo.ps1')) -and -not [IO.File]::Exists((Join-Path `$root 'scripts/borrado.ps1'))`n[IO.File]::WriteAllText((Join-Path ([IO.Path]::GetTempPath()) ('aoc-snapshot-seen-'+`$env:AOC_TEST_TOKEN)),`$root)`nif(`$ok){Write-Host 'copy: 1 passed, 0 failed.';exit 0}else{Write-Host 'FAIL copy differs';exit 1}"
+    $r=Repo @{'tests/copy.tests.ps1'=$check;'scripts/m.ps1'='base';'scripts/borrado.ps1'='x'}
+    Put $r 'scripts/m.ps1' 'cambiado';Put $r 'scripts/nuevo.ps1' 'nuevo';Remove-Item -LiteralPath (Join-Path $r 'scripts/borrado.ps1')
+    $env:AOC_TEST_TOKEN=[guid]::NewGuid().ToString('N')
+    try{
+        $run=Invoke-AgentOpsTestRun -ProjectPath $r -Suites copy -Parallel 1 -Snapshot
+        Assert ($run.Code -eq 0) ($run|ConvertTo-Json -Depth 5)
+        $seen=Join-Path ([IO.Path]::GetTempPath()) ('aoc-snapshot-seen-'+$env:AOC_TEST_TOKEN)
+        $copy=[IO.File]::ReadAllText($seen).Trim();Remove-Item -LiteralPath $seen
+        Assert ($copy -ne $r -and (Split-Path -Leaf $copy) -like 'aoc-snapshot-*') "Suite did not run on a copy: $copy"
+        Assert (-not [IO.Directory]::Exists($copy)) "Copy left behind: $copy"
+        Assert (@(& git -C $r worktree list --porcelain|Where-Object {$_ -like 'worktree *'}).Count -eq 1) 'Worktree still registered'
+    }finally{Remove-Item Env:AOC_TEST_TOKEN -ErrorAction SilentlyContinue}
+}
+Test '-Changed after a green run tests only what changed since that run' {
+    $r=Repo $graph
+    Put $r 'scripts/A.psm1' 'function Get-A{2}'
+    $first=Invoke-AgentOpsTestRun -ProjectPath $r -Changed -Parallel 1
+    Assert ($first.Code -eq 0 -and (@($first.Results|ForEach-Object {$_.Suite}) -join ',') -eq 'a,b') ($first|ConvertTo-Json -Depth 5)
+    Put $r 'scripts/c-tool.ps1' "'c2'"
+    $next=Invoke-AgentOpsTestRun -ProjectPath $r -Changed -Parallel 1
+    Assert ($next.Code -eq 0 -and (@($next.Results|ForEach-Object {$_.Suite}) -join ',') -eq 'c') ("A was already green; only c changed since: "+($next|ConvertTo-Json -Depth 5))
+    $ev=[IO.File]::ReadAllText((Join-Path $r '.context/test-evidence.json'))|ConvertFrom-Json
+    Assert ($ev.Fingerprint -eq (Get-AgentOpsCodeFingerprint -ProjectPath $r).Fingerprint) 'Evidence must cover the current state'
+    Put $r 'scripts/A.psm1' 'function Get-A{3}'
+    $again=Invoke-AgentOpsTestRun -ProjectPath $r -Changed -Parallel 1
+    Assert ((@($again.Results|ForEach-Object {$_.Suite}) -join ',') -eq 'a,b') ($again|ConvertTo-Json -Depth 5)
+}
+Test 'a green run in one PowerShell never exempts the other one from testing' {
+    $r=Repo $graph
+    Put $r 'scripts/A.psm1' 'function Get-A{2}'
+    $first=Invoke-AgentOpsTestRun -ProjectPath $r -Changed -Parallel 1
+    Assert ($first.Code -eq 0) ($first|ConvertTo-Json -Depth 5)
+    # Pretend that run happened in the other edition: this edition has no green base of its own.
+    $path=Join-Path $r '.context/test-evidence.json';$ev=[IO.File]::ReadAllText($path)|ConvertFrom-Json
+    $other=$(if($PSVersionTable.PSEdition -eq 'Core'){'Desktop'}else{'Core'})
+    $mine=$ev.ByEdition.($PSVersionTable.PSEdition)
+    $ev.ByEdition=[pscustomobject]@{$other=$mine};[IO.File]::WriteAllText($path,($ev|ConvertTo-Json -Depth 8))
+    $next=Invoke-AgentOpsTestRun -ProjectPath $r -Changed -Parallel 1
+    Assert ((@($next.Results|ForEach-Object {$_.Suite}) -join ',') -eq 'a,b') ("This edition must test what is pending since the last commit: "+($next|ConvertTo-Json -Depth 5))
+    $ev=[IO.File]::ReadAllText($path)|ConvertFrom-Json
+    Assert ($ev.ByEdition.$other -and $ev.ByEdition.($PSVersionTable.PSEdition)) 'Each edition keeps its own green base'
+}
 Test 'run-tests uses the automatic parallelism by default (R-012)' {
     $tokens=$null;$errors=$null
     $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $source 'scripts/run-tests.ps1'),[ref]$tokens,[ref]$errors)

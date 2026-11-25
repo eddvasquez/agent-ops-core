@@ -71,9 +71,9 @@
         },
         {
           "Id": "hook.PreCompact",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://code.claude.com/docs/en/hooks",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "Punto de control al cerrar cada paso"
         },
         {
