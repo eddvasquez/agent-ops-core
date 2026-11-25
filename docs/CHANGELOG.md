@@ -6,6 +6,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Added
+- El vigilante de skills ya no puede quedarse apagado sin que se note: al empezar cada sesión, si la instalación lo quiere activo y nadie lo apagó a propósito, se reactiva y se avisa al agente. Nunca durante una activación de versiones ni sobre una tarea de otra instalación. Apagarlo a propósito con `manage-skills-watcher.ps1 -Action Disable` queda registrado (`watcher-intent.json`) y se respeta. En este PC había quedado desactivado del 2026-11-20 al 2026-11-25.
+
+### Added
 - Plugin de Agent Ops Core para Antigravity (`install-antigravity-plugin.ps1`): reúne en `~/.gemini/config/plugins/agent-ops-core` el aviso al empezar la sesión, la protección de credenciales y el registro de actividad, más dos reglas nativas: una siempre activa con lo esencial del marco (MODO ENTRADA, reglas del proyecto, aceptación y esperas) y otra que se activa sola al tocar archivos de credenciales. Se valida con `agy plugin validate --strict` y solo entonces sustituye a las entradas sueltas de `hooks.json`; los demás instaladores ya no las vuelven a añadir. `plugin.hooks` pasa a «aprovechada» en Antigravity (5 de 8).
 
 

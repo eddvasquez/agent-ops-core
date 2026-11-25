@@ -27,6 +27,7 @@ $existing=Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 if($existing -and -not @($existing.Actions|Where-Object {($_.Arguments.Contains('"'+$watchPath+'"') -or $_.Arguments.Contains('"'+$legacyWatchPath+'"')) -and $_.Arguments.Contains('"'+$configPath+'"')}).Count){throw 'Scheduled task name belongs to a different configuration; refusing to replace or stop it.'}
 switch($Action) {
     'Enable' {
+        [IO.Directory]::CreateDirectory($StateDir)|Out-Null;[IO.File]::WriteAllText((Join-Path $StateDir 'watcher-intent.json'),(@{Enabled=$true;By='manage-skills-watcher';At=[datetime]::UtcNow.ToString('o')}|ConvertTo-Json))
         & $managementEngine {param($c) Save-SkillSyncConfiguration -HubDir $c.HubDir -Targets $c.Targets -StateDir $c.StateDir -FrameworkDir $c.FrameworkDir} $configuration|Out-Null
         $exe=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
         $identity=[Security.Principal.WindowsIdentity]::GetCurrent().Name
@@ -38,7 +39,8 @@ switch($Action) {
         if($existing){Stop-ScheduledTask -TaskName $taskName}
         if(-not $NoStart){Start-ScheduledTask -TaskName $taskName}
     }
-    'Disable' {if($existing){Stop-ScheduledTask -TaskName $taskName;Disable-ScheduledTask -TaskName $taskName|Out-Null}}
+    # The intent is recorded so the session-start guard keeps a watcher switched off on purpose off (WatcherGuard.psm1).
+    'Disable' {if($existing){Stop-ScheduledTask -TaskName $taskName;Disable-ScheduledTask -TaskName $taskName|Out-Null};[IO.Directory]::CreateDirectory($StateDir)|Out-Null;[IO.File]::WriteAllText((Join-Path $StateDir 'watcher-intent.json'),(@{Enabled=$false;By='manage-skills-watcher';At=[datetime]::UtcNow.ToString('o')}|ConvertTo-Json))}
     'Remove' {if($existing){Stop-ScheduledTask -TaskName $taskName;Unregister-ScheduledTask -TaskName $taskName -Confirm:$false}}
     'Status' {$existing}
 }

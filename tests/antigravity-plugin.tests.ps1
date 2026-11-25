@@ -38,7 +38,7 @@ Test 'the plugin bundles the three hooks through the stable launcher and the fra
     $rules=[IO.File]::ReadAllText((Join-Path $root 'rules/AGENTS.md'))
     Assert ($rules -match 'MODO ENTRADA' -and $rules -match 'R-016' -and $rules -match 'R-017') 'Always-on rule missing framework essentials'
     $cred=[IO.File]::ReadAllText((Join-Path $root 'rules/credenciales.md'))
-    Assert ($cred -match '(?m)^trigger: glob$' -and $cred -match '\*\*/\.env' -and $cred -notmatch 'example') 'Credential rule must be a glob rule without examples'
+    Assert ($cred -match '(?m)^trigger: glob\r?$' -and $cred -match '\*\*/\.env' -and $cred -notmatch 'example') 'Credential rule must be a glob rule without examples'
     Assert ($script:validated -and $script:validated -like '*aoc-agplugin-*\agent-ops-core') 'The staged plugin must be validated before it is installed'
 }
 Test 'the loose entries are replaced by the plugin; the user''s own hooks stay' {
