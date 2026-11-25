@@ -4,6 +4,9 @@ Set-StrictMode -Version 2
 $script:utf8=New-Object Text.UTF8Encoding($false)
 
 function Read-AgentOpsHookInput{
+    # The launcher may already have read stdin to pre-filter it: it then passes the event in a temporary file.
+    $file=$env:AGENT_OPS_HOOK_INPUT_FILE
+    if($file -and [IO.File]::Exists($file)){return $script:utf8.GetString([IO.File]::ReadAllBytes($file)).TrimStart([char]0xFEFF)}
     $buffer=New-Object IO.MemoryStream;[Console]::OpenStandardInput().CopyTo($buffer)
     return $script:utf8.GetString($buffer.ToArray()).TrimStart([char]0xFEFF)
 }

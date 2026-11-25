@@ -126,6 +126,49 @@ Test 'the launcher runs the guard of the active release and lets the action thro
     $empty=NewDir 'vacio'
     Assert (-not (& $run $empty $ev)) 'Without an installation the launcher must let the action through'
 }
+Test 'Claude only spawns the guard for suspicious paths or commands: every handler has an if filter' {
+    $home2=NewDir 'home';$state=NewDir 'state'
+    $paths=@{StateDir=$state;ClaudeSettingsPath=(Join-Path $home2 '.claude/settings.json');CodexHooksPath=(Join-Path $home2 '.codex/hooks.json');AntigravityHooksPath=(Join-Path $home2 '.gemini/config/hooks.json')}
+    Install-AgentOpsSecretGuard @paths|Out-Null
+    $c=[IO.File]::ReadAllText($paths.ClaudeSettingsPath)|ConvertFrom-Json
+    $handlers=@($c.hooks.PreToolUse|ForEach-Object {@($_.hooks)})
+    Assert ($handlers.Count -ge 8 -and -not @($handlers|Where-Object {-not $_.if}).Count) 'Every Claude handler needs an if filter'
+    $ifs=@($handlers|ForEach-Object {$_.if})
+    foreach($rule in 'Read(//**/.env*)','Edit(//**/.env*)','Read(//**/*secret*)','Bash(*.env*)','PowerShell(*.env*)','Read(//**/*.pem)'){Assert ($ifs -contains $rule) "Missing filter $rule"}
+    $x=[IO.File]::ReadAllText($paths.CodexHooksPath)|ConvertFrom-Json
+    Assert ($x.hooks.PreToolUse[0].matcher -eq 'Bash|apply_patch|mcp__.*') 'Codex must only run for shell, patches and MCP tools'
+}
+Test 'an older installation without filters is upgraded in place, without duplicates' {
+    $home2=NewDir 'home';$state=NewDir 'state'
+    $claude=Join-Path $home2 '.claude/settings.json';[IO.Directory]::CreateDirectory((Split-Path $claude))|Out-Null
+    $old='{"hooks":{"PreToolUse":[{"matcher":"Read|Edit","hooks":[{"type":"command","command":"powershell.exe","args":["-File","'+((Join-Path $state 'hooks/agent-ops-hook.ps1') -replace '\\','\\')+'","-Hook","secret-guard","-Harness","claude"],"timeout":15}]}]}}'
+    [IO.File]::WriteAllText($claude,$old,$utf8)
+    $paths=@{StateDir=$state;ClaudeSettingsPath=$claude;CodexHooksPath=(Join-Path $home2 'x.json');AntigravityHooksPath=(Join-Path $home2 'a.json')}
+    $i=Install-AgentOpsSecretGuard @paths
+    $c=[IO.File]::ReadAllText($claude)|ConvertFrom-Json
+    $handlers=@($c.hooks.PreToolUse|ForEach-Object {@($_.hooks)})
+    Assert ($i.Status -eq 'INSTALLED' -and -not @($handlers|Where-Object {-not $_.if}).Count) ($c|ConvertTo-Json -Depth 8)
+}
+Test 'the launcher answers ordinary actions itself and only runs the guard, and logs it, when something looks like a credential' {
+    $state=NewDir 'state';$frame=NewDir 'frame';[IO.Directory]::CreateDirectory((Join-Path $frame 'scripts'))|Out-Null
+    $marker=Join-Path $frame 'ran.txt'
+    [IO.File]::WriteAllText((Join-Path $frame 'scripts/secret-guard-hook.ps1'),"param([string]`$Harness)`n[IO.File]::WriteAllText('$marker',[IO.File]::ReadAllText(`$env:AGENT_OPS_HOOK_INPUT_FILE))`n'{""decision"":""ask""}'",$utf8)
+    [IO.File]::WriteAllText((Join-Path $state 'update-state.json'),(@{Mode='MANAGED';Active=@{Sha=('a'*40);Path=$frame}}|ConvertTo-Json),$utf8)
+    Install-AgentOpsSecretGuard -StateDir $state -ClaudeSettingsPath (Join-Path $state 'c.json') -CodexHooksPath (Join-Path $state 'x.json') -AntigravityHooksPath (Join-Path $state 'a.json')|Out-Null
+    $launcher=Join-Path $state 'hooks/agent-ops-hook.ps1'
+    $run={param($json)
+        $psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName=(Get-Process -Id $PID).Path
+        $psi.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+$launcher+'" -Hook secret-guard -Harness antigravity'
+        $psi.UseShellExecute=$false;$psi.CreateNoWindow=$true;$psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
+        $psi.StandardOutputEncoding=New-Object Text.UTF8Encoding($false);$psi.EnvironmentVariables['AGENT_OPS_STATE_DIR']=$state
+        $p=[Diagnostics.Process]::Start($psi);$p.StandardInput.Write($json);$p.StandardInput.Close();$o=$p.StandardOutput.ReadToEnd();$null=$p.StandardError.ReadToEnd();$p.WaitForExit();$o.Trim()}
+    $plain=& $run '{"toolCall":{"name":"view_file","args":{"AbsolutePath":"C:\\p\\README.md"}}}'
+    Assert ($plain -eq '{"decision":"allow"}' -and -not (Test-Path $marker)) "Ordinary action reached the guard: $plain"
+    $secret=& $run '{"toolCall":{"name":"view_file","args":{"AbsolutePath":"C:\\p\\.env"}}}'
+    Assert ($secret -match 'ask' -and (Test-Path $marker) -and ([IO.File]::ReadAllText($marker) -match '\.env')) "Credential action did not reach the guard with its input: $secret"
+    $log=Join-Path $state 'hooks/invocations.log'
+    Assert ((Test-Path $log) -and @([IO.File]::ReadAllLines($log)).Count -eq 1 -and ([IO.File]::ReadAllText($log) -match 'secret-guard') -and ([IO.File]::ReadAllText($log) -notmatch 'README|\.env')) 'The log must record one invocation, without paths'
+}
 Write-Host "Secret guard: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

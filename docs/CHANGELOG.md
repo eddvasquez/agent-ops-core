@@ -5,6 +5,10 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Changed
+- La protección de credenciales ya no frena al agente en las acciones normales. Claude Code solo la lanza cuando la ruta o el comando contienen algo sospechoso (un filtro `if` por patrón); el lanzador responde él mismo, sin cargar módulos, a lo que no lo parece; Codex solo la consulta para comandos, parches y herramientas MCP. Reinstalar con `install-secret-guard.ps1` sustituye la configuración anterior sin duplicarla.
+- El lanzador de hooks anota cada invocación (hora, hook y arnés; nunca rutas ni contenido) en `%LOCALAPPDATA%\AgentOps\hooks\invocations.log`, limitado a 256 KB.
+
 ### Added
 - Pruebas mucho más rápidas: `run-tests.ps1 -Changed` ejecuta solo las suites que cubren el código sin guardar (las que cargan cada script o módulo, directa o indirectamente; si cambia algo común, como el flujo de GitHub o un auxiliar de pruebas, todas). Un cambio típico pasó de 10-20 minutos a menos de 1. `-Parallel N` ejecuta N suites a la vez; queda desactivado por defecto. Cada suite comparte la consola del ejecutor, porque algunas lanzan Git o PowerShell y sin consola fallaban.
 ## [3.15.0] - 2026-11-24

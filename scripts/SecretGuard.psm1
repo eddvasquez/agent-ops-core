@@ -70,9 +70,16 @@ function Get-AgentOpsSecretDecision {
 
 # --- Per-user installation in the three harnesses -------------------------------------------------------
 $script:launcher=@'
-# agent-ops hook launcher v1. Managed by Agent Ops: runs a hook of the active, verified release.
+# agent-ops hook launcher v2. Managed by Agent Ops: runs a hook of the active, verified release.
+# secret-guard: ordinary actions are answered here, without loading any module, so they stay fast.
 param([Parameter(Mandatory=$true)][string]$Hook,[Parameter(Mandatory=$true)][string]$Harness)
+$utf8=New-Object Text.UTF8Encoding($false)
+function Out-Hook([string]$t){if($t){$b=$utf8.GetBytes($t);$o=[Console]::OpenStandardOutput();$o.Write($b,0,$b.Length);$o.Flush()}}
+$allow=$(if($Harness -eq 'antigravity'){'{"decision":"allow"}'}else{''})
 $stateDir=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'})
+$buffer=New-Object IO.MemoryStream;[Console]::OpenStandardInput().CopyTo($buffer);$bytes=$buffer.ToArray()
+$suspicious='(?i)\.env|secret|credential|\.pem|\.key\b|\.pfx|\.p12|\.jks|keystore|id_(rsa|dsa|ecdsa|ed25519)|google-ads|\.npmrc|\.pypirc|\.netrc|token\.json'
+if($Hook -eq 'secret-guard' -and $utf8.GetString($bytes) -notmatch $suspicious){Out-Hook $allow;exit 0}
 $frame=$null
 try{
     $s=[IO.File]::ReadAllText((Join-Path $stateDir 'update-state.json'))|ConvertFrom-Json
@@ -80,14 +87,28 @@ try{
     elseif($s.Mode -eq 'LOCAL_DEV' -and $s.Config -and $s.Config.InstallRoot){$frame=[string]$s.Config.InstallRoot}
 }catch{}
 $script=$(if($frame -and $Hook -match '^[a-z-]+$'){Join-Path $frame "scripts/$Hook-hook.ps1"}else{$null})
-if(-not $script -or -not (Test-Path -LiteralPath $script -PathType Leaf)){
-    if($Harness -eq 'antigravity'){$b=[Text.Encoding]::UTF8.GetBytes('{"decision":"allow"}');$o=[Console]::OpenStandardOutput();$o.Write($b,0,$b.Length);$o.Flush()}
-    exit 0
-}
-& $script -Harness $Harness
-exit $LASTEXITCODE
+if(-not $script -or -not (Test-Path -LiteralPath $script -PathType Leaf)){Out-Hook $allow;exit 0}
+# Minimal trace (time, hook, harness; never paths or content), capped at 256 KB.
+try{
+    $log=Join-Path $stateDir 'hooks/invocations.log'
+    if([IO.File]::Exists($log) -and (New-Object IO.FileInfo $log).Length -gt 262144){[IO.File]::Copy($log,"$log.1",$true);[IO.File]::WriteAllText($log,'')}
+    [IO.File]::AppendAllText($log,("{0}`t{1}`t{2}`n" -f [datetime]::UtcNow.ToString('o'),$Hook,$Harness))
+}catch{}
+# The hook reads the event from this temporary file because stdin was already consumed above.
+$eventFile=[IO.Path]::GetTempFileName();[IO.File]::WriteAllBytes($eventFile,$bytes);$env:AGENT_OPS_HOOK_INPUT_FILE=$eventFile
+$code=0
+try{& $script -Harness $Harness;$code=$LASTEXITCODE}finally{[IO.File]::Delete($eventFile)}
+exit $code
 '@
-function Sg-Has($list,[string]$marker){@($list|Where-Object {($_|ConvertTo-Json -Depth 12 -Compress) -match [regex]::Escape($marker)}).Count -gt 0}
+# Claude: one filtered handler per suspicious pattern, so ordinary actions never start a process.
+$script:pathGlobs=@('.env*','*secret*','*Secret*','*SECRET*','*credential*','*Credential*','*CREDENTIAL*','*.pem','*.key','*.pfx','*.p12','*.jks','*.keystore','id_rsa*','id_dsa*','id_ecdsa*','id_ed25519*','google-ads.y*ml','.npmrc','.pypirc','.netrc','token.json')
+$script:commandWords=@('.env','secret','Secret','SECRET','credential','Credential','CREDENTIAL','.pem','.key','.pfx','.p12','.jks','keystore','id_rsa','id_dsa','id_ecdsa','id_ed25519','google-ads','.npmrc','.pypirc','.netrc','token.json')
+function Sg-ClaudeGroup([string]$launcher){
+    $runArgs=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','secret-guard','-Harness','claude')
+    $rules=@();foreach($g in $script:pathGlobs){$rules+="Read(//**/$g)";$rules+="Edit(//**/$g)"}
+    foreach($w in $script:commandWords){$rules+="Bash(*$w*)";$rules+="PowerShell(*$w*)"}
+    [ordered]@{matcher='Read|Edit|MultiEdit|Write|NotebookEdit|Bash|PowerShell';hooks=@($rules|ForEach-Object {[ordered]@{type='command';if=$_;command='powershell.exe';args=$runArgs;timeout=15}})}
+}
 function Sg-Without($list,[string]$marker){,@($list|Where-Object {($_|ConvertTo-Json -Depth 12 -Compress) -notmatch [regex]::Escape($marker)})}
 
 function Install-AgentOpsSecretGuard {
@@ -115,23 +136,18 @@ function Install-AgentOpsSecretGuard {
                 [IO.Directory]::CreateDirectory((Split-Path $launcher))|Out-Null;[IO.File]::WriteAllText($launcher,$text,(New-Object Text.UTF8Encoding($true)));$script:changedFiles+=@($launcher)
             }
         }
-        & $edit $ClaudeSettingsPath {param($c)
+        # Each entry is rebuilt from scratch: older versions are replaced, never duplicated, and only real changes are written.
+        $swap={param($c,$entry)
             if(-not $c.Contains('hooks')){$c['hooks']=[ordered]@{}}
-            $list=$(if($c['hooks'].Contains('PreToolUse')){@($c['hooks']['PreToolUse'])}else{@()})
-            if($Uninstall){$list=Sg-Without $list $marker}
-            elseif(-not (Sg-Has $list $marker)){$list+=@([ordered]@{matcher='Read|Edit|MultiEdit|Write|NotebookEdit|Bash|PowerShell|Grep';hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','secret-guard','-Harness','claude');timeout=15})})}
+            $list=$(if($c['hooks'].Contains('PreToolUse')){Sg-Without @($c['hooks']['PreToolUse']) $marker}else{@()})
+            if($entry){$list=@($list)+@($entry)}
             if(@($list).Count){$c['hooks']['PreToolUse']=@($list)}elseif($c['hooks'].Contains('PreToolUse')){$c['hooks'].Remove('PreToolUse')}
             return $c}
-        & $edit $CodexHooksPath {param($c)
-            if(-not $c.Contains('hooks')){$c['hooks']=[ordered]@{}}
-            $list=$(if($c['hooks'].Contains('PreToolUse')){@($c['hooks']['PreToolUse'])}else{@()})
-            if($Uninstall){$list=Sg-Without $list $marker}
-            elseif(-not (Sg-Has $list $marker)){$list+=@([ordered]@{hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook secret-guard -Harness codex";commandWindows=(& $win 'codex');timeout=15})})}
-            if(@($list).Count){$c['hooks']['PreToolUse']=@($list)}elseif($c['hooks'].Contains('PreToolUse')){$c['hooks'].Remove('PreToolUse')}
-            return $c}
+        & $edit $ClaudeSettingsPath {param($c) & $swap $c $(if($Uninstall){$null}else{Sg-ClaudeGroup $launcher})}
+        & $edit $CodexHooksPath {param($c) & $swap $c $(if($Uninstall){$null}else{[ordered]@{matcher='Bash|apply_patch|mcp__.*';hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook secret-guard -Harness codex";commandWindows=(& $win 'codex');timeout=15})}})}
         & $edit $AntigravityHooksPath {param($c)
-            if($Uninstall){if($c.Contains('agent-ops-secret-guard')){$c.Remove('agent-ops-secret-guard')}}
-            elseif(-not $c.Contains('agent-ops-secret-guard')){$c['agent-ops-secret-guard']=[ordered]@{PreToolUse=@([ordered]@{matcher='view_file|write_to_file|replace_file_content|multi_replace_file_content|run_command|grep_search';hooks=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=15})})}}
+            if($c.Contains('agent-ops-secret-guard')){$c.Remove('agent-ops-secret-guard')}
+            if(-not $Uninstall){$c['agent-ops-secret-guard']=[ordered]@{PreToolUse=@([ordered]@{matcher='view_file|write_to_file|replace_file_content|multi_replace_file_content|run_command|grep_search';hooks=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=15})})}}
             return $c}
         $res.Files=@($script:changedFiles)
         if($script:changedFiles.Count){$res.Status=$(if($Uninstall){'REMOVED'}else{'INSTALLED'})}elseif($Uninstall){$res.Status='NOT_INSTALLED'}
