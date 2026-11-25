@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.19.0] - 2026-11-25
 ### Added
 - Petición de permiso en Codex (`PermissionRequest`): cuando Codex va a pedir aprobación (por ejemplo, para salir del aislamiento) y la orden o el parche nombra credenciales, se niega con la misma explicación que antes de cada acción. Así una salida del aislamiento no puede esquivar el perfil que niega leer claves privadas. En cualquier otro caso no decide: sigue tu aprobación normal, y nunca aprueba por ti. `hook.PermissionRequest` pasa a «aprovechada» en Codex (5 de 8).
 - El canal local se niega (`BOOTSTRAP_TOO_OLD`) si el arranque que comprueba cada sesión no entiende versiones locales, y explica cómo actualizarlo desde `stable` con `install.ps1`; antes la instalación salía bien pero cada sesión respondía FAILED. El actualizador declara la capacidad con la línea `# capability: local-channel-v1`.
@@ -111,14 +113,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Added
 - Limpieza obligatoria y automática de las pruebas (R-011): cada suite del marco borra su carpeta temporal al terminar en verde, la conserva si falla y, al empezar, barre las de más de 48 horas (`tests/TestFixtures.ps1`). `repo-hygiene` analiza la estructura de cada suite y exige la limpieza a cualquier suite nueva.
 - Protocolo 3 de AGENTS.md: las pruebas de cada proyecto crean sus archivos temporales en una carpeta propia y la borran al terminar en verde; si fallan, la conservan para revisar el fallo y se borra sola después.
-
-## [3.10.0] - 2026-11-24
-### Added
-- Radar de arneses, segunda fase: vigila también las páginas oficiales de hooks, ajustes y plugins de Claude Code, Codex y Antigravity (huella del texto visible: el ruido de la página no cuenta) y las versiones instaladas en el equipo (`claude`, `codex`, `agy`). Así Antigravity, que no publica versiones en GitHub, queda cubierto. Los cambios de documentación se marcan como vistos con `-Action Ack -Harness <id> -Source <página>`.
-
-### Changed
-- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
-- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
-
-### Fixed
-- El radar lee siempre las páginas como UTF-8 y sigue las redirecciones permanentes (308): Windows PowerShell 5.1 y PowerShell 7 obtienen la misma huella y ninguna página mudada queda sin leer.

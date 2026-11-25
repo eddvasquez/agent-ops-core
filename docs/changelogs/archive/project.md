@@ -1,5 +1,16 @@
 # Historial de versiones anteriores
 
+## [3.10.0] - 2026-11-24
+### Added
+- Radar de arneses, segunda fase: vigila también las páginas oficiales de hooks, ajustes y plugins de Claude Code, Codex y Antigravity (huella del texto visible: el ruido de la página no cuenta) y las versiones instaladas en el equipo (`claude`, `codex`, `agy`). Así Antigravity, que no publica versiones en GitHub, queda cubierto. Los cambios de documentación se marcan como vistos con `-Action Ack -Harness <id> -Source <página>`.
+
+### Changed
+- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
+- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
+
+### Fixed
+- El radar lee siempre las páginas como UTF-8 y sigue las redirecciones permanentes (308): Windows PowerShell 5.1 y PowerShell 7 obtienen la misma huella y ninguna página mudada queda sin leer.
+
 ## [3.9.1] - 2026-11-23
 ### Fixed
 - El radar de arneses solo avisa dentro del repositorio de Agent Ops Core, a quien lo mantiene (R-010). En cualquier otro proyecto responde `NOT_MAINTAINER`, sin consultar la red ni mostrar nada.
