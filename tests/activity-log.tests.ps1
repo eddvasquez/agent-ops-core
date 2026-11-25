@@ -48,7 +48,8 @@ Test 'the log is capped and rotates' {
 Test 'activity since a moment summarises files, commands and test runs' {
     $p=Governed;$s=NewDir 'state'
     Add-AgentOpsActivity -StateDir $s -Harness claude -Event (@{cwd=$p;tool_name='Edit';tool_input=@{file_path=(Join-Path $p 'a.ps1')}}|ConvertTo-Json -Compress)
-    $mark=[datetime]::UtcNow;Start-Sleep -Milliseconds 50
+    # Some machines (CI) tick the clock every ~15.6 ms: wait on both sides so the first edit is strictly before the mark.
+    Start-Sleep -Milliseconds 50;$mark=[datetime]::UtcNow;Start-Sleep -Milliseconds 50
     Add-AgentOpsActivity -StateDir $s -Harness claude -Event (@{cwd=$p;tool_name='Edit';tool_input=@{file_path=(Join-Path $p 'b.ps1')}}|ConvertTo-Json -Compress)
     Add-AgentOpsActivity -StateDir $s -Harness claude -Event (@{cwd=$p;tool_name='Bash';tool_input=@{command='pwsh -File tests/x.tests.ps1'};tool_response=@{exitCode=1}}|ConvertTo-Json -Compress)
     $a=Get-AgentOpsActivitySummary -StateDir $s -ProjectPath $p -Since $mark
