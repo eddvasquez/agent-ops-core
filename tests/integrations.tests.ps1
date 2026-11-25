@@ -91,6 +91,14 @@ Test 'a state folder other than the real one never touches the real user folder 
     Assert ($i.Status -eq 'ISOLATED') ($i|ConvertTo-Json -Depth 4)
     Assert (-not [IO.File]::Exists((Join-Path $m.State 'integrations.json'))) 'Recorded an adjustment that did not happen'
 }
+Test 'the real installation is recognised (with or without a trailing separator), any other is isolated' {
+    $real=Join-Path $script:base 'lad\AgentOps';$me=Join-Path $script:base 'me'
+    Assert ((Resolve-AgentOpsIntegrationHome -StateDir $real -RealStateDir $real -RealHome $me) -eq $me) 'Real installation not recognised'
+    Assert ((Resolve-AgentOpsIntegrationHome -StateDir ($real+'\') -RealStateDir $real -RealHome $me) -eq $me) 'Trailing separator breaks it'
+    Assert ((Resolve-AgentOpsIntegrationHome -StateDir ($real.Replace('\','/')+'/') -RealStateDir $real -RealHome $me) -eq $me) 'Forward slashes break it'
+    Assert (-not (Resolve-AgentOpsIntegrationHome -StateDir (Join-Path $script:base 'other') -RealStateDir $real -RealHome $me)) 'Another state folder must be isolated'
+    Assert ((Resolve-AgentOpsIntegrationHome -StateDir (Join-Path $script:base 'other') -HomeDir 'X:\given' -RealStateDir $real -RealHome $me) -eq 'X:\given') 'An explicit user folder must win'
+}
 Write-Host "Integrations: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

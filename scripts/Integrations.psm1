@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version 2
+Set-StrictMode -Version 2
 # Integrations (zero configuration). Updating the framework changes its code; this makes every update also reach the
 # harnesses the user has: hooks, the Antigravity plugin and the Claude Code permission rules, with no script to run.
 # What changes a tool's own configuration (today: the Codex permission profile in config.toml) waits for consent,
@@ -29,12 +29,16 @@ function In-BootstrapState($state){
 
 # Only the real installation adjusts the real user folder: any other state folder (tests, fixtures) must name its
 # own user folder, or nothing is touched.
-function In-HomeFor([string]$StateDir,[string]$HomeDir){
+function Resolve-AgentOpsIntegrationHome {
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true)][string]$StateDir,[string]$HomeDir='',
+          [string]$RealStateDir=(Join-Path $env:LOCALAPPDATA 'AgentOps'),[string]$RealHome=$HOME)
     if($HomeDir){return $HomeDir}
-    $real=Join-Path $env:LOCALAPPDATA 'AgentOps'
-    try{if([IO.Path]::GetFullPath($StateDir).TrimEnd('','/') -ieq [IO.Path]::GetFullPath($real).TrimEnd('','/')){return $HOME}}catch{}
+    $sep=[char[]]@([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar)
+    try{if([IO.Path]::GetFullPath($StateDir).TrimEnd($sep) -ieq [IO.Path]::GetFullPath($RealStateDir).TrimEnd($sep)){return $RealHome}}catch{}
     return ''
 }
+function In-HomeFor([string]$StateDir,[string]$HomeDir){Resolve-AgentOpsIntegrationHome -StateDir $StateDir -HomeDir $HomeDir}
 
 function Sync-AgentOpsIntegrations {
     [CmdletBinding()]
@@ -106,4 +110,4 @@ function Update-AgentOpsBootstrap {
     try{$code=& $Runner $installer ([string]$watch.HubDir) @($watch.Targets);if($code -eq 0 -or $null -eq $code){$res.Code=0;$res.Status='UPDATED'}else{$res.Issues=@("install.ps1 terminó con código $code")}}catch{$res.Issues=@($_.Exception.Message)}
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function Sync-AgentOpsIntegrations,Invoke-AgentOpsIntegrationsIfNeeded,Update-AgentOpsBootstrap,Get-AgentOpsConsent,Set-AgentOpsConsent
+Export-ModuleMember -Function Resolve-AgentOpsIntegrationHome,Sync-AgentOpsIntegrations,Invoke-AgentOpsIntegrationsIfNeeded,Update-AgentOpsBootstrap,Get-AgentOpsConsent,Set-AgentOpsConsent

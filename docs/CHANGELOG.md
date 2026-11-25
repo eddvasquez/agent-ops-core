@@ -6,6 +6,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Fixed
+- El ajuste automático de integraciones reconoce de verdad la instalación real: antes se creía aislado siempre y no ajustaba nada.
 - Las pruebas ya no fallan cuando el vigilante de skills real está sincronizando: si la instalación real ya retiene su bloqueo, la prueba lo da por bueno en lugar de esperar 30 s a que lo suelte.
 
 ### Added
