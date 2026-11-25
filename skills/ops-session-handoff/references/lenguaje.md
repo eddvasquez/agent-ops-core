@@ -55,3 +55,6 @@ Usar siempre la misma expresión llana para cada término, en cualquier herramie
 | arnés (harness) | herramienta de IA (Claude, Codex, Gemini…) |
 
 Ejemplo en `plain`: «Guardé tus cambios y los subí a la copia en internet. Se están ejecutando las pruebas automáticas; si pasan, te ofreceré instalar la versión nueva en este equipo.»
+
+## Plantilla de espera (R-015)
+«Las pruebas de [qué] están corriendo en segundo plano (faltan unos N min). Cuando terminen podré [lo bloqueado]. Mientras tanto puedo adelantar [A, la recomendada: qué aporta] o [B]. O, si prefieres, esperamos y sigo cuando terminen.»

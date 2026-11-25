@@ -3,6 +3,9 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+### Added
+- Esperas largas (R-015): avisar una vez de qué corre y cuánto falta, y ofrecer esperar o adelantar una o dos tareas que no dependan del resultado; plantilla en `references/lenguaje.md`.
+- Aceptación (R-016, R-017): contrato con la petición literal, criterios e invariantes (`acceptance.ps1`), revisión en contexto limpio con las reglas y fuentes del proyecto, el revisor solo juzga y nunca cambia la oferta, como mucho tres rondas.
 
 ## [2.10.0] - 2026-11-25
 ### Added

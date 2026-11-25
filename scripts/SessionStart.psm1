@@ -5,6 +5,7 @@
 # (requests, next steps) is ever copied into the context: only whether it was interrupted.
 Import-Module (Join-Path $PSScriptRoot 'HookIO.psm1')
 Import-Module (Join-Path $PSScriptRoot 'RulesCheck.psm1')
+Import-Module (Join-Path $PSScriptRoot 'ActivityLog.psm1')
 $script:maxBrief=6000
 
 # Git may write to stderr (a folder that is not a repository): in Windows PowerShell 5.1 that must not throw.
@@ -31,6 +32,21 @@ function Ss-Interrupted([string]$root){
     $cp=Join-Path $root '.context/checkpoint.json'
     if(-not [IO.File]::Exists($cp)){return $false}
     try{$c=[IO.File]::ReadAllText($cp,[Text.Encoding]::UTF8)|ConvertFrom-Json;return ($c.PSObject.Properties['State'] -and [string]$c.State -ne 'CLOSED')}catch{return $false}
+}
+# What the cut session did since its checkpoint started, from the activity log (facts recorded by the harness).
+function Ss-SinceCheckpoint([string]$root,[string]$stateDir){
+    try{
+        $c=[IO.File]::ReadAllText((Join-Path $root '.context/checkpoint.json'),[Text.Encoding]::UTF8)|ConvertFrom-Json
+        # PowerShell 7 already turns ISO strings into DateTime while reading JSON; text would lose the zone.
+        $since=$(if($c.PSObject.Properties['StartedAt'] -and $c.StartedAt){if($c.StartedAt -is [datetime]){$c.StartedAt}else{[datetime]::Parse([string]$c.StartedAt,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::RoundtripKind)}}else{[datetime]::MinValue})
+        $a=Get-AgentOpsActivitySummary -StateDir $stateDir -ProjectPath $root -Since $since
+        $n=@($a.Files).Count
+        if(-not $n -and -not $a.TestRuns){return ''}
+        $files=@($a.Files|Select-Object -First 6) -join ', ';if($n -gt 6){$files+=" y $($n-6) más"}
+        $part=$(if($n){"tocó $n "+$(if($n -eq 1){'archivo'}else{'archivos'})+" ($files)"}else{'no tocó archivos'})
+        $tests=$(if($a.TestRuns){" y hubo $($a.TestRuns) "+$(if($a.TestRuns -eq 1){'ejecución'}else{'ejecuciones'})+" de pruebas ($($a.TestFailures) en rojo)"}else{' y no ejecutó pruebas'})
+        return "- Desde su último punto de control, la sesión cortada $part$tests (registro de actividad del arnés)."
+    }catch{return ''}
 }
 function Ss-PendingUpdate([string]$stateDir){
     try{
@@ -72,7 +88,10 @@ function Get-AgentOpsSessionBrief {
     $facts=New-Object Collections.Generic.List[string]
     $dirty=Ss-Dirty $root
     if($dirty -eq 1){$facts.Add('- Hay 1 archivo sin guardar en Git.')}elseif($dirty -gt 1){$facts.Add("- Hay $dirty archivos sin guardar en Git.")}
-    if(Ss-Interrupted $root){$facts.Add("- La sesión anterior se cortó antes de su MODO SALIDA: ejecuta resume-session.ps1 -ProjectPath `"$root`" y retómala desde su siguiente paso.")}
+    if(Ss-Interrupted $root){
+        $facts.Add("- La sesión anterior se cortó antes de su MODO SALIDA: ejecuta resume-session.ps1 -ProjectPath `"$root`" y retómala desde su siguiente paso.")
+        $did=Ss-SinceCheckpoint $root $StateDir;if($did){$facts.Add($did)}
+    }
     if(Ss-PendingUpdate $StateDir){$facts.Add('- Hay una actualización verificada del marco pendiente de decisión: preséntala en el Paso 0.')}
     if($facts.Count -and $Source -ne 'compact'){$out.Add('Estado local (sin red; si discrepa con Git, prevalece Git):');foreach($f in $facts){$out.Add($f)}}
     if($Source -eq 'compact'){
@@ -164,9 +183,18 @@ function Install-AgentOpsSessionStart {
         & $edit $ClaudeSettingsPath {param($c)
             $c=& $swap $c $(if($Uninstall){$null}else{$claude})
             & $swap $c $(if($Uninstall){$null}else{$compact}) 'PreCompact' 'agent-ops-hook\.ps1.{0,40}pre-compact'}
-        & $edit $CodexHooksPath {param($c) & $swap $c $(if($Uninstall){$null}else{$codex})}
+        # After each action (activity log): in the background where the harness allows it (Claude Code, Codex).
+        $postClaude=[ordered]@{matcher='Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell';hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','post-tool','-Harness','claude');async=$true;timeout=20})}
+        $postCodex=[ordered]@{matcher='apply_patch|Bash';hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook post-tool -Harness codex";commandWindows=("powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$launcher`" -Hook post-tool -Harness codex");async=$true;timeout=20})}
+        $postPattern='agent-ops-hook\.ps1.{0,40}post-tool'
+        & $edit $ClaudeSettingsPath {param($c) & $swap $c $(if($Uninstall){$null}else{$postClaude}) 'PostToolUse' $postPattern}
+        & $edit $CodexHooksPath {param($c)
+            $c=& $swap $c $(if($Uninstall){$null}else{$codex})
+            & $swap $c $(if($Uninstall){$null}else{$postCodex}) 'PostToolUse' $postPattern}
         & $edit $AntigravityHooksPath {param($c)
             if($c.Contains('agent-ops-session-start')){$c.Remove('agent-ops-session-start')}
+            if($c.Contains('agent-ops-activity')){$c.Remove('agent-ops-activity')}
+            if(-not $Uninstall){$c['agent-ops-activity']=[ordered]@{PostToolUse=@([ordered]@{matcher='write_to_file|replace_file_content|multi_replace_file_content|run_command';hooks=@([ordered]@{type='command';command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$launcher`" -Hook post-tool -Harness antigravity";timeout=10})})}}
             if(-not $Uninstall){$c['agent-ops-session-start']=[ordered]@{SessionStart=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=20})}}
             return $c}
         $res.Files=@($changed)

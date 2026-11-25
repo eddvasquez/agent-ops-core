@@ -169,6 +169,20 @@ Test 'a run that died or belongs to another state does not count' {
     Assert ($g.Decision -eq 'BLOCK' -and $g.Status -eq 'UNTESTED') ($g|ConvertTo-Json)
     Assert (-not (Test-Path (Join-Path $r ".context/test-runs/$($dead.Id).json"))) 'Dead run marker not cleaned up'
 }
+Test 'an acceptance review that is not passed sends the agent back; an accepted one, or none, lets the turn end' {
+    Import-Module (Join-Path $source 'scripts/Acceptance.psm1') -Force
+    $r=Framework;$s=State
+    $c=New-AgentOpsAcceptance -ProjectPath $r -Request 'Pide algo concreto' -Criteria @('Dice hola')
+    Put $r 'docs/entrega.md' 'hola mundo'
+    $rev=New-AgentOpsAcceptanceReview -ProjectPath $r -Id $c.Id -Deliverable @((Join-Path $r 'docs/entrega.md'))
+    $g=Test-AgentOpsTurnGate -ProjectPath $r -StateDir $s -SessionId 'acc'
+    Assert ($g.Decision -eq 'BLOCK' -and $g.Status -eq 'ACCEPTANCE_PENDING' -and $g.Reason -match 'aceptación' -and $g.Reason -match [regex]::Escape($c.Id)) ($g|ConvertTo-Json)
+    $t=[IO.File]::ReadAllText($rev.Sheet) -replace '(?m)^- C1: PENDIENTE$','- C1: PASA - "hola mundo"';[IO.File]::WriteAllText($rev.Sheet,$t,$utf8)
+    $g=Test-AgentOpsTurnGate -ProjectPath $r -StateDir $s -SessionId 'acc2'
+    Assert ($g.Decision -eq 'ALLOW') ('Accepted review still blocks: '+($g|ConvertTo-Json))
+    $plain=Framework
+    Assert ((Test-AgentOpsTurnGate -ProjectPath $plain -StateDir $s -SessionId 'none').Decision -eq 'ALLOW') 'No contract must not block'
+}
 Write-Host "Turn gate: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

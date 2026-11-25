@@ -51,7 +51,14 @@ function Detect($f,$sha){
     throw ('Check did not detect the published candidate: '+($c|ConvertTo-Json -Depth 6 -Compress))
 }
 function Run($f,$action='Check',$session='A',$sha='') {
-    Invoke-AgentOpsUpdate -ConfigPath $f.ConfigPath -Action $action -SessionId $session -BeginSession -CandidateSha $sha -Verifier $script:proof -TaskController $script:tasks
+    # A Check has a 5 s budget for the remote: on a loaded machine it can answer OFFLINE_CACHED without any fault.
+    # Retry that answer (tests that simulate an outage still end OFFLINE_CACHED after the retries).
+    for($i=1;$i -le 3;$i++){
+        $r=Invoke-AgentOpsUpdate -ConfigPath $f.ConfigPath -Action $action -SessionId $session -BeginSession -CandidateSha $sha -Verifier $script:proof -TaskController $script:tasks
+        if($action -ne 'Check' -or $r.Status -ne 'OFFLINE_CACHED'){return $r}
+        Start-Sleep -Seconds 1
+    }
+    return $r
 }
 Test 'check offers a verified update and truthful estimate without touching active profiles' {
     $f=Fixture;$new=Publish $f;$r=Run $f
@@ -359,8 +366,8 @@ function LocalProof($f,$sha,[string[]]$editions=@('Desktop','Core')){
     [IO.File]::WriteAllText($p,(@{SchemaVersion=1;Sha=$sha;Green=$true;Editions=$editions;Suites=@('update-coordinator (Desktop): 1 passed')}|ConvertTo-Json -Depth 4))
     return $p
 }
-# The session check has a 5 s budget for the remote; on a loaded machine it may answer OFFLINE_CACHED (as Detect handles).
-function LocalCheck($f){for($i=1;$i -le 3;$i++){$c=Run $f;if($c.Status -ne 'OFFLINE_CACHED'){return $c};Start-Sleep -Seconds 1};return $c}
+# Run already retries a Check that the 5 s remote budget turned into OFFLINE_CACHED on a loaded machine.
+function LocalCheck($f){Run $f}
 function LocalInstall($f,$src,[switch]$Revert){
     Install-AgentOpsLocalRelease -ConfigPath $f.ConfigPath -SourceRepo $src -SessionId 'L' -Revert:$Revert -Verifier $script:proof -TaskController $script:tasks
 }

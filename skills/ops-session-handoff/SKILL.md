@@ -85,6 +85,15 @@ La sesión puede terminar sin aviso: por cuota, por contexto o por un cierre. Pa
 - Es barato y no hace commit. Escribe `.context/checkpoint.json`, que viaja en el commit de relevo.
 - Si el arnés muestra la cuota restante y baja de ~10 %, no empieces pasos nuevos. Haz el checkpoint y el **MODO SALIDA MÍNIMO**: `checkpoint.ps1 -Close` y commit de relevo de `.context/`, sin lecciones ni aprendizaje. Quien reciba la sesión completa el resto.
 
+## DURANTE LA SESIÓN: ESPERAS LARGAS (R-015)
+- Si unas pruebas u otra tarea larga corren en segundo plano, avisar **una vez**: qué corre, cuánto falta y qué queda bloqueado hasta que termine. Ofrecer, con la herramienta de preguntas, una o dos tareas concretas que no dependan de su resultado ni alteren lo que se prueba (la recomendada primero) y siempre «esperamos». Nada de avisos repetidos. Plantilla en `references/lenguaje.md`.
+
+## ACEPTACIÓN: LO PEDIDO, NO OTRA COSA (R-016, R-017)
+- Al recibir una solicitud sustancial: `& "$ActivePath/scripts/acceptance.ps1" -Action New -Request <archivo con la petición literal> -Criteria <3-7 criterios verificables> -Invariants <lo que no se toca: promesa, mecanismo, precio, garantía, público, tono, frases; con " | patrón" cuando se pueda> -Sources <brief u oferta>`.
+- Antes de entregar: `-Action Review -Id <id> -Deliverable <rutas>` y que la hoja la complete un revisor en contexto limpio (subagente; sin subagentes, un segundo pase que lee solo la hoja). Contexto limpio no es contexto vacío: la hoja ya trae las reglas, las fuentes y el contrato.
+- El revisor juzga y sugiere; nunca reescribe, no crea variantes ni cambia la oferta. Si cree que la estrategia debería cambiar, lo deja en «Observaciones para el usuario» y se pregunta.
+- `-Action Verify -Id <id>`: `0` aceptado; si falla, corregir dentro del contrato y nueva ronda; tras tres rondas, entregar diciendo qué no se cumple y por qué.
+
 ## MODO B: CIERRE DE TURNO (`MODO SALIDA`)
 1. **Registrar Correcciones y Lecciones:**
    - Repasar la sesión y comprobar que **cada** corrección, rechazo o pedido del usuario o del cliente tiene su regla en `.context/reglas_proyecto.md` (Protocolo 8). Registrar las que falten antes de seguir. Al mencionarlas en `activeContext.md`, lecciones o commits, citar la primera vez el texto literal de su línea `Regla:`, y las enmiendas como antes → después.

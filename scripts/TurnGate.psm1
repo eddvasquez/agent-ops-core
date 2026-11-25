@@ -4,6 +4,7 @@
 # Pilot: active only in the framework repository. Loop guard: at most two returns in a row per session.
 Import-Module (Join-Path $PSScriptRoot 'NativeProcess.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'HarnessRadar.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'Acceptance.psm1') -Force
 $script:codePattern='\.(ps1|psm1|psd1|sh|bat|cmd|py|js|mjs|cjs|ts)$|^\.github/workflows/.+\.ya?ml$|^scripts/.+\.json$'
 $script:maxReturns=2
 
@@ -31,6 +32,18 @@ function Tg-RunningFor([string]$root,[string]$fingerprint){
         if([string]$m.Fingerprint -eq $fingerprint -and -not $found){$found=$m}
     }
     return $found
+}
+# Acceptance (R-016): an open contract whose review was started but is not passed keeps the turn open.
+function Tg-AcceptancePending([string]$root){
+    $dir=Join-Path $root '.context/aceptacion';if(-not [IO.Directory]::Exists($dir)){return $null}
+    foreach($f in @(Get-ChildItem -LiteralPath $dir -Filter '*.md' -ErrorAction SilentlyContinue|Where-Object {$_.Name -notlike '*.review.md'})){
+        $id=$f.BaseName
+        if(-not [IO.File]::Exists((Join-Path $dir "$id.review.md"))){continue}
+        if([IO.File]::ReadAllText($f.FullName) -notmatch '(?m)^Estado:\s*abierto\b'){continue}
+        $v=Test-AgentOpsAcceptance -ProjectPath $root -Id $id
+        if($v.Status -notin @('ACCEPTED','DELIVER_WITH_GAPS')){return $v}
+    }
+    return $null
 }
 function Tg-Head([string]$root){$r=Invoke-Git $root @('rev-parse','--verify','-q','HEAD') -AllowFailure;if($r.ExitCode -eq 0){$r.Output.Trim()}else{''}}
 
@@ -256,6 +269,15 @@ function Test-AgentOpsTurnGate {
     $root=(Resolve-Path -LiteralPath $ProjectPath).Path
     $fp=Get-AgentOpsCodeFingerprint -ProjectPath $root
     $counter=Tg-Counter $StateDir $SessionId
+    $acceptance=Tg-AcceptancePending $root
+    if($acceptance){
+        $returns=0;if([IO.File]::Exists($counter)){try{$returns=[int](([IO.File]::ReadAllText($counter)|ConvertFrom-Json).Returns)}catch{}}
+        if($returns -ge $script:maxReturns){[IO.File]::Delete($counter);$res.Status='UNVERIFIED';$res.Reason="Agent Ops: el turno termina con la revisión de aceptación $($acceptance.Id) sin superar ($($acceptance.Status)); díselo al usuario.";return [pscustomobject]$res}
+        [IO.File]::WriteAllText($counter,(@{Returns=$returns+1}|ConvertTo-Json),(New-Object Text.UTF8Encoding($false)))
+        $res.Decision='BLOCK';$res.Status='ACCEPTANCE_PENDING'
+        $res.Reason="Agent Ops: la revisión de aceptación $($acceptance.Id) no está superada ($($acceptance.Status): $(@($acceptance.Issues) -join ' ')). Que un revisor en contexto limpio, con las reglas y las fuentes del proyecto, complete .context/aceptacion/$($acceptance.Id).review.md; si falla, corrige dentro del contrato y genera la siguiente ronda con acceptance.ps1 -Action Review; comprueba con acceptance.ps1 -Action Verify (R-016, R-017)."
+        return [pscustomobject]$res
+    }
     if(-not $fp.Fingerprint){if([IO.File]::Exists($counter)){[IO.File]::Delete($counter)};return [pscustomobject]$res}
     $res.Files=$fp.Files
     $ev=Tg-Evidence $root
