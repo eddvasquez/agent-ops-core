@@ -128,6 +128,7 @@ function Install-AgentOpsSecretGuard {
           [string]$CodexHooksPath=$(if($env:CODEX_HOME){Join-Path $env:CODEX_HOME 'hooks.json'}else{Join-Path $HOME '.codex/hooks.json'}),
           [string]$AntigravityHooksPath=(Join-Path $HOME '.gemini/config/hooks.json'),
           [string]$CodexConfigPath='',
+          [switch]$SkipCodexProfile,
           [switch]$Uninstall)
     $res=[ordered]@{Code=0;Status='UP_TO_DATE';Files=@();Issues=@();Warnings=@()}
     # Next to the Codex hooks file, so a test (or another CODEX_HOME) never touches the real configuration.
@@ -175,6 +176,8 @@ function Install-AgentOpsSecretGuard {
             if(-not $Uninstall -and -not [IO.File]::Exists((Join-Path (Split-Path -Parent $AntigravityHooksPath) 'plugins/agent-ops-core/plugin.json'))){$c['agent-ops-secret-guard']=[ordered]@{PreToolUse=@([ordered]@{matcher='view_file|write_to_file|replace_file_content|multi_replace_file_content|run_command|grep_search';hooks=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=15})})}}
             return $c}
         # Codex native profile (text edit of config.toml: top-level key before the first table, block at the end).
+        # Without the user's consent (Integrations: consents.json) the Codex configuration is not touched at all.
+        if(-not $SkipCodexProfile){
         $current=$(if([IO.File]::Exists($CodexConfigPath)){[IO.File]::ReadAllText($CodexConfigPath)}else{''})
         $codex=Sg-CodexConfig $current ([bool]$Uninstall)
         if($codex.Warning){$res.Warnings=@($res.Warnings)+@($codex.Warning)}
@@ -182,6 +185,7 @@ function Install-AgentOpsSecretGuard {
             if($current){$backups=Join-Path $StateDir 'backups';[IO.Directory]::CreateDirectory($backups)|Out-Null;[IO.File]::WriteAllText((Join-Path $backups ('codex-config-'+[datetime]::UtcNow.ToString('yyyyMMddTHHmmssfff')+'.toml')),$current,(New-Object Text.UTF8Encoding($false)))}
             [IO.Directory]::CreateDirectory((Split-Path -Parent $CodexConfigPath))|Out-Null
             [IO.File]::WriteAllText($CodexConfigPath,$codex.Text,(New-Object Text.UTF8Encoding($false)));$script:changedFiles+=@($CodexConfigPath)
+        }
         }
         $res.Files=@($script:changedFiles)
         if($script:changedFiles.Count){$res.Status=$(if($Uninstall){'REMOVED'}else{'INSTALLED'})}elseif($Uninstall){$res.Status='NOT_INSTALLED'}

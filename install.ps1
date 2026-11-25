@@ -101,6 +101,15 @@ try{
         $settings=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew
         Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force|Out-Null
     }
+    # Zero configuration: the new installation also reaches the harnesses present (hooks, plugin, permissions),
+    # from the active release; never blocks the installation.
+    if($r.Code -eq 0 -and $r.PSObject.Properties['ActivePath'] -and $r.ActivePath){
+        $integrations=Join-Path $r.ActivePath 'scripts/Integrations.psm1'
+        if([IO.File]::Exists($integrations)){
+            try{Import-Module $integrations -Force;$i=Sync-AgentOpsIntegrations -StateDir $StateDir;$r|Add-Member -NotePropertyName Integrations -NotePropertyValue $i -Force}
+            catch{$r|Add-Member -NotePropertyName Integrations -NotePropertyValue ([pscustomobject]@{Status='FAILED';Issues=@($_.Exception.Message)}) -Force}
+        }
+    }
     $r|ConvertTo-Json -Depth 20
     exit $r.Code
 }catch{Write-Host ('Installation failed: '+$_.Exception.Message) -ForegroundColor Red;exit 1}

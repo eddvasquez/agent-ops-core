@@ -6,6 +6,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Added
+- Cero configuración tras cada actualización (`Integrations.psm1`, `integrations.ps1`): al empezar la primera sesión con una versión nueva, y al instalar, el marco ajusta solo sus hooks, el plugin de Antigravity y los permisos de Claude Code en las herramientas que tienes, sin crear nada para las que no. Lo que cambia la configuración propia de una herramienta (hoy, el perfil de permisos de Codex) se pregunta una sola vez y se recuerda (`consents.json`); un «no» no se vuelve a preguntar. Si el arranque del marco está desactualizado, el agente ofrece actualizarlo él (`-Action UpdateBootstrap`, con el hub y los destinos reales y sin tocar la tarea programada). Con una carpeta de estado que no es la real (pruebas), nunca toca la carpeta de usuario real.
 - El vigilante de skills ya no puede quedarse apagado sin que se note: al empezar cada sesión, si la instalación lo quiere activo y nadie lo apagó a propósito, se reactiva y se avisa al agente. Nunca durante una activación de versiones ni sobre una tarea de otra instalación. Apagarlo a propósito con `manage-skills-watcher.ps1 -Action Disable` queda registrado (`watcher-intent.json`) y se respeta. En este PC había quedado desactivado del 2026-11-20 al 2026-11-25.
 
 ### Added
