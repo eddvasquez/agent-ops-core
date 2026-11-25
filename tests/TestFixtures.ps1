@@ -41,3 +41,10 @@ function Start-HeldRealLock([string]$Name){
     return $job
 }
 function Stop-HeldRealLock($Job){if($Job){Stop-Job $Job -ErrorAction SilentlyContinue;Remove-Job $Job -Force -ErrorAction SilentlyContinue}}
+# Shards: -Shard 'k/n' runs only the k-th of n parts of a suite (tests are dealt round-robin by declaration order),
+# so a slow suite can run as n processes at once. No shard: every test runs.
+function Test-InTestShard([int]$Index,[string]$Shard){
+    if(-not $Shard){return $true}
+    if($Shard -notmatch '^([1-9][0-9]*)/([1-9][0-9]*)$' -or [int]$Matches[1] -gt [int]$Matches[2]){throw "Invalid shard '$Shard': use k/n with 1 <= k <= n."}
+    return ((($Index-1) % [int]$Matches[2]) -eq ([int]$Matches[1]-1))
+}

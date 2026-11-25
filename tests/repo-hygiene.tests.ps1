@@ -101,5 +101,31 @@ if($promote -notmatch 'sleep [1-9][0-9]*'){$failures.Add('promote: retries must 
 if($promote -match '(?m)^\s*git push origin "\$GITHUB_SHA:refs/heads/stable"\s*$'){$failures.Add('promote: a single unretried push to stable is still present')}
 if($failures.Count -eq $before){$passed++;Write-Host 'PASS promotion to stable retries only while GitHub still reports the tests in progress'}
 
+# 7. CI runs in parallel jobs: no suite may be forgotten, every exit code must count (a step that ran two suites
+#    reported only the last one, so a red rules-check passed), a split suite must run all its parts, and the
+#    checks stable requires ("test (powershell)", "test (pwsh)") must fail when a part fails or is skipped.
+$before=$failures.Count
+foreach($suite in @($tracked|Where-Object {$_ -match '^tests/[^/]+\.tests\.ps1$'}|ForEach-Object {[IO.Path]::GetFileName($_) -replace '\.tests\.ps1$',''})){
+    if($workflow -notmatch "['""/ ]$([regex]::Escape($suite))(\.tests\.ps1)?(?![\w-])"){$failures.Add("ci: suite $suite is not run by the workflow")}
+}
+$pending=$null
+foreach($line in ($workflow -split "`r?`n")){
+    if($line -match '^\s*(- name:|run:)'){$pending=$null}
+    if($line -match '-File \./(tests|scripts)/[^ ]+'){
+        if($pending){$failures.Add("ci: the exit code of $pending is overwritten by the next command")}
+        $pending=$Matches[0]
+    }
+    if($line -match 'LASTEXITCODE'){$pending=$null}
+}
+$shards=@([regex]::Matches($workflow,'-Shard ([0-9]+)/([0-9]+)')|ForEach-Object {$_.Value})
+if($shards.Count){
+    $n=[int](@($shards)[0] -replace '.*/','')
+    foreach($k in 1..$n){if($shards -notcontains "-Shard $k/$n"){$failures.Add("ci: part $k/$n of the split suite is never run")}}
+}
+$gate=[regex]::Match($workflow,'(?s)\n  [a-z-]+:\r?\n    name: test \(\$\{\{ matrix\.shell \}\}\)\r?\n.*?(?=\n  [a-z-]+:\r?\n|\z)').Value
+if(-not $gate){$failures.Add('ci: no job keeps the required check names "test (powershell)" and "test (pwsh)"')}
+elseif($gate -match '(?m)^    needs:' -and ($gate -notmatch 'if: always\(\)' -or $gate -notmatch "needs\.[a-z-]+\.result")){$failures.Add('ci: the required checks must run always and fail unless every part succeeded (a skipped job counts as passed)')}
+if($failures.Count -eq $before){$passed++;Write-Host 'PASS CI runs every suite and part, counts every exit code and keeps the required checks honest'}
+
 if($failures.Count){$failures|ForEach-Object {Write-Host "FAIL $_"};Write-Host "Repository hygiene: $passed passed, $($failures.Count) failures.";exit 1}
 Write-Host "Repository hygiene: $passed passed."

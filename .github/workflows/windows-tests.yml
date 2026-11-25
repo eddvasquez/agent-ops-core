@@ -6,123 +6,76 @@ on:
 permissions:
   contents: read
 jobs:
-  test:
-    name: test (${{ matrix.shell }})
+  # The suites run as parallel jobs (each has its own machine); the slowest part sets the pace.
+  # Each part runs its suites one after another and fails if any of them fails.
+  suites:
+    name: ${{ matrix.part }} (${{ matrix.shell }})
     runs-on: windows-latest
     timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         shell: [powershell, pwsh]
+        part: [coordinator-1, coordinator-2, integration, governance]
+        include:
+          - part: coordinator-1
+            suites: 'update-coordinator -Shard 1/2'
+          - part: coordinator-2
+            suites: 'update-coordinator -Shard 2/2'
+          - part: integration
+            suites: 'skills-sync -IncludeLinkTest; windows-integration; project-migration; release-policy; commit'
+          - part: governance
+            suites: 'harness-radar; project-hygiene; secret-guard; run-tests; turn-gate; pre-commit; repo-hygiene; rules-check; user-profile; learning-proposals; session-checkpoint; instruction-harvest; hub-reconfigure; versioning'
     env:
       AGENT_OPS_TEST_SHELL: ${{ matrix.shell }}
+      AGENT_OPS_SUITES: ${{ matrix.suites }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
           fetch-depth: 2
-      - name: Engine, full rescue and filesystem safety
+      - name: Test suites of this part
         shell: pwsh
         run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/skills-sync.tests.ps1 -IncludeLinkTest
-          exit $LASTEXITCODE
-      - name: CLI, watcher, mocked scheduler and local Git integration
+          $failed=@()
+          foreach($entry in @($env:AGENT_OPS_SUITES -split ';'|ForEach-Object {$_.Trim()}|Where-Object {$_})){
+            $words=@($entry -split ' '|Where-Object {$_});$extra=@($words|Select-Object -Skip 1)
+            Write-Host "::group::$entry"
+            & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File "./tests/$($words[0]).tests.ps1" @extra
+            $code=$LASTEXITCODE
+            Write-Host '::endgroup::'
+            if($code -ne 0){$failed+=$entry;Write-Host "::error::$entry failed (exit $code)"}
+          }
+          if($failed.Count){Write-Host ('Failed: '+($failed -join ', '));exit 1}
+      - name: Versioning of the pushed commits
+        if: matrix.part == 'governance'
         shell: pwsh
         run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/windows-integration.tests.ps1
-          exit $LASTEXITCODE
-      - name: Session decisions, background preparation and crash recovery
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/update-coordinator.tests.ps1
-          exit $LASTEXITCODE
-      - name: Project migration, readonly imports and recovery
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/project-migration.tests.ps1
-          exit $LASTEXITCODE
-      - name: Public release policy regression cases
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/release-policy.tests.ps1
-          exit $LASTEXITCODE
-      - name: Verified commit and tag tool
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/commit.tests.ps1
-          exit $LASTEXITCODE
-      - name: Harness capabilities, detector and novelty radar
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/harness-radar.tests.ps1
-          exit $LASTEXITCODE
-      - name: Project hygiene sensor (read-only)
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/project-hygiene.tests.ps1
-          exit $LASTEXITCODE
-      - name: Credential guard (before each tool action)
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/secret-guard.tests.ps1
-          exit $LASTEXITCODE
-      - name: Test runner (parallel and changed-only)
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/run-tests.tests.ps1
-          exit $LASTEXITCODE
-      - name: End-of-turn check (turn gate) and test evidence
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/turn-gate.tests.ps1
-          exit $LASTEXITCODE
-      - name: Automatic pre-commit review (Git hook)
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/pre-commit.tests.ps1
-          exit $LASTEXITCODE
-      - name: Repository hygiene (encoding and agent instructions)
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/repo-hygiene.tests.ps1
-          exit $LASTEXITCODE
-      - name: Project rules compliance gate
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/rules-check.tests.ps1
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/user-profile.tests.ps1
-          exit $LASTEXITCODE
-      - name: Governed learning proposals
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/learning-proposals.tests.ps1
-          exit $LASTEXITCODE
-      - name: Session checkpoints and cold resume
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/session-checkpoint.tests.ps1
-          exit $LASTEXITCODE
-      - name: Instruction harvest
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/instruction-harvest.tests.ps1
-          exit $LASTEXITCODE
-      - name: Hub reconfiguration
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/hub-reconfigure.tests.ps1
-          exit $LASTEXITCODE
-      - name: Versioning and changelog verifier
-        shell: pwsh
-        run: |
-          & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./tests/versioning.tests.ps1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-versioning.ps1 -RepositoryPath . -Base HEAD~1 -Head HEAD
           exit $LASTEXITCODE
       - name: Check the exact committed public package
+        if: matrix.part == 'governance'
         shell: pwsh
         run: |
           & $env:AGENT_OPS_TEST_SHELL -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-release.ps1 -Commit $env:GITHUB_SHA
           exit $LASTEXITCODE
+  # The checks stable requires keep their names. A skipped job counts as passed, so this one always runs
+  # and passes only when every part above succeeded.
+  test:
+    name: test (${{ matrix.shell }})
+    needs: suites
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    strategy:
+      matrix:
+        shell: [powershell, pwsh]
+    steps:
+      - name: Every part of the tests passed
+        shell: bash
+        run: |
+          echo "Parts: ${{ needs.suites.result }}"
+          test "${{ needs.suites.result }}" = success
   promote:
     needs: test
     if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'

@@ -20,7 +20,8 @@ function Repo([hashtable]$files){
     return $r
 }
 # Each slow suite records when it ran; overlapping intervals prove they ran at the same time (no fragile timing).
-$slow="`$log=Join-Path (Split-Path -Parent `$PSScriptRoot) 'runs.log'`n`$a=[datetime]::UtcNow.Ticks;Start-Sleep -Seconds 3;`$b=[datetime]::UtcNow.Ticks`n[IO.File]::AppendAllText(`$log,`"`$a `$b``n`")`nWrite-Host 'slow: 1 passed, 0 failed.'`nexit 0"
+# One file per suite: concurrent appends to a shared file can be refused by Windows and silently lose a line.
+$slow="`$log=Join-Path (Split-Path -Parent `$PSScriptRoot) ('runs-'+(Split-Path -Leaf `$PSCommandPath)+'.log')`n`$a=[datetime]::UtcNow.Ticks;Start-Sleep -Seconds 3;`$b=[datetime]::UtcNow.Ticks`n[IO.File]::AppendAllText(`$log,`"`$a `$b``n`")`nWrite-Host 'slow: 1 passed, 0 failed.'`nexit 0"
 # Module graph: B imports A; suite a loads A, suite b loads B, suite c is unrelated.
 $graph=@{
     'scripts/A.psm1'='function Get-A{1}'
@@ -37,7 +38,7 @@ Test 'suites run in parallel: three 3-second suites take far less than 9 seconds
     Put $r 'scripts/x.ps1' "'y'"
     $sw=[Diagnostics.Stopwatch]::StartNew();$run=Invoke-AgentOpsTestRun -ProjectPath $r -Parallel 3;$sw.Stop()
     Assert ($run.Code -eq 0 -and $run.Status -eq 'GREEN' -and @($run.Results).Count -eq 3) ($run|ConvertTo-Json -Depth 5)
-    $spans=@([IO.File]::ReadAllLines((Join-Path $r 'runs.log'))|ForEach-Object {,([long[]]($_ -split ' '))})
+    $spans=@(Get-ChildItem -LiteralPath $r -Filter 'runs-*.log'|ForEach-Object {[IO.File]::ReadAllLines($_.FullName)}|ForEach-Object {,([long[]]($_ -split ' '))})
     Assert ($spans.Count -eq 3 -and ($spans|ForEach-Object {$_[0]}|Measure-Object -Maximum).Maximum -lt ($spans|ForEach-Object {$_[1]}|Measure-Object -Minimum).Minimum) "Suites did not overlap: $($spans|ForEach-Object {$_ -join '-'})"
     $ev=[IO.File]::ReadAllText((Join-Path $r '.context/test-evidence.json'))|ConvertFrom-Json
     Assert (@($ev.Suites).Count -eq 3) ($ev|ConvertTo-Json -Depth 5)
@@ -72,6 +73,58 @@ Test 'run-tests -Changed runs only the selected suites' {
     $r=Repo $graph;Put $r 'scripts/c-tool.ps1' "'c3'"
     $run=Invoke-AgentOpsTestRun -ProjectPath $r -Changed
     Assert ($run.Code -eq 0 -and (@($run.Results|ForEach-Object {$_.Suite}) -join ',') -eq 'c') ($run|ConvertTo-Json -Depth 5)
+}
+Test 'shards split a suite into disjoint parts that together cover every test' {
+    foreach($n in 1,2,3,4){
+        $owners=foreach($i in 1..29){@(1..$n|Where-Object {Test-InTestShard $i "$_/$n"}).Count}
+        Assert (@($owners|Where-Object {$_ -ne 1}).Count -eq 0) "With $n shards some test runs zero or several times"
+    }
+    Assert (Test-InTestShard 7 '') 'Without a shard every test must run'
+    foreach($bad in '0/3','4/3','a/b','3','1/0','-1/2'){
+        $threw=$false;try{Test-InTestShard 1 $bad|Out-Null}catch{$threw=$true}
+        Assert $threw "Accepted invalid shard '$bad'"
+    }
+}
+Test 'with -Parallel a suite that accepts -Shard runs as that many parts and reports as one suite' {
+    $sharded="param([string]`$Shard='')`n[IO.File]::WriteAllText((Join-Path (Split-Path -Parent `$PSScriptRoot) ('shard-'+`$Shard.Replace('/','of')+'.log')),`$Shard)`nif(`$Shard -eq '2/2' -and (Test-Path (Join-Path (Split-Path -Parent `$PSScriptRoot) 'fail-second'))){Write-Host 'part: 0 passed, 1 failed.';exit 1}`nWrite-Host ('part '+`$Shard+': 1 passed, 0 failed.')`nexit 0"
+    $r=Repo @{'tests/big.tests.ps1'=$sharded;'tests/plain.tests.ps1'="Write-Host 'plain: 1 passed, 0 failed.'`nexit 0"}
+    $run=Invoke-AgentOpsTestRun -ProjectPath $r -Parallel 2
+    Assert ($run.Code -eq 0 -and @($run.Results).Count -eq 2) ($run|ConvertTo-Json -Depth 5)
+    $big=@($run.Results|Where-Object {$_.Suite -eq 'big'})[0]
+    Assert ($big.Exit -eq 0 -and $big.Summary -match '1/2' -and $big.Summary -match '2/2') ($big|ConvertTo-Json)
+    Assert ((Test-Path (Join-Path $r 'shard-1of2.log')) -and (Test-Path (Join-Path $r 'shard-2of2.log')) -and -not (Test-Path (Join-Path $r 'shard-.log'))) 'Suite not split into its two parts'
+    Put $r 'fail-second' 'x'
+    $run=Invoke-AgentOpsTestRun -ProjectPath $r -Parallel 2
+    Assert ($run.Code -ne 0 -and @($run.Results|Where-Object {$_.Suite -eq 'big'})[0].Exit -ne 0) 'A red part must make its suite red'
+    $run=Invoke-AgentOpsTestRun -ProjectPath $r -Suites big
+    Assert ($run.Code -eq 0 -and (Test-Path (Join-Path $r 'shard-.log'))) 'Without -Parallel the suite must run whole'
+}
+Test 'the parts of a split (slow) suite start before the whole suites' {
+    $stamp="[IO.File]::WriteAllText((Join-Path (Split-Path -Parent `$PSScriptRoot) ('start-'+(Split-Path -Leaf `$PSCommandPath)+`$(if(`$Shard){'-'+`$Shard.Replace('/','of')})+'.log')),[datetime]::UtcNow.Ticks.ToString())`nStart-Sleep -Seconds 2`nWrite-Host 'x: 1 passed, 0 failed.'`nexit 0"
+    $r=Repo @{'tests/aaa.tests.ps1'="`$Shard=''`n$stamp";'tests/zzz.tests.ps1'="param([string]`$Shard='')`n$stamp"}
+    $run=Invoke-AgentOpsTestRun -ProjectPath $r -Parallel 2
+    Assert ($run.Code -eq 0) ($run|ConvertTo-Json -Depth 5)
+    $t={param($n)[long][IO.File]::ReadAllText((Join-Path $r $n))}
+    $plain=& $t 'start-aaa.tests.ps1.log'
+    Assert ((& $t 'start-zzz.tests.ps1-1of2.log') -lt $plain -and (& $t 'start-zzz.tests.ps1-2of2.log') -lt $plain) 'A whole suite started before the parts of the split one'
+}
+Test 'automatic parallelism follows the free cores and memory, with no fixed ceiling (R-012)' {
+    # Measured on 8 logical cores: 4 parts 155 s, 6 parts no faster and timing-sensitive tests failed: half the cores.
+    Assert ((Get-AgentOpsTestSlots -Cores 8 -FreeMB 4000) -eq 4) '8 cores should give 4'
+    Assert ((Get-AgentOpsTestSlots -Cores 16 -FreeMB 8000) -eq 8) 'A bigger machine must use its capacity (16 cores -> 8)'
+    Assert ((Get-AgentOpsTestSlots -Cores 32 -FreeMB 16000) -eq 16) '32 cores with enough memory -> 16'
+    Assert ((Get-AgentOpsTestSlots -Cores 4 -FreeMB 4000) -eq 2) '4 cores should give 2'
+    Assert ((Get-AgentOpsTestSlots -Cores 1 -FreeMB 4000) -eq 1) 'At least 1'
+    Assert ((Get-AgentOpsTestSlots -Cores 8 -FreeMB 500) -eq 2) 'Little free memory must lower it (250 MB per part)'
+    Assert ((Get-AgentOpsTestSlots -Cores 8 -FreeMB 100) -eq 1) 'Almost no memory: one at a time'
+    $auto=Get-AgentOpsTestSlots
+    Assert ($auto -ge 1 -and $auto -le [Math]::Max(1,[Math]::Floor([Environment]::ProcessorCount/2))) "Measured value out of range: $auto"
+}
+Test 'run-tests uses the automatic parallelism by default (R-012)' {
+    $tokens=$null;$errors=$null
+    $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $source 'scripts/run-tests.ps1'),[ref]$tokens,[ref]$errors)
+    $p=@($ast.ParamBlock.Parameters|Where-Object {$_.Name.VariablePath.UserPath -eq 'Parallel'})[0]
+    Assert ($p -and $p.DefaultValue.Extent.Text -eq '0') "Default -Parallel is $($p.DefaultValue.Extent.Text), expected 0 (automatic)"
 }
 Write-Host "Test runner: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}

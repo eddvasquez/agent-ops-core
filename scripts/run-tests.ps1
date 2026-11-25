@@ -1,6 +1,6 @@
-# Runs the project's test suites (-Changed: only those covering the uncommitted code; -Parallel N: N at a time, off by default because timing-sensitive suites fail on a loaded machine) and records green evidence for the turn gate (JSON for the assistant).
+# Runs the project's test suites (-Changed: only those covering the uncommitted code; -Parallel N: N at a time, a suite that accepts -Shard split into N parts; the default 0 picks N from the machine's free cores and memory, -Parallel 1 runs one at a time) and records green evidence for the turn gate (JSON for the assistant).
 [CmdletBinding()]
-param([string]$ProjectPath=(Get-Location).Path,[string[]]$Suites=@(),[int]$Parallel=1,[switch]$Changed)
+param([string]$ProjectPath=(Get-Location).Path,[string[]]$Suites=@(),[int]$Parallel=0,[switch]$Changed)
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'TurnGate.psm1') -Force
 # Through `powershell -File`, a list arrives as one string: accept "a,b" as well as an array.

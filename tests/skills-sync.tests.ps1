@@ -276,6 +276,21 @@ Test 'a synchronization held by the real installation never blocks the suite (ow
     try{$r=Invoke-SkillSync @p -Mode Plan}finally{Stop-HeldRealLock $held}
     Assert ($r.Code -ne 3) ($r|ConvertTo-Json -Depth 4)
 }
+Test 'child paths never escape their root nor cross a link' {
+    $m=Get-Module SkillsSync;$root=Join-Path $script:TestRoot ('child-'+[guid]::NewGuid().ToString('N'));[IO.Directory]::CreateDirectory($root)|Out-Null
+    $ok=& $m {param($r) Get-SyncChild $r 'skills/demo/SKILL.md'} $root
+    Assert ($ok -eq (Join-Path $root 'skills\demo\SKILL.md')) "Unexpected child path $ok"
+    Assert ((& $m {param($r) Get-SyncChild $r 'a/./b'} $root) -eq (Join-Path $root 'a\b')) 'Dot segment not normalised'
+    foreach($bad in @('','  ','../x','a/../../x','a\..\..\x','..','C:\x','\x','/x','a:b',"a`0b")){
+        $threw=$false;try{& $m {param($r,$k) Get-SyncChild $r $k} $root $bad|Out-Null}catch{$threw=$true}
+        Assert $threw "Accepted unsafe key '$bad'"
+    }
+    $outside=Join-Path $script:TestRoot ('outside-'+[guid]::NewGuid().ToString('N'));[IO.Directory]::CreateDirectory($outside)|Out-Null
+    New-Item -ItemType Junction -Path (Join-Path $root 'link') -Target $outside|Out-Null
+    $threw=$false;try{& $m {param($r) Get-SyncChild $r 'link/file.txt'} $root|Out-Null}catch{$threw=$_.Exception.Message -like 'Link/reparse point not allowed*'}
+    Assert $threw 'Path through a junction accepted'
+    [IO.Directory]::Delete((Join-Path $root 'link'))
+}
 Write-Host "Results: $script:Passed passed, $script:Failed failed. Fixtures: $script:TestRoot"
 if(-not $script:Failed){Remove-TestFixtures $script:TestRoot}
 if ($script:Failed) { exit 1 }

@@ -70,6 +70,22 @@ function Get-AgentOpsSuitesForChanges {
 # Runs suites as separate processes sharing this console (some suites start git or PowerShell that need one),
 # up to -Parallel at a time (each suite has its own temp folder and lock
 # namespace, so they do not collide). Evidence is recorded only if all are green and the code did not change.
+# Parts to run at once with -Parallel 0, from the machine's real capacity and with no fixed ceiling (R-012): half the
+# logical cores (measured on 8: 4 parts fastest; 6 no faster and timing-sensitive tests failed, since every part also
+# runs Git and the antivirus scans its files) and 250 MB of free memory per part.
+function Get-AgentOpsTestSlots {
+    [CmdletBinding()]
+    param([int]$Cores=[Environment]::ProcessorCount,[int]$FreeMB=-1)
+    if($FreeMB -lt 0){try{$FreeMB=[int]((Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).FreePhysicalMemory/1KB)}catch{$FreeMB=1024}}
+    $slots=[Math]::Floor($Cores/2)
+    $slots=[Math]::Min($slots,[Math]::Floor($FreeMB/250))
+    return [int][Math]::Max(1,$slots)
+}
+function Tg-AcceptsShard([string]$file){
+    $tokens=$null;$errors=$null
+    $ast=[Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors)
+    return [bool]($ast.ParamBlock -and @($ast.ParamBlock.Parameters|Where-Object {$_.Name.VariablePath.UserPath -eq 'Shard'}).Count)
+}
 function Invoke-AgentOpsTestRun {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$ProjectPath,[string[]]$Suites=@(),[int]$Parallel=1,[switch]$Changed)
@@ -83,29 +99,44 @@ function Invoke-AgentOpsTestRun {
             if(-not $names.Count){$res.Code=0;$res.Status='NOTHING_TO_RUN';return [pscustomobject]$res}
         }elseif($Suites.Count){$names=$Suites}
         else{$names=@(Get-ChildItem (Join-Path $root 'tests') -Filter '*.tests.ps1'|ForEach-Object {$_.Name -replace '\.tests\.ps1$',''})}
-        $engine=(Get-Process -Id $PID).Path;$slots=[Math]::Max(1,$Parallel)
-        $queue=New-Object Collections.Queue;foreach($n in $names){$queue.Enqueue($n)}
-        $running=@();$done=@{}
+        $engine=(Get-Process -Id $PID).Path;$slots=if($Parallel -le 0){Get-AgentOpsTestSlots}else{$Parallel}
+        # With -Parallel N, a suite that accepts -Shard runs as N parts at once (its slowest part sets the pace).
+        # Split suites are the slow ones: their parts go first so the run does not end waiting on them.
+        $queue=New-Object Collections.Queue;$parts=@{};$split=@();$whole=@()
+        foreach($n in $names){
+            $file=Join-Path $root "tests/$n.tests.ps1"
+            $parts[$n]=New-Object Collections.ArrayList
+            if($slots -gt 1 -and [IO.File]::Exists($file) -and (Tg-AcceptsShard $file)){$split+=@(1..$slots|ForEach-Object {[pscustomobject]@{Suite=$n;File=$file;Shard="$_/$slots"}})}
+            else{$whole+=@([pscustomobject]@{Suite=$n;File=$file;Shard=''})}
+        }
+        foreach($job in @($split)+@($whole)){$queue.Enqueue($job)}
+        $running=@()
         while($queue.Count -or $running.Count){
             while($queue.Count -and $running.Count -lt $slots){
-                $n=$queue.Dequeue();$file=Join-Path $root "tests/$n.tests.ps1"
-                if(-not [IO.File]::Exists($file)){$done[$n]=[pscustomobject]@{Suite=$n;Exit=-1;Summary='no existe'};continue}
+                $job=$queue.Dequeue()
+                if(-not [IO.File]::Exists($job.File)){[void]$parts[$job.Suite].Add([pscustomobject]@{Exit=-1;Summary='no existe';Shard=''});continue}
                 $out=[IO.Path]::GetTempFileName();$err=[IO.Path]::GetTempFileName();$temp+=@($out,$err)
-                $proc=Start-Process -FilePath $engine -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$file`"") -RedirectStandardOutput $out -RedirectStandardError $err -NoNewWindow -PassThru
+                $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$($job.File)`"");if($job.Shard){$arguments+=@('-Shard',$job.Shard)}
+                $proc=Start-Process -FilePath $engine -ArgumentList $arguments -RedirectStandardOutput $out -RedirectStandardError $err -NoNewWindow -PassThru
                 $null=$proc.Handle  # keeps the exit code available after the process ends
-                $running+=@([pscustomobject]@{Suite=$n;Process=$proc;Out=$out})
+                $running+=@([pscustomobject]@{Job=$job;Process=$proc;Out=$out})
             }
             $finished=@($running|Where-Object {$_.Process.HasExited})
             if(-not $finished.Count){$null=$running[0].Process.WaitForExit(250);continue}
             foreach($r in $finished){
                 $r.Process.WaitForExit()
                 $lines=@([IO.File]::ReadAllLines($r.Out)|Where-Object {$_.Trim()})
-                $done[$r.Suite]=[pscustomobject]@{Suite=$r.Suite;Exit=$r.Process.ExitCode;Summary=$(if($lines.Count){$lines[-1].Trim()}else{''})}
+                [void]$parts[$r.Job.Suite].Add([pscustomobject]@{Exit=$r.Process.ExitCode;Summary=$(if($lines.Count){$lines[-1].Trim()}else{''});Shard=$r.Job.Shard})
                 $r.Process.Dispose()
             }
             $running=@($running|Where-Object {$finished -notcontains $_})
         }
-        $res.Results=@($names|ForEach-Object {$done[$_]})
+        $res.Results=@($names|ForEach-Object {
+            $p=@($parts[$_]|Sort-Object Shard)
+            $exit=0;foreach($x in $p){if($x.Exit -ne 0){$exit=$x.Exit}}
+            $summary=if($p.Count -eq 1 -and -not $p[0].Shard){$p[0].Summary}else{($p|ForEach-Object {"[$($_.Shard)] $($_.Summary)"}) -join ' | '}
+            [pscustomobject]@{Suite=$_;Exit=$exit;Summary=$summary}
+        })
         $after=Get-AgentOpsCodeFingerprint -ProjectPath $root
         if(@($res.Results|Where-Object {$_.Exit -ne 0}).Count){return [pscustomobject]$res}
         if($after.Fingerprint -ne $before.Fingerprint){$res.Issues=@('El código cambió mientras corrían las pruebas; vuelve a ejecutarlas.');return [pscustomobject]$res}
@@ -199,4 +230,4 @@ function Install-AgentOpsTurnGate {
     }catch{$res.Code=1;$res.Status='FAILED';$res.Issues=@($_.Exception.Message)}
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function Get-AgentOpsCodeFingerprint,Get-AgentOpsSuitesForChanges,Invoke-AgentOpsTestRun,Test-AgentOpsTurnGate,Install-AgentOpsTurnGate
+Export-ModuleMember -Function Get-AgentOpsCodeFingerprint,Get-AgentOpsSuitesForChanges,Get-AgentOpsTestSlots,Invoke-AgentOpsTestRun,Test-AgentOpsTurnGate,Install-AgentOpsTurnGate

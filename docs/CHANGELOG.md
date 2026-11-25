@@ -5,8 +5,16 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Las suites lentas se reparten en partes que corren a la vez: con `run-tests.ps1 -Parallel N`, una suite que acepta `-Shard k/n` se ejecuta en N procesos, sus partes arrancan primero y el resultado se junta en uno (rojo si falla cualquier parte). La del actualizador pasó de 390 s a 155 s en un equipo de 8 núcleos.
+- `run-tests.ps1` elige por defecto cuántas a la vez según la capacidad real de la máquina, sin tope fijo (R-012): la mitad de los núcleos lógicos y 250 MB libres por parte (`-Parallel 1` las ejecuta de una en una). La tanda completa bajó de unos 10 min a 6,4 min.
+- Las pruebas de GitHub corren en 4 trabajos en paralelo por versión de PowerShell (dos mitades del actualizador, integración y gobernanza). Las comprobaciones que exige `stable` conservan su nombre y solo pasan si pasaron todas las partes: un trabajo saltado ya no puede contar como verde.
+
 ### Fixed
-- `run-tests.ps1` deja `-Parallel` desactivado por defecto, como ya decía su descripción (la 3.16.0 se publicó con el valor anterior): en este equipo la tanda completa en paralelo no era más rápida y la aceleración real es `-Changed`.
+- En GitHub, el paso que ejecutaba `rules-check` y `user-profile` solo comprobaba el resultado del segundo: un fallo de `rules-check` pasaba sin avisar. Ahora cuenta cada suite, y `repo-hygiene` exige que ninguna suite quede fuera, que cada resultado cuente y que se ejecuten todas las partes.
+- La prueba de paralelo de `run-tests` fallaba a veces porque sus suites simuladas escribían a la vez en un mismo archivo y Windows rechazaba una escritura; ahora cada una escribe el suyo.
+- Nueva prueba de que las rutas internas nunca salen de su carpeta ni atraviesan un enlace (`Get-SyncChild`).
+- Dos entradas del changelog (3.13.1 y 3.11.0) tenían caracteres de control en lugar de las comillas de código.
 
 ## [3.16.0] - 2026-11-24
 ### Changed
@@ -15,6 +23,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Added
 - Pruebas mucho más rápidas: `run-tests.ps1 -Changed` ejecuta solo las suites que cubren el código sin guardar (las que cargan cada script o módulo, directa o indirectamente; si cambia algo común, como el flujo de GitHub o un auxiliar de pruebas, todas). Un cambio típico pasó de 10-20 minutos a menos de 1. `-Parallel N` ejecuta N suites a la vez; queda desactivado por defecto. Cada suite comparte la consola del ejecutor, porque algunas lanzan Git o PowerShell y sin consola fallaban.
+
 ## [3.15.0] - 2026-11-24
 ### Added
 - Protección de credenciales antes de cada acción del agente: cuando una herramienta va a leer, editar o mostrar un archivo de credenciales (.env, claves .pem/.key, credentials/secrets de datos, google-ads.yaml, .npmrc…), Claude Code y Antigravity preguntan al usuario y Codex, que no permite preguntar, la bloquea y el agente explica qué necesita. Solo cuentan rutas y comandos, nunca el texto que se escribe. Se instala una vez por usuario con scripts/install-secret-guard.ps1 y protege todos los proyectos; un lanzador estable usa siempre la versión activa. hook.PreToolUse pasa a «aprovechada» en los tres arneses.
@@ -28,7 +37,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [3.13.1] - 2026-11-24
 ### Fixed
-- Las pruebas ya no comparten los bloqueos de sistema con la instalación real del equipo: cada suite usa su propio espacio de nombres (AGENT_OPS_LOCK_NAMESPACE, fijado por 	ests/TestFixtures.ps1), así que ni las pruebas fallan ni la instalación responde «ocupado» mientras corren. Los procesos reales conservan exactamente los mismos nombres.
+- Las pruebas ya no comparten los bloqueos de sistema con la instalación real del equipo: cada suite usa su propio espacio de nombres (`AGENT_OPS_LOCK_NAMESPACE`, fijado por `tests/TestFixtures.ps1`), así que ni las pruebas fallan ni la instalación responde «ocupado» mientras corren. Los procesos reales conservan exactamente los mismos nombres.
 - La comprobación al terminar el turno lee y escribe UTF-8 directamente: en Windows PowerShell 5.1 los acentos del aviso salían rotos y una entrada con marca BOM hacía que dejara terminar sin comprobar.
 
 ## [3.13.0] - 2026-11-24
@@ -45,8 +54,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [3.11.0] - 2026-11-24
 ### Added
-- Limpieza obligatoria y automática de las pruebas (R-011): cada suite del marco borra su carpeta temporal al terminar en verde, la conserva si falla y, al empezar, barre las de más de 48 horas (	ests/TestFixtures.ps1). 
-epo-hygiene analiza la estructura de cada suite y exige la limpieza a cualquier suite nueva.
+- Limpieza obligatoria y automática de las pruebas (R-011): cada suite del marco borra su carpeta temporal al terminar en verde, la conserva si falla y, al empezar, barre las de más de 48 horas (`tests/TestFixtures.ps1`). `repo-hygiene` analiza la estructura de cada suite y exige la limpieza a cualquier suite nueva.
 - Protocolo 3 de AGENTS.md: las pruebas de cada proyecto crean sus archivos temporales en una carpeta propia y la borran al terminar en verde; si fallan, la conservan para revisar el fallo y se borra sola después.
 
 ## [3.10.0] - 2026-11-24

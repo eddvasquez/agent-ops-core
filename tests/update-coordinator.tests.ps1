@@ -1,6 +1,6 @@
 # All repositories, installations and profiles below are temporary fixtures.
 [CmdletBinding()]
-param([string]$Filter='')
+param([string]$Filter='',[string]$Shard='')
 $ErrorActionPreference='Stop'
 $source=Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $source 'scripts/UpdateCoordinator.psm1') -Force
@@ -11,7 +11,8 @@ $script:passed=0;$script:failed=0
 $script:proof={param($repo,$sha,$seconds) @{Verified=$true;Sha=$sha;Summary=@('Fixture release');Workflow='windows-tests.yml'}}
 $script:tasks={param($action,$config) if($action -eq 'Suspend'){@{Present=$false;Enabled=$false;Running=$false}}else{@{Healthy=$true}}}
 function Assert($condition,$message){if(-not $condition){throw $message}}
-function Test($name,[scriptblock]$body){if($Filter -and $name -notmatch $Filter){return};try{& $body;$script:passed++;Write-Host "PASS $name"}catch{$script:failed++;Write-Host "FAIL $name : $_";Write-Host $_.ScriptStackTrace}}
+$script:testIndex=0
+function Test($name,[scriptblock]$body){$script:testIndex++;if(-not (Test-InTestShard $script:testIndex $Shard)){return};if($Filter -and $name -notmatch $Filter){return};$clock=[Diagnostics.Stopwatch]::StartNew();try{& $body;$script:passed++;Write-Host ("PASS $name ({0:N1} s)" -f $clock.Elapsed.TotalSeconds)}catch{$script:failed++;Write-Host "FAIL $name : $_";Write-Host $_.ScriptStackTrace}}
 function Put($root,$key,$text){$path=Join-Path $root $key;[IO.Directory]::CreateDirectory((Split-Path -Parent $path))|Out-Null;[IO.File]::WriteAllText($path,$text)}
 function Fixture {
     param([switch]$Templates)
