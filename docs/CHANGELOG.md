@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.20.1] - 2026-11-25
 ### Fixed
 - La prueba del resumen de actividad ya no falla en máquinas cuyo reloj avanza a saltos de ~15,6 ms (como las de GitHub): la primera edición queda siempre antes del momento de corte.
 
@@ -110,14 +112,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Added
 - Comprobación al terminar el turno (piloto en el repositorio del marco): un hook Stop común a Claude Code, Codex y Antigravity devuelve al agente a trabajar si hay cambios de código sin pruebas en verde de ese mismo estado. La evidencia la registra scripts/run-tests.ps1, no el agente; como mucho dos devoluciones seguidas por sesión. Se instala con scripts/install-turn-gate.ps1 en archivos locales que no se publican. Primera capacidad de la tabla de arneses que pasa a «aprovechada».
 - .gitignore excluye la configuración local de los arneses (.claude/settings.local.json, .codex/, .agents/).
-
-## [3.12.0] - 2026-11-24
-### Added
-- Radar de arneses, tercera fase: `-Action Evaluate` prepara en `docs/radar/` el informe de cada novedad (fuentes oficiales y capacidades relacionadas); `-Action Ack -Report` solo la cierra con un veredicto válido (APROVECHAR, ESPERAR, DESCARTAR o YA CUBIERTO) y lo registra; `-Action Coverage` muestra cuántas capacidades de cada arnés se aprovechan; las novedades sin decisión durante más de 14 días lo dicen en su aviso.
-
-### Changed
-- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
-- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
-
-### Fixed
-- La promoción a `stable` reintenta (hasta 6 veces, cada 10 s) solo cuando GitHub aún ve las pruebas «en curso» justo después de terminar; esa carrera hizo fallar la 3.9.1 y la 3.11.0. Cualquier otro rechazo falla al instante.

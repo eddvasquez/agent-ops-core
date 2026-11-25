@@ -1,5 +1,16 @@
 # Historial de versiones anteriores
 
+## [3.12.0] - 2026-11-24
+### Added
+- Radar de arneses, tercera fase: `-Action Evaluate` prepara en `docs/radar/` el informe de cada novedad (fuentes oficiales y capacidades relacionadas); `-Action Ack -Report` solo la cierra con un veredicto válido (APROVECHAR, ESPERAR, DESCARTAR o YA CUBIERTO) y lo registra; `-Action Coverage` muestra cuántas capacidades de cada arnés se aprovechan; las novedades sin decisión durante más de 14 días lo dicen en su aviso.
+
+### Changed
+- El canal local ya no exige guardar los cambios para probar o instalar: lo instalado sale solo del último commit, así que los cambios sin guardar se avisan y se dejan fuera, y se puede seguir trabajando mientras corre la prueba.
+- `hook.PreInvocation` de Antigravity queda «esperando»: se dispara antes de cada llamada al modelo y arrancar el hook cuesta ~0,5-1 s (medido), para un beneficio raro.
+
+### Fixed
+- La promoción a `stable` reintenta (hasta 6 veces, cada 10 s) solo cuando GitHub aún ve las pruebas «en curso» justo después de terminar; esa carrera hizo fallar la 3.9.1 y la 3.11.0. Cualquier otro rechazo falla al instante.
+
 ## [3.11.0] - 2026-11-24
 ### Added
 - Limpieza obligatoria y automática de las pruebas (R-011): cada suite del marco borra su carpeta temporal al terminar en verde, la conserva si falla y, al empezar, barre las de más de 48 horas (`tests/TestFixtures.ps1`). `repo-hygiene` analiza la estructura de cada suite y exige la limpieza a cualquier suite nueva.
