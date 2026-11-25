@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.16.0] - 2026-11-24
 ### Changed
 - La protección de credenciales ya no frena al agente en las acciones normales. Claude Code solo la lanza cuando la ruta o el comando contienen algo sospechoso (un filtro `if` por patrón); el lanzador responde él mismo, sin cargar módulos, a lo que no lo parece; Codex solo la consulta para comandos, parches y herramientas MCP. Reinstalar con `install-secret-guard.ps1` sustituye la configuración anterior sin duplicarla.
 - El lanzador de hooks anota cada invocación (hora, hook y arnés; nunca rutas ni contenido) en `%LOCALAPPDATA%\AgentOps\hooks\invocations.log`, limitado a 256 KB.
@@ -62,8 +64,3 @@ epo-hygiene analiza la estructura de cada suite y exige la limpieza a cualquier 
 - Tabla de capacidades de los arneses (`scripts/harness-capabilities.json`): qué ofrece cada uno, con enlace a su documentación, fecha de verificación, estado (aprovechada, pendiente, esperando o descartada) y respaldo, para que lo obligatorio no dependa de un solo arnés. Se valida con `harness-radar.ps1 -Action Validate`.
 - Detector de arneses (`harness-radar.ps1 -Action Detect`): informa qué arneses usa el proyecto y cuáles están instalados.
 - Análisis ampliado (`docs/analisis-harness-engineering.md`): aprovechar todo lo de cada arnés con «piso y techo», y el ciclo del radar.
-
-## [3.8.0] - 2026-11-23
-### Added
-- Revisión automática al guardar (hook `pre-commit` de Git): cada commit, también los hechos a mano, se frena si falta su línea en el changelog o si añade una contraseña o clave, y el aviso explica cómo arreglarlo. La migración la instala en cada proyecto con Git, con respaldo y reversión; nunca sustituye un hook de otra herramienta. Nuevos `scripts/pre-commit-check.ps1`, `scripts/install-git-hook.ps1`, `PreCommitCheck.psm1` y `SecretScan.psm1`; pruebas en `tests/pre-commit.tests.ps1`.
-- Análisis de harness engineering (`docs/analisis-harness-engineering.md`): contraste del marco con OpenAI, Anthropic, LangChain y Endor Labs, tabla de mecanismos comunes a Codex, Antigravity y Claude Code (hooks `SessionStart`, `PreToolUse`, `PostToolUse` y `Stop`) y oportunidades de mejora priorizadas para pasar del cumplimiento por buena fe al automático.
