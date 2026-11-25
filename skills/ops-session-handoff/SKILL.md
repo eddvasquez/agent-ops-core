@@ -108,5 +108,7 @@ La sesión puede terminar sin aviso: por cuota, por contexto o por un cierre. Pa
    - Comprobar su JSON: `Code` `0` y `Status` `COMMITTED`. Si no, corregir lo que indique `Step`/`Issues` antes de seguir.
    - Cerrar el punto de control: `& "$ActivePath/scripts/checkpoint.ps1" -ProjectPath <proyecto> -Close` (con `Code` `0`; `NO_CHECKPOINT` también es válido).
    - Después, el relevo: esperar 1 segundo (liberar bloqueos de sincronización cloud) y ejecutar `commit.ps1 -RepositoryPath <proyecto> -Paths .context -Message "chore(relevo): actualizar activeContext y progreso de sesion"`.
-   - Si el proyecto cuenta con un repositorio remoto configurado (`origin`), ejecutar `git push` en una llamada aparte, solo si los commits anteriores devolvieron `Code` `0`.
+   - Si el proyecto cuenta con un repositorio remoto configurado (`origin`), ejecutar `git push` en una llamada aparte, solo si los commits anteriores devolvieron `Code` `0`. Publicar por hitos terminados, no por cada commit.
+   - Si el repositorio está en GitHub, no esperar el resultado en primer plano: lanzar `& "$ActivePath/scripts/wait-ci.ps1" -ProjectPath <proyecto>` en segundo plano (avisa una vez: `0` verde, `1` rojo, `2` tiempo agotado, `3` sin red) y seguir; si el arnés no ejecuta en segundo plano, consultarlo una vez al final del turno.
+   - En el repositorio de Agent Ops Core, tras guardar una versión terminada: `& "$ActivePath/scripts/publish-local.ps1" -SourceRepo <repo>` en segundo plano la prueba en las dos versiones de PowerShell y la instala en este PC para todos los proyectos (R-014).
 6. *Una vez actualizado activeContext y efectuado el commit, el agente no debe ejecutar código adicional en ese turno.*

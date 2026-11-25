@@ -113,7 +113,7 @@ function Up-State($configPath){
     if($s.Mode -notin @('MANAGED','LOCAL_DEV') -or $s.Config.WatcherEnabled -isnot [bool]){throw 'Invalid installation mode/settings.'}
     Up-Paths $s.Config
     if($s.Config.StateDir -ne $stateDir){throw 'Update state is bound to a different directory.'}
-    foreach($record in @($s.Active,$s.LastGood)){
+    foreach($record in @($s.Active,$s.LastGood,$(if($s.ContainsKey('LastVerifiedCI')){$s.LastVerifiedCI}else{$null}))){
         if($null -ne $record -and ($record -isnot [hashtable] -or $record.Sha -notmatch '^[a-f0-9]{40}$' -or $record.Path -ne (Up-Child $s.Config.RuntimeDir ('releases/'+$record.Sha)))){throw 'Invalid active release record.'}
     }
     if($s.Candidate.Count -and ($s.Candidate.Sha -notmatch '^[a-f0-9]{40}$' -or $s.Candidate.Status -notin @('DETECTED','PREPARING','READY','FAILED'))){throw 'Invalid candidate state.'}
@@ -155,7 +155,11 @@ function Up-ValidateRelease($s,$record){
     $root=Up-Child $s.Config.RuntimeDir ('releases/'+$record.Sha)
     if($record.Path -ne $root){throw 'Release path does not match its SHA.'}
     $manifest=Up-Read (Up-Child $root '.agent-ops-release.json')
-    if($manifest.SchemaVersion -ne 1 -or $manifest.Sha -ne $record.Sha -or $manifest.RepoUrl -ne $s.Identity.RepoUrl -or $manifest.Channel -ne 'stable' -or -not $manifest.VerifiedCI){throw 'Release source/proof mismatch.'}
+    if($manifest.SchemaVersion -ne 1 -or $manifest.Sha -ne $record.Sha -or $manifest.RepoUrl -ne $s.Identity.RepoUrl){throw 'Release source/proof mismatch.'}
+    if($manifest.Channel -eq 'stable'){if(-not $manifest.VerifiedCI){throw 'Release source/proof mismatch.'}}
+    elseif($manifest.Channel -eq 'local'){
+        if($manifest.VerifiedLocal -isnot [hashtable] -or $manifest.VerifiedLocal.Sha -ne $record.Sha -or (Up-LocalProof $s $record.Sha) -ne $manifest.VerifiedLocal.ProofHash){throw 'Local release proof missing or changed.'}
+    }else{throw 'Release source/proof mismatch.'}
     $seen=@{}
     foreach($f in $manifest.Files){
         if(-not (Up-AllowedFile $f.Path) -or $seen.ContainsKey($f.Path) -or $f.Hash -notmatch '^[a-f0-9]{64}$'){throw 'Invalid release manifest file.'}
@@ -190,7 +194,9 @@ function Up-GitBlobHash($path){
 }
 function Up-Prepare($s,$runner){
     $clock=[Diagnostics.Stopwatch]::StartNew();$sha=$s.Candidate.Sha
-    if(-not $s.Candidate.VerifiedCI){throw 'Candidate has not passed the trusted CI workflow.'}
+    $local=$s.Candidate.ContainsKey('Local') -and $s.Candidate.Local -is [hashtable]
+    if(-not $s.Candidate.VerifiedCI -and -not $local){throw 'Candidate has not passed the trusted CI workflow.'}
+    if($local -and (Up-LocalProof $s $sha) -ne $s.Candidate.Local.ProofHash){throw 'Local release proof missing or changed.'}
     $record=@{Sha=$sha;Path=(Up-Child $s.Config.RuntimeDir ('releases/'+$sha))}
     if([IO.Directory]::Exists($record.Path)){Up-ValidateRelease $s $record|Out-Null;$s.Candidate.Path=$record.Path;$s.Candidate.Status='READY';Up-Save $s;return}
     $s.Candidate.Status='PREPARING';Up-Save $s
@@ -201,7 +207,8 @@ function Up-Prepare($s,$runner){
     }
     $origin=(Up-GitOk @('--git-dir',$cache,'remote','get-url','origin') (120-$clock.Elapsed.TotalSeconds) $runner).Trim()
     if((Up-Repo $origin) -ne $s.Identity.RepoUrl){throw 'Cached repository identity mismatch.'}
-    Up-GitOk @('--git-dir',$cache,'fetch','--no-tags','--depth=1','origin','refs/heads/stable') (120-$clock.Elapsed.TotalSeconds) $runner|Out-Null
+    if($local){Up-GitOk @('--git-dir',$cache,'fetch','--no-tags',$s.Candidate.Local.Source,'HEAD') (120-$clock.Elapsed.TotalSeconds) $runner|Out-Null}
+    else{Up-GitOk @('--git-dir',$cache,'fetch','--no-tags','--depth=1','origin','refs/heads/stable') (120-$clock.Elapsed.TotalSeconds) $runner|Out-Null}
     $fetched=(Up-GitOk @('--git-dir',$cache,'rev-parse','FETCH_HEAD') (120-$clock.Elapsed.TotalSeconds) $runner).Trim()
     if($fetched -ne $sha){throw 'Stable moved after approval; check again instead of substituting a different candidate.'}
     $tree=Up-GitOk @('--git-dir',$cache,'ls-tree','-r','-z',$sha) (120-$clock.Elapsed.TotalSeconds) $runner
@@ -241,7 +248,9 @@ function Up-Prepare($s,$runner){
         }
     }finally{$zip.Dispose()}
     if($seen.Count -ne $expected.Count){throw 'Incomplete archive.'}
-    Up-Write (Up-Child $stage '.agent-ops-release.json') @{SchemaVersion=1;Sha=$sha;RepoUrl=$s.Identity.RepoUrl;Channel='stable';VerifiedCI=$true;Files=$files}
+    $release=@{SchemaVersion=1;Sha=$sha;RepoUrl=$s.Identity.RepoUrl;Channel='stable';VerifiedCI=$true;Files=$files}
+    if($local){$release.Channel='local';$release.VerifiedCI=$false;$release.VerifiedLocal=@{Sha=$sha;ProofHash=$s.Candidate.Local.ProofHash}}
+    Up-Write (Up-Child $stage '.agent-ops-release.json') $release
     # Rename is on the same volume. No existing version is overwritten.
     [IO.Directory]::Move($stage,$record.Path)
     Up-ValidateRelease $s $record|Out-Null
@@ -503,6 +512,14 @@ function Invoke-AgentOpsUpdate {
             $remote=@($line.Trim() -split '\s+')
             if($remote.Count -ne 2 -or $remote[0] -notmatch '^[a-fA-F0-9]{40}$' -or $remote[1] -ne 'refs/heads/stable'){throw 'Invalid remote SHA or stable reference.'}
             $sha=$remote[0].ToLowerInvariant()
+            if(Up-IsLocal $s.Active){
+                $ahead=($sha -in @($s.Active.Lineage)) -or ($s.ContainsKey('LastVerifiedCI') -and $s.LastVerifiedCI -and $sha -eq $s.LastVerifiedCI.Sha)
+                if($sha -eq $s.Active.Sha){
+                    try{$evidence=$(if($Verifier){& $Verifier $s.Identity.RepoUrl $sha (5-$clock.Elapsed.TotalSeconds)}else{Up-CIProof $s.Identity.RepoUrl $sha (5-$clock.Elapsed.TotalSeconds)})}catch{$evidence=$null}
+                    if($evidence -and $evidence.Verified -and $evidence.Sha -eq $sha){$s.Active.Source='stable';$s.LastVerifiedCI=@{Sha=$s.Active.Sha;Path=$s.Active.Path};$ahead=$false}else{$ahead=$true}
+                }
+                if($ahead){$s.LastSuccessfulCheckUtc=[datetime]::UtcNow.ToString('o');$s.LastError=$null;Up-Save $s;$r=Up-Result $s 'LOCAL_AHEAD';$r.SessionId=$SessionId;return [pscustomobject]$r}
+            }
             if($s.Active -and $sha -eq $s.Active.Sha){$s.LastSuccessfulCheckUtc=[datetime]::UtcNow.ToString('o');$s.LastError=$null;Up-Save $s;$r=Up-Result $s 'UP_TO_DATE';$r.SessionId=$SessionId;return [pscustomobject]$r}
             try{
                 if($s.Candidate.Count -and $s.Candidate.Sha -eq $sha -and $s.Candidate.VerifiedCI){$evidence=@{Verified=$true;Sha=$sha;Summary=@($s.Candidate.Summary)}}
@@ -535,6 +552,66 @@ function Invoke-AgentOpsUpdate {
         $status=if($pending){'ACTIVATION_REVIEW_REQUIRED'}elseif($message.StartsWith('SKILL_CONFLICT:')){'SKILL_CONFLICT'}else{'FAILED'}
         $code=if($status -in @('SKILL_CONFLICT','ACTIVATION_REVIEW_REQUIRED')){2}else{1}
         $r=Up-Result $s $status $code;if($pending){$r.ActivePath=$null};$r.Issues=@($message);return [pscustomobject]$r
+    }finally{if($owned){$mutex.ReleaseMutex()};$mutex.Dispose()}
+}
+# Local channel (R-014): a commit tested on this PC in both PowerShell editions, before GitHub has it.
+function Up-IsLocal($record){return ($record -is [hashtable] -and $record.ContainsKey('Source') -and $record.Source -eq 'local')}
+function Up-LocalProof($s,[string]$sha){
+    $path=Up-Child $s.Config.StateDir ('local-proofs/'+$sha+'.json')
+    if(-not [IO.File]::Exists($path)){return $null}
+    try{$p=Up-Read $path}catch{return $null}
+    if($p.SchemaVersion -ne 1 -or $p.Sha -ne $sha -or $p.Green -ne $true -or @($p.Editions) -notcontains 'Desktop' -or @($p.Editions) -notcontains 'Core'){return $null}
+    return (Up-Hash $path)
+}
+function Install-AgentOpsLocalRelease {
+    [CmdletBinding()]
+    param([string]$ConfigPath=(Join-Path $env:LOCALAPPDATA 'AgentOps/watch-config.json'),[string]$SourceRepo='',
+          [Parameter(Mandatory=$true)][string]$SessionId,[switch]$Revert,[scriptblock]$Verifier,[scriptblock]$GitRunner,[scriptblock]$TaskController)
+    $s=$null;$mutex=Up-Mutex 'Update';$owned=$false
+    $stop={param($status,[int]$code,[string]$issue) $r=Up-Result $s $status $code;if($issue){$r.Issues=@($issue)};[pscustomobject]$r}
+    try{
+        if(-not [IO.File]::Exists($ConfigPath)){return [pscustomobject](Up-Result $null 'NOT_INSTALLED')}
+        $owned=Up-Lock $mutex
+        if(-not $owned){return [pscustomobject](Up-Result $null 'BUSY' 3)}
+        $s=Up-State $ConfigPath
+        if($s.Mode -ne 'MANAGED'){return (& $stop 'NOT_MANAGED' 2 'The local channel needs a managed installation.')}
+        if([IO.File]::Exists((Up-Child $s.Config.StateDir 'activation-pending.json'))){return (& $stop 'ACTIVATION_REVIEW_REQUIRED' 2 'Recover the pending activation first (start-session.ps1).')}
+        if($Revert){
+            if(-not ($s.ContainsKey('LastVerifiedCI') -and $s.LastVerifiedCI)){return (& $stop 'NOTHING_TO_REVERT' 2 'There is no version confirmed by GitHub to return to.')}
+            $target=@{Sha=$s.LastVerifiedCI.Sha;Path=$s.LastVerifiedCI.Path}
+            Up-ValidateRelease $s $target|Out-Null
+            $s.Candidate=@{Sha=$target.Sha;Status='READY';Path=$target.Path;VerifiedCI=$true;Summary=@('Return to the last version GitHub confirmed');SessionId=$SessionId;Approved=$true;Worker=@{}}
+            Up-Save $s;Up-Apply $s $TaskController
+            $s.Active.Source='stable';Up-Save $s
+            return [pscustomobject](Up-Result $s 'UPDATED')
+        }
+        $src=Up-Root $SourceRepo
+        $origin=(Up-Git @('-C',$src,'remote','get-url','origin') 5 $GitRunner)
+        $repo=$(if($origin.ExitCode -eq 0){try{Up-Repo ([string]$origin.Output).Trim()}catch{''}}else{''})
+        if($repo -ne $s.Identity.RepoUrl){return (& $stop 'LOCAL_OTHER_REPOSITORY' 2 'The local repository is not the one this installation follows.')}
+        if(([string](Up-GitOk @('-C',$src,'status','--porcelain','--untracked-files=all') 10 $GitRunner)).Trim()){return (& $stop 'LOCAL_DIRTY' 2 'Commit or discard the local changes first: only a committed state can be installed.')}
+        $sha=([string](Up-GitOk @('-C',$src,'rev-parse','HEAD') 5 $GitRunner)).Trim().ToLowerInvariant()
+        if($s.Active -and $sha -eq $s.Active.Sha){return [pscustomobject](Up-Result $s 'UP_TO_DATE')}
+        if($s.Active -and (Up-Git @('-C',$src,'merge-base','--is-ancestor',$s.Active.Sha,$sha) 10 $GitRunner).ExitCode -ne 0){return (& $stop 'LOCAL_NOT_AHEAD' 2 'The local commit does not descend from the active version.')}
+        $proof=Up-LocalProof $s $sha
+        if(-not $proof){return (& $stop 'LOCAL_PROOF_MISSING' 2 'Run publish-local.ps1: every suite must be green for this exact commit in Windows PowerShell and PowerShell 7.')}
+        $lineage=@()
+        if($s.Active){$lineage=@(([string](Up-GitOk @('-C',$src,'rev-list','--max-count=2000',($s.Active.Sha+'..'+$sha)) 10 $GitRunner)) -split '\s+'|Where-Object {$_ -match '^[a-f0-9]{40}$'})}
+        $previous=$s.Active
+        $s.Candidate=@{Sha=$sha;Status='DETECTED';Path=$null;VerifiedCI=$false;Summary=@('Local release verified on this PC');SessionId=$SessionId;Approved=$true;Worker=@{};Local=@{Source=$src;ProofHash=$proof}}
+        Up-Save $s
+        Up-Prepare $s $GitRunner
+        Up-Apply $s $TaskController
+        if(Up-IsLocal $previous){$lineage=@($lineage)+@($previous.Lineage)}
+        elseif($previous){$s.LastVerifiedCI=@{Sha=$previous.Sha;Path=$previous.Path}}
+        $s.Active.Source='local';$s.Active.Lineage=@($lineage|Select-Object -First 2000)
+        Up-Save $s
+        return [pscustomobject](Up-Result $s 'UPDATED')
+    }catch{
+        $message=$_.Exception.Message
+        if($message.StartsWith('BUSY:')){return (& $stop 'BUSY' 3 $message)}
+        if($s){try{$s.Candidate=@{};$s.LastError=$message;Up-Save $s}catch{}}
+        return (& $stop 'FAILED' 1 $message)
     }finally{if($owned){$mutex.ReleaseMutex()};$mutex.Dispose()}
 }
 function Get-AgentOpsActiveRelease {
@@ -630,4 +707,4 @@ function Set-AgentOpsHubDir {
     }
     return [pscustomobject]$r
 }
-Export-ModuleMember -Function Initialize-AgentOpsUpdate,Invoke-AgentOpsUpdate,Get-AgentOpsActiveRelease,Get-AgentOpsReleasePolicy,Set-AgentOpsHubDir
+Export-ModuleMember -Function Initialize-AgentOpsUpdate,Invoke-AgentOpsUpdate,Get-AgentOpsActiveRelease,Get-AgentOpsReleasePolicy,Set-AgentOpsHubDir,Install-AgentOpsLocalRelease

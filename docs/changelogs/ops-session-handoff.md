@@ -3,6 +3,9 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+### Added
+- MODO SALIDA: publicar por hitos terminados; tras el push, esperar a GitHub en segundo plano con `wait-ci.ps1` en lugar de quedarse mirando (R-013).
+- MODO SALIDA, en el repositorio de Agent Ops Core: tras guardar una versión terminada, `publish-local.ps1` la prueba en las dos versiones de PowerShell y la instala en este PC para todos los proyectos (R-014).
 
 ## [2.9.0] - 2026-11-24
 ### Added

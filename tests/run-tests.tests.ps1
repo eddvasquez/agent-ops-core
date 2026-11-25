@@ -177,6 +177,15 @@ Test '-Changed after a green run tests only what changed since that run' {
     $again=Invoke-AgentOpsTestRun -ProjectPath $r -Changed -Parallel 1
     Assert ((@($again.Results|ForEach-Object {$_.Suite}) -join ',') -eq 'a,b') ($again|ConvertTo-Json -Depth 5)
 }
+Test 'after a green run, a change to something shared still selects every suite by name' {
+    $r=Repo $graph
+    Put $r 'scripts/A.psm1' 'function Get-A{2}'
+    $first=Invoke-AgentOpsTestRun -ProjectPath $r -Changed -Parallel 1
+    Assert ($first.Code -eq 0) ($first|ConvertTo-Json -Depth 5)
+    Put $r 'tests/TestFixtures.ps1' '# shared, changed'
+    $c=Get-AgentOpsSuitesForChanges -ProjectPath $r
+    Assert ($c.All -and (@($c.Suites) -join ',') -eq 'a,b,c') ("Expected every suite name: "+($c|ConvertTo-Json -Depth 4 -Compress))
+}
 Test 'a green run in one PowerShell never exempts the other one from testing' {
     $r=Repo $graph
     Put $r 'scripts/A.psm1' 'function Get-A{2}'

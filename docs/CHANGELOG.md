@@ -10,12 +10,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Antes de compactar la conversación, Claude Code recibe instrucciones para el resumen: conservar literalmente las peticiones y correcciones del usuario, las reglas registradas, el plan con su siguiente paso exacto, qué archivos están sin guardar o sin publicar, las decisiones pendientes y los resultados de pruebas. Solo en proyectos que siguen Agent Ops Core; nunca impide la compactación. `hook.PreCompact` pasa a «aprovechada» en Claude Code (4 de 8). Codex ignora lo que se le diga en ese momento y Antigravity no lo tiene: a ambos se les vuelven a dar las reglas al empezar tras compactar.
 - `run-tests.ps1 -Snapshot` ejecuta las pruebas sobre una copia del estado actual (el último commit más los cambios sin guardar), así que se puede seguir editando mientras corren; el resultado se anota para el estado copiado y la copia se borra siempre.
 - `run-tests.ps1 -Changed` tras un resultado en verde solo prueba lo que cambió desde ese resultado, en esa misma versión de PowerShell y con el mismo commit, en lugar de todo lo pendiente desde el último commit.
+- Canal local verificado (R-014): `publish-local.ps1`, ejecutado desde la versión instalada, prueba el último commit del repositorio del marco en una copia, con todas las suites en Windows PowerShell y PowerShell 7 más la revisión del paquete público, y si todo está en verde lo instala en este PC para todos los proyectos, sin esperar a GitHub. Solo acepta un estado guardado, del mismo repositorio y que descienda de la versión activa. Mientras GitHub va por detrás, la comprobación al empezar la sesión responde `LOCAL_AHEAD` y nunca ofrece la versión anterior; cuando GitHub confirma ese commit pasa a `stable`. `-Revert` vuelve a la última versión confirmada por GitHub.
+- `scripts/wait-ci.ps1` espera el resultado de las pruebas de GitHub de un commit sin bloquear al agente (R-013): se lanza en segundo plano y avisa una sola vez, con el resultado y la duración de cada trabajo y si se promovió a `stable` (0 verde, 1 rojo, 2 tiempo agotado, 3 sin red). Solo lee la API pública y nunca repite textos de error, para que un token no pueda aparecer en su salida.
 - Cuando una suite falla, `run-tests.ps1` dice qué pruebas fallaron (`Failures`, también por parte), en lugar de solo su última línea.
 
 ### Changed
 - El lanzador común de hooks se instala desde `HookIO.psm1` (`Install-AgentOpsHookLauncher`), compartido por la protección de credenciales y el aviso de inicio; su contenido no cambia.
 
 ### Fixed
+- La prueba del vigilante del actualizador daba 6 s a un PowerShell nuevo para arrancar y dar señal de vida: con el equipo cargado no llegaba y la prueba fallaba sin error real. Ahora espera hasta 60 s y termina en cuanto llega la señal.
 - La prueba de «sincronización más larga que la espera» del actualizador mantenía el bloqueo un tiempo fijo (13 s): con el equipo cargado se soltaba dentro de la espera y la prueba fallaba sin haber error. Ahora lo mantiene hasta que la prueba lo suelta.
 
 ## [3.17.0] - 2026-11-24

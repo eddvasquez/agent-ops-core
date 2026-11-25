@@ -226,7 +226,8 @@ Test 'watcher entry starts the pinned runtime and reports its SHA during activat
         if($action -eq 'Suspend'){return @{Present=$false;Enabled=$false;Running=$false}}
         $arguments='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+(Join-Path $config.InstallRoot 'scripts/watch-entry.ps1')+'" -ConfigPath "'+(Join-Path $config.StateDir 'watch-config.json')+'" -RunSeconds 3'
         $global:AocProbeChild=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList $arguments -WindowStyle Hidden -PassThru
-        $heartbeat=Join-Path $config.StateDir 'watch-heartbeat.json';$deadline=[datetime]::UtcNow.AddSeconds(6)
+        # Ends as soon as the heartbeat appears; 60 s only covers a new PowerShell starting on a loaded machine (6 s failed).
+        $heartbeat=Join-Path $config.StateDir 'watch-heartbeat.json';$deadline=[datetime]::UtcNow.AddSeconds(60)
         while(-not [IO.File]::Exists($heartbeat) -and [datetime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 100}
         return @{Healthy=[IO.File]::Exists($heartbeat)}
     }
@@ -339,6 +340,79 @@ Test 'an update held by the real installation never makes the suite busy (own lo
     $f=Fixture;$held=Start-HeldRealLock 'Update'
     try{$r=Invoke-AgentOpsUpdate -ConfigPath $f.ConfigPath -Action Check -Verifier $script:proof -TaskController $script:tasks}finally{Stop-HeldRealLock $held}
     Assert ($r.Code -ne 3 -and $r.Status -ne 'BUSY') ($r|ConvertTo-Json -Depth 4)
+}
+# Local channel (R-014): a commit tested on this PC in both PowerShell editions is activated before GitHub has it.
+function LocalSource($f){
+    $src=Join-Path (Split-Path -Parent $f.Remote) ('local-'+[guid]::NewGuid().ToString('N').Substring(0,6))
+    & git clone -q $f.Remote $src
+    & git -C $src config user.name Tests;& git -C $src config user.email tests@localhost;& git -C $src config core.autocrlf false
+    return $src
+}
+function LocalCommit($src,$text='core local'){
+    Put $src 'skills/dev-tdd/SKILL.md' $text
+    & git -C $src add -A;& git -C $src commit -q --no-verify -m "local $text"
+    return ((& git -C $src rev-parse HEAD)|Select-Object -First 1).Trim()
+}
+function LocalProof($f,$sha,[string[]]$editions=@('Desktop','Core')){
+    $dir=Join-Path $f.Parameters.StateDir 'local-proofs';[IO.Directory]::CreateDirectory($dir)|Out-Null
+    $p=Join-Path $dir "$sha.json"
+    [IO.File]::WriteAllText($p,(@{SchemaVersion=1;Sha=$sha;Green=$true;Editions=$editions;Suites=@('update-coordinator (Desktop): 1 passed')}|ConvertTo-Json -Depth 4))
+    return $p
+}
+function LocalInstall($f,$src,[switch]$Revert){
+    Install-AgentOpsLocalRelease -ConfigPath $f.ConfigPath -SourceRepo $src -SessionId 'L' -Revert:$Revert -Verifier $script:proof -TaskController $script:tasks
+}
+Test 'a commit tested here in both editions is activated before GitHub has it, for every project of this PC' {
+    $f=Fixture;$src=LocalSource $f;$sha=LocalCommit $src;LocalProof $f $sha|Out-Null
+    $r=LocalInstall $f $src
+    Assert ($r.Code -eq 0 -and $r.Status -eq 'UPDATED' -and $r.ActiveSha -eq $sha) ($r|ConvertTo-Json -Depth 8)
+    Assert ([IO.File]::ReadAllText((Join-Path $f.Parameters.Targets[0] 'dev-tdd/SKILL.md')) -eq 'core local') 'Skills not synchronized from the local release'
+    $m=Get-Content (Join-Path $r.ActivePath '.agent-ops-release.json') -Raw|ConvertFrom-Json
+    Assert ($m.Channel -eq 'local' -and $m.VerifiedLocal.Sha -eq $sha -and -not $m.VerifiedCI) ($m|ConvertTo-Json -Depth 4)
+    $state=Get-Content $f.StatePath -Raw|ConvertFrom-Json
+    Assert ($state.Active.Source -eq 'local' -and $state.LastVerifiedCI.Sha -eq $f.OldSha) ($state|ConvertTo-Json -Depth 6)
+}
+Test 'a local commit is refused without its own proof from both editions, with uncommitted changes or from another repository' {
+    $f=Fixture;$src=LocalSource $f;$sha=LocalCommit $src
+    $r=LocalInstall $f $src;Assert ($r.Code -ne 0 -and $r.Status -eq 'LOCAL_PROOF_MISSING' -and $r.ActiveSha -eq $f.OldSha) ($r|ConvertTo-Json -Depth 6)
+    LocalProof $f $sha @('Desktop')|Out-Null
+    $r=LocalInstall $f $src;Assert ($r.Status -eq 'LOCAL_PROOF_MISSING') 'A proof from one edition was accepted'
+    LocalProof $f ('f'*40)|Out-Null;LocalProof $f $sha|Out-Null;Put $src 'scripts/sin-guardar.ps1' 'x'
+    $r=LocalInstall $f $src;Assert ($r.Code -ne 0 -and $r.Status -eq 'LOCAL_DIRTY') ($r|ConvertTo-Json -Depth 6)
+    Remove-Item -LiteralPath (Join-Path $src 'scripts/sin-guardar.ps1')
+    & git -C $src remote set-url origin (Join-Path (Split-Path -Parent $f.Remote) 'otro-repo')
+    $r=LocalInstall $f $src;Assert ($r.Code -ne 0 -and $r.Status -eq 'LOCAL_OTHER_REPOSITORY') ($r|ConvertTo-Json -Depth 6)
+}
+Test 'a local commit that does not descend from the active version is refused' {
+    $f=Fixture;$src=LocalSource $f
+    & git -C $src checkout -q --orphan otra;Put $src 'README.md' 'otra historia';& git -C $src add -A;& git -C $src commit -q --no-verify -m otra
+    $sha=((& git -C $src rev-parse HEAD)|Select-Object -First 1).Trim();LocalProof $f $sha|Out-Null
+    $r=LocalInstall $f $src
+    Assert ($r.Code -ne 0 -and $r.Status -eq 'LOCAL_NOT_AHEAD' -and $r.ActiveSha -eq $f.OldSha) ($r|ConvertTo-Json -Depth 6)
+}
+Test 'while GitHub is behind, the session check never offers the older version; when it catches up it is confirmed' {
+    $f=Fixture;$src=LocalSource $f;$sha=LocalCommit $src;LocalProof $f $sha|Out-Null
+    LocalInstall $f $src|Out-Null
+    $r=Run $f
+    Assert ($r.Code -eq 0 -and $r.Status -eq 'LOCAL_AHEAD' -and $r.ActiveSha -eq $sha -and -not $r.NeedsUserChoice) ($r|ConvertTo-Json -Depth 8)
+    & git -C $src push -q origin "HEAD:refs/heads/stable" 2>$null
+    $r=Run $f
+    Assert ($r.Code -eq 0 -and $r.Status -eq 'UP_TO_DATE' -and $r.ActiveSha -eq $sha) ($r|ConvertTo-Json -Depth 8)
+    $state=Get-Content $f.StatePath -Raw|ConvertFrom-Json
+    Assert ($state.Active.Source -eq 'stable' -and $state.LastVerifiedCI.Sha -eq $sha) ($state|ConvertTo-Json -Depth 6)
+    $newer=Publish $f 'core v3';$r=Run $f
+    Assert ($r.Status -eq 'UPDATE_AVAILABLE' -and $r.CandidateSha -eq $newer) ($r|ConvertTo-Json -Depth 8)
+}
+Test 'a tampered local proof makes the local release invalid; revert returns to the last version GitHub confirmed' {
+    $f=Fixture;$src=LocalSource $f;$sha=LocalCommit $src;$proof=LocalProof $f $sha
+    LocalInstall $f $src|Out-Null
+    [IO.File]::WriteAllText($proof,'{"SchemaVersion":1,"Sha":"'+$sha+'","Green":true,"Editions":["Desktop","Core"],"Suites":["cambiada"]}')
+    $r=Run $f
+    Assert ($r.Code -ne 0) ('Tampered proof accepted: '+($r|ConvertTo-Json -Depth 6))
+    LocalProof $f $sha|Out-Null
+    $r=LocalInstall $f $src -Revert
+    Assert ($r.Code -eq 0 -and $r.Status -eq 'UPDATED' -and $r.ActiveSha -eq $f.OldSha) ($r|ConvertTo-Json -Depth 8)
+    Assert ([IO.File]::ReadAllText((Join-Path $f.Parameters.Targets[0] 'dev-tdd/SKILL.md')) -eq 'core v1') 'Revert did not restore the confirmed skills'
 }
 Write-Host "Update results: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}

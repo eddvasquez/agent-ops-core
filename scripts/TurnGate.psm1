@@ -50,8 +50,8 @@ function Get-AgentOpsSuitesForChanges {
     $ev=Tg-Evidence $root
     if([IO.File]::Exists($ev)){
         try{
-            $all=[IO.File]::ReadAllText($ev)|ConvertFrom-Json;$edition=$PSVersionTable.PSEdition
-            $e=$(if($all.PSObject.Properties['ByEdition'] -and $all.ByEdition -and $all.ByEdition.PSObject.Properties[$edition]){$all.ByEdition.$edition}else{$null})
+            $recorded=[IO.File]::ReadAllText($ev)|ConvertFrom-Json;$edition=$PSVersionTable.PSEdition
+            $e=$(if($recorded.PSObject.Properties['ByEdition'] -and $recorded.ByEdition -and $recorded.ByEdition.PSObject.Properties[$edition]){$recorded.ByEdition.$edition}else{$null})
             if($e -and $e.PSObject.Properties['Hashes'] -and $e.PSObject.Properties['Head'] -and $e.Head -and $e.Head -eq (Tg-Head $root)){
                 $old=@{};if($e.Hashes){foreach($pr in $e.Hashes.PSObject.Properties){$old[$pr.Name]=[string]$pr.Value}}
                 $since=@($changed|Where-Object {-not $old.ContainsKey($_) -or $old[$_] -ne $fp.Hashes[$_]})
