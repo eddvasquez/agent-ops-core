@@ -5,6 +5,9 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Fixed
+- Las pruebas ya no fallan cuando el vigilante de skills real está sincronizando: si la instalación real ya retiene su bloqueo, la prueba lo da por bueno en lugar de esperar 30 s a que lo suelte.
+
 ### Added
 - Skill `ops-session-handoff`: el MODO ENTRADA hace como mucho una pregunta de integración (permiso de Codex o arranque desactualizado), con botones y en lenguaje llano; si todo va bien, no dice nada.
 - Cero configuración tras cada actualización (`Integrations.psm1`, `integrations.ps1`): al empezar la primera sesión con una versión nueva, y al instalar, el marco ajusta solo sus hooks, el plugin de Antigravity y los permisos de Claude Code en las herramientas que tienes, sin crear nada para las que no. Lo que cambia la configuración propia de una herramienta (hoy, el perfil de permisos de Codex) se pregunta una sola vez y se recuerda (`consents.json`); un «no» no se vuelve a preguntar. Si el arranque del marco está desactualizado, el agente ofrece actualizarlo él (`-Action UpdateBootstrap`, con el hub y los destinos reales y sin tocar la tarea programada). Con una carpeta de estado que no es la real (pruebas), nunca toca la carpeta de usuario real.

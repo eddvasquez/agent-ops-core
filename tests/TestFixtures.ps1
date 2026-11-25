@@ -30,10 +30,12 @@ function Start-HeldRealLock([string]$Name){
     $real='Local\AgentOps'+$Name+'-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
     $job=Start-Job -ArgumentList $real,$ready -ScriptBlock {
         param($name,$ready)
-        $m=New-Object Threading.Mutex($false,$name);$null=$m.WaitOne()
-        [IO.File]::WriteAllText($ready,'held')
-        Start-Sleep -Seconds 120
-        $m.ReleaseMutex()
+        # If the real installation already holds it (the skills watcher syncs every few minutes), a real holder
+        # exists already: that is the situation under test, so do not wait for it to finish.
+        $m=New-Object Threading.Mutex($false,$name)
+        $own=$false;try{$own=$m.WaitOne(0)}catch [Threading.AbandonedMutexException]{$own=$true}
+        [IO.File]::WriteAllText($ready,$(if($own){'held'}else{'busy'}))
+        if($own){Start-Sleep -Seconds 120;$m.ReleaseMutex()}
     }
     for($i=0;$i -lt 300 -and -not [IO.File]::Exists($ready);$i++){Start-Sleep -Milliseconds 100}
     if(-not [IO.File]::Exists($ready)){Stop-Job $job;Remove-Job $job -Force;throw "Could not hold the real $Name lock."}
