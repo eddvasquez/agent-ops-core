@@ -78,9 +78,9 @@
         },
         {
           "Id": "hook.SubagentStop",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://code.claude.com/docs/en/hooks",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "Revisión en contexto limpio del Protocolo 8"
         },
         {

@@ -138,4 +138,22 @@ function Test-AgentOpsAcceptance {
     $res.Code=0;$res.Status='ACCEPTED'
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function New-AgentOpsAcceptance,New-AgentOpsAcceptanceReview,Test-AgentOpsAcceptance
+# When a subagent stops (Claude Code SubagentStop): a reviewer that edited the deliverable (the verdict went STALE)
+# or passed items without a citation is sent back. Pending reviews do not block: the subagent may be unrelated.
+function Test-AgentOpsReviewerStop {
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true)][string]$ProjectPath)
+    $root=Ac-Root $ProjectPath;$res=[ordered]@{Decision='ALLOW';Status='NONE';Id=$null;Reason=''}
+    $dir=Join-Path $root $script:dir;if(-not [IO.Directory]::Exists($dir)){return [pscustomobject]$res}
+    foreach($f in @(Get-ChildItem -LiteralPath $dir -Filter '*.review.md' -ErrorAction SilentlyContinue)){
+        $id=$f.Name -replace '\.review\.md$',''
+        $contract=Ac-Path $root $id
+        if(-not [IO.File]::Exists($contract) -or [IO.File]::ReadAllText($contract) -notmatch '(?m)^Estado:\s*abierto\b'){continue}
+        $v=Test-AgentOpsAcceptance -ProjectPath $root -Id $id
+        $res.Id=$id;$res.Status=$v.Status
+        if($v.Status -eq 'STALE'){$res.Decision='BLOCK';$res.Reason="Agent Ops: el entregable de la revisión de aceptación $id cambió mientras se revisaba. El revisor no debe editar el entregable (R-017): restáuralo tal como estaba, marca FALLA con una cita en .context/aceptacion/$id.review.md y deja tus propuestas en «Observaciones para el usuario».";return [pscustomobject]$res}
+        if($v.Status -eq 'INVALID'){$res.Decision='BLOCK';$res.Reason="Agent Ops: en la revisión de aceptación $id hay PASA sin cita. Cada PASA necesita una cita literal del entregable (.context/aceptacion/$id.review.md).";return [pscustomobject]$res}
+    }
+    return [pscustomobject]$res
+}
+Export-ModuleMember -Function New-AgentOpsAcceptance,New-AgentOpsAcceptanceReview,Test-AgentOpsAcceptance,Test-AgentOpsReviewerStop

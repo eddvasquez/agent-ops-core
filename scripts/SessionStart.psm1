@@ -188,6 +188,9 @@ function Install-AgentOpsSessionStart {
         $postCodex=[ordered]@{matcher='apply_patch|Bash';hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook post-tool -Harness codex";commandWindows=("powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$launcher`" -Hook post-tool -Harness codex");async=$true;timeout=20})}
         $postPattern='agent-ops-hook\.ps1.{0,40}post-tool'
         & $edit $ClaudeSettingsPath {param($c) & $swap $c $(if($Uninstall){$null}else{$postClaude}) 'PostToolUse' $postPattern}
+        # Claude Code: when a subagent stops, a reviewer that edited the deliverable is sent back (R-017).
+        $subClaude=[ordered]@{hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','subagent-stop','-Harness','claude');timeout=20})}
+        & $edit $ClaudeSettingsPath {param($c) & $swap $c $(if($Uninstall){$null}else{$subClaude}) 'SubagentStop' 'agent-ops-hook\.ps1.{0,40}subagent-stop'}
         & $edit $CodexHooksPath {param($c)
             $c=& $swap $c $(if($Uninstall){$null}else{$codex})
             & $swap $c $(if($Uninstall){$null}else{$postCodex}) 'PostToolUse' $postPattern}

@@ -82,6 +82,41 @@ Test 'after three failed rounds the work is delivered saying what is missing; th
     $r=New-AgentOpsAcceptanceReview -ProjectPath $p -Id $c.Id -Deliverable @($d)
     Assert ($r.Code -ne 0 -and $r.Status -eq 'ROUND_LIMIT') ($r|ConvertTo-Json -Depth 4)
 }
+Test 'a reviewer subagent that edited the deliverable is sent back: it only judges (R-017)' {
+    $p=Project;$c=Contract $p;$d=Put $p 'landing/copy.md' "# Método AVE`nInscríbete hoy por 997 USD con garantía de 30 días. [Quiero entrar]"
+    New-AgentOpsAcceptanceReview -ProjectPath $p -Id $c.Id -Deliverable @($d)|Out-Null
+    Put $p 'landing/copy.md' "# Método AVE suavizado`nUna oferta más prudente."|Out-Null
+    $v=Test-AgentOpsReviewerStop -ProjectPath $p
+    Assert ($v.Decision -eq 'BLOCK' -and $v.Reason -match 'R-017' -and $v.Reason -match 'no debe editar') ($v|ConvertTo-Json)
+}
+Test 'a reviewer that passed items without citing is sent back; pending, accepted or no review lets it stop' {
+    $p=Project;$c=Contract $p;$d=Put $p 'landing/copy.md' "# Método AVE`nInscríbete hoy por 997 USD con garantía de 30 días. [Quiero entrar]"
+    $r=New-AgentOpsAcceptanceReview -ProjectPath $p -Id $c.Id -Deliverable @($d)
+    Assert ((Test-AgentOpsReviewerStop -ProjectPath $p).Decision -eq 'ALLOW') 'A pending review must not stop unrelated subagents'
+    Mark $r.Sheet @{C1='PASA';C2='PASA - "[Quiero entrar]"';I1='PASA - "997 USD"';I2='PASA - "garantía de 30 días"';I3='PASA - "Inscríbete hoy"'}
+    $v=Test-AgentOpsReviewerStop -ProjectPath $p
+    Assert ($v.Decision -eq 'BLOCK' -and $v.Reason -match 'cita') ($v|ConvertTo-Json)
+    $t=[IO.File]::ReadAllText($r.Sheet) -replace '(?m)^- C1: PASA$','- C1: PASA - "# Método AVE"';[IO.File]::WriteAllText($r.Sheet,$t,$utf8)
+    Assert ((Test-AgentOpsReviewerStop -ProjectPath $p).Decision -eq 'ALLOW') 'Accepted review must let the subagent stop'
+    Assert ((Test-AgentOpsReviewerStop -ProjectPath (Project)).Decision -eq 'ALLOW') 'No review must let the subagent stop'
+}
+Test 'the subagent hook never loops and fails open' {
+    $p=Project;$c=Contract $p;$d=Put $p 'landing/copy.md' "# Método AVE 997 USD garantía de 30 días"
+    New-AgentOpsAcceptanceReview -ProjectPath $p -Id $c.Id -Deliverable @($d)|Out-Null
+    Put $p 'landing/copy.md' "# cambiado"|Out-Null
+    $run={param($json)
+        $psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName=(Get-Process -Id $PID).Path
+        $psi.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $source 'scripts/subagent-stop-hook.ps1')+'" -Harness claude'
+        $psi.UseShellExecute=$false;$psi.CreateNoWindow=$true;$psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true;$psi.StandardOutputEncoding=$utf8
+        $pr=[Diagnostics.Process]::Start($psi);$b=$utf8.GetBytes($json);$pr.StandardInput.BaseStream.Write($b,0,$b.Length);$pr.StandardInput.Close()
+        $o=$pr.StandardOutput.ReadToEnd();$null=$pr.StandardError.ReadToEnd();$pr.WaitForExit();@{Exit=$pr.ExitCode;Out=$o.Trim()}}
+    $r=& $run (@{hook_event_name='SubagentStop';cwd=$p;agent_id='a1';agent_type='general-purpose';stop_hook_active=$false}|ConvertTo-Json -Compress)
+    Assert ($r.Exit -eq 0 -and ($r.Out|ConvertFrom-Json).decision -eq 'block') "first stop: $($r.Out)"
+    $r=& $run (@{hook_event_name='SubagentStop';cwd=$p;agent_id='a1';agent_type='general-purpose';stop_hook_active=$true}|ConvertTo-Json -Compress)
+    Assert ($r.Exit -eq 0 -and -not $r.Out) "must not loop: $($r.Out)"
+    $r=& $run '{roto'
+    Assert ($r.Exit -eq 0 -and -not $r.Out) "must fail open: $($r.Out)"
+}
 Write-Host "Acceptance: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

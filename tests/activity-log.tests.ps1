@@ -87,10 +87,12 @@ Test 'install adds the after-action hook in the three harnesses, in the backgrou
     Assert ($x.hooks.PostToolUse[0].hooks[0].async -eq $true -and $x.hooks.PostToolUse[0].matcher -match 'apply_patch') ($x|ConvertTo-Json -Depth 8)
     $a=[IO.File]::ReadAllText($paths.AntigravityHooksPath)|ConvertFrom-Json
     Assert (@($a.'agent-ops-activity'.PostToolUse)[0].hooks[0].command -match '-Hook post-tool -Harness antigravity') ($a|ConvertTo-Json -Depth 8)
+    $sub=@($c.hooks.SubagentStop|Where-Object {($_|ConvertTo-Json -Depth 8) -match 'subagent-stop'})
+    Assert ($sub.Count -eq 1) 'SubagentStop (Claude Code) missing'
     Assert ((Install-AgentOpsSessionStart @paths).Status -eq 'UP_TO_DATE') 'Not idempotent'
     Install-AgentOpsSessionStart @paths -Uninstall|Out-Null
     $c=[IO.File]::ReadAllText($paths.ClaudeSettingsPath)|ConvertFrom-Json
-    Assert (-not ($c.PSObject.Properties['hooks'] -and $c.hooks.PSObject.Properties['PostToolUse'])) 'Uninstall left the hook'
+    Assert (-not ($c.PSObject.Properties['hooks'] -and ($c.hooks.PSObject.Properties['PostToolUse'] -or $c.hooks.PSObject.Properties['SubagentStop']))) 'Uninstall left the hooks'
 }
 Test 'after a cut session the start notice says what it did since its last checkpoint' {
     Import-Module (Join-Path $source 'scripts/SessionStart.psm1') -Force
