@@ -2,6 +2,8 @@
 Set-StrictMode -Version 2
 $script:library=Import-Module (Join-Path $PSScriptRoot 'SkillsSync.psm1') -Force -PassThru
 $script:core=@('dev-systematic-debugging','dev-tdd','ops-git-worktrees','ops-project-init','ops-project-migrate','ops-session-handoff')
+# Local channel Git calls read a repository on this PC (no network): a loaded machine can take more than 5 s to start Git.
+$script:localGit=60
 function Up-Root($path){& $script:library {param($p) Get-SyncRoot $p} $path}
 function Up-Child($root,$key){& $script:library {param($r,$k) Get-SyncChild $r $k} $root $key}
 function Up-Hash($path){& $script:library {param($p) Get-SyncHash $p} $path}
@@ -586,17 +588,17 @@ function Install-AgentOpsLocalRelease {
             return [pscustomobject](Up-Result $s 'UPDATED')
         }
         $src=Up-Root $SourceRepo
-        $origin=(Up-Git @('-C',$src,'remote','get-url','origin') 5 $GitRunner)
+        $origin=(Up-Git @('-C',$src,'remote','get-url','origin') $script:localGit $GitRunner)
         $repo=$(if($origin.ExitCode -eq 0){try{Up-Repo ([string]$origin.Output).Trim()}catch{''}}else{''})
         if($repo -ne $s.Identity.RepoUrl){return (& $stop 'LOCAL_OTHER_REPOSITORY' 2 'The local repository is not the one this installation follows.')}
-        if(([string](Up-GitOk @('-C',$src,'status','--porcelain','--untracked-files=all') 10 $GitRunner)).Trim()){return (& $stop 'LOCAL_DIRTY' 2 'Commit or discard the local changes first: only a committed state can be installed.')}
-        $sha=([string](Up-GitOk @('-C',$src,'rev-parse','HEAD') 5 $GitRunner)).Trim().ToLowerInvariant()
+        if(([string](Up-GitOk @('-C',$src,'status','--porcelain','--untracked-files=all') $script:localGit $GitRunner)).Trim()){return (& $stop 'LOCAL_DIRTY' 2 'Commit or discard the local changes first: only a committed state can be installed.')}
+        $sha=([string](Up-GitOk @('-C',$src,'rev-parse','HEAD') $script:localGit $GitRunner)).Trim().ToLowerInvariant()
         if($s.Active -and $sha -eq $s.Active.Sha){return [pscustomobject](Up-Result $s 'UP_TO_DATE')}
-        if($s.Active -and (Up-Git @('-C',$src,'merge-base','--is-ancestor',$s.Active.Sha,$sha) 10 $GitRunner).ExitCode -ne 0){return (& $stop 'LOCAL_NOT_AHEAD' 2 'The local commit does not descend from the active version.')}
+        if($s.Active -and (Up-Git @('-C',$src,'merge-base','--is-ancestor',$s.Active.Sha,$sha) $script:localGit $GitRunner).ExitCode -ne 0){return (& $stop 'LOCAL_NOT_AHEAD' 2 'The local commit does not descend from the active version.')}
         $proof=Up-LocalProof $s $sha
         if(-not $proof){return (& $stop 'LOCAL_PROOF_MISSING' 2 'Run publish-local.ps1: every suite must be green for this exact commit in Windows PowerShell and PowerShell 7.')}
         $lineage=@()
-        if($s.Active){$lineage=@(([string](Up-GitOk @('-C',$src,'rev-list','--max-count=2000',($s.Active.Sha+'..'+$sha)) 10 $GitRunner)) -split '\s+'|Where-Object {$_ -match '^[a-f0-9]{40}$'})}
+        if($s.Active){$lineage=@(([string](Up-GitOk @('-C',$src,'rev-list','--max-count=2000',($s.Active.Sha+'..'+$sha)) $script:localGit $GitRunner)) -split '\s+'|Where-Object {$_ -match '^[a-f0-9]{40}$'})}
         $previous=$s.Active
         $s.Candidate=@{Sha=$sha;Status='DETECTED';Path=$null;VerifiedCI=$false;Summary=@('Local release verified on this PC');SessionId=$SessionId;Approved=$true;Worker=@{};Local=@{Source=$src;ProofHash=$proof}}
         Up-Save $s

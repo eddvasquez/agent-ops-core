@@ -85,9 +85,9 @@
         },
         {
           "Id": "settings.permissions.deny",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://code.claude.com/docs/en/settings",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "Búsqueda de contraseñas al guardar"
         },
         {
@@ -171,9 +171,9 @@
         },
         {
           "Id": "config.permissions.filesystem",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://learn.chatgpt.com/docs/config-file/config-reference",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "Búsqueda de contraseñas al guardar"
         },
         {
@@ -260,9 +260,9 @@
         },
         {
           "Id": "permissions.deny",
-          "Status": "pendiente",
+          "Status": "esperando",
           "Doc": "https://antigravity.google/docs/permissions",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "Búsqueda de contraseñas al guardar"
         },
         {

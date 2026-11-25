@@ -201,6 +201,23 @@ Test 'a green run in one PowerShell never exempts the other one from testing' {
     $ev=[IO.File]::ReadAllText($path)|ConvertFrom-Json
     Assert ($ev.ByEdition.$other -and $ev.ByEdition.($PSVersionTable.PSEdition)) 'Each edition keeps its own green base'
 }
+Test 'a run marks itself as in progress in the project while it runs and removes the mark when it ends, green or red' {
+    $peek="`$root=`$env:AOC_TEST_MAIN`n`$marks=@(Get-ChildItem -LiteralPath (Join-Path `$root '.context/test-runs') -Filter '*.json' -ErrorAction SilentlyContinue)`n[IO.File]::WriteAllText((Join-Path ([IO.Path]::GetTempPath()) ('aoc-runmark-'+`$env:AOC_TEST_TOKEN)),[string]`$marks.Count)`nif(`$env:AOC_TEST_RED){Write-Host 'FAIL rojo';exit 1}`nWrite-Host 'peek: 1 passed, 0 failed.'`nexit 0"
+    $r=Repo @{'tests/peek.tests.ps1'=$peek;'scripts/x.ps1'="'x'"}
+    Put $r 'scripts/x.ps1' "'y'"
+    $env:AOC_TEST_MAIN=$r
+    try{
+        foreach($mode in 'plain','snapshot','red'){
+            $env:AOC_TEST_TOKEN=[guid]::NewGuid().ToString('N');$env:AOC_TEST_RED=$(if($mode -eq 'red'){'1'}else{''})
+            $run=Invoke-AgentOpsTestRun -ProjectPath $r -Suites peek -Parallel 1 -Snapshot:($mode -eq 'snapshot')
+            $seen=Join-Path ([IO.Path]::GetTempPath()) ('aoc-runmark-'+$env:AOC_TEST_TOKEN)
+            $count=[int][IO.File]::ReadAllText($seen);Remove-Item -LiteralPath $seen
+            Assert ($count -ge 1) "No in-progress mark in the project during the $mode run"
+            Assert (@(Get-ChildItem -LiteralPath (Join-Path $r '.context/test-runs') -Filter '*.json' -ErrorAction SilentlyContinue).Count -eq 0) "Mark left behind after the $mode run"
+            if($mode -eq 'red'){Assert ($run.Code -ne 0) 'Red run reported green'}
+        }
+    }finally{Remove-Item Env:AOC_TEST_MAIN,Env:AOC_TEST_TOKEN,Env:AOC_TEST_RED -ErrorAction SilentlyContinue}
+}
 Test 'run-tests uses the automatic parallelism by default (R-012)' {
     $tokens=$null;$errors=$null
     $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $source 'scripts/run-tests.ps1'),[ref]$tokens,[ref]$errors)

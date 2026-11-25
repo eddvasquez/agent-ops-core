@@ -359,6 +359,8 @@ function LocalProof($f,$sha,[string[]]$editions=@('Desktop','Core')){
     [IO.File]::WriteAllText($p,(@{SchemaVersion=1;Sha=$sha;Green=$true;Editions=$editions;Suites=@('update-coordinator (Desktop): 1 passed')}|ConvertTo-Json -Depth 4))
     return $p
 }
+# The session check has a 5 s budget for the remote; on a loaded machine it may answer OFFLINE_CACHED (as Detect handles).
+function LocalCheck($f){for($i=1;$i -le 3;$i++){$c=Run $f;if($c.Status -ne 'OFFLINE_CACHED'){return $c};Start-Sleep -Seconds 1};return $c}
 function LocalInstall($f,$src,[switch]$Revert){
     Install-AgentOpsLocalRelease -ConfigPath $f.ConfigPath -SourceRepo $src -SessionId 'L' -Revert:$Revert -Verifier $script:proof -TaskController $script:tasks
 }
@@ -393,14 +395,14 @@ Test 'a local commit that does not descend from the active version is refused' {
 Test 'while GitHub is behind, the session check never offers the older version; when it catches up it is confirmed' {
     $f=Fixture;$src=LocalSource $f;$sha=LocalCommit $src;LocalProof $f $sha|Out-Null
     LocalInstall $f $src|Out-Null
-    $r=Run $f
+    $r=LocalCheck $f
     Assert ($r.Code -eq 0 -and $r.Status -eq 'LOCAL_AHEAD' -and $r.ActiveSha -eq $sha -and -not $r.NeedsUserChoice) ($r|ConvertTo-Json -Depth 8)
     & git -C $src push -q origin "HEAD:refs/heads/stable" 2>$null
-    $r=Run $f
+    $r=LocalCheck $f
     Assert ($r.Code -eq 0 -and $r.Status -eq 'UP_TO_DATE' -and $r.ActiveSha -eq $sha) ($r|ConvertTo-Json -Depth 8)
     $state=Get-Content $f.StatePath -Raw|ConvertFrom-Json
     Assert ($state.Active.Source -eq 'stable' -and $state.LastVerifiedCI.Sha -eq $sha) ($state|ConvertTo-Json -Depth 6)
-    $newer=Publish $f 'core v3';$r=Run $f
+    $newer=Publish $f 'core v3';$r=LocalCheck $f
     Assert ($r.Status -eq 'UPDATE_AVAILABLE' -and $r.CandidateSha -eq $newer) ($r|ConvertTo-Json -Depth 8)
 }
 Test 'a tampered local proof makes the local release invalid; revert returns to the last version GitHub confirmed' {

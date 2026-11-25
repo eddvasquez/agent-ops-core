@@ -9,6 +9,29 @@ $script:maxReturns=2
 
 function Tg-Sha([byte[]]$bytes){$h=[Security.Cryptography.SHA256]::Create();try{([BitConverter]::ToString($h.ComputeHash($bytes))).Replace('-','').ToLowerInvariant()}finally{$h.Dispose()}}
 function Tg-Evidence([string]$root){Join-Path $root '.context/test-evidence.json'}
+# Runs in progress (R-015): each run marks the project with the state it tests, so the end-of-turn check does not
+# send the agent back to run what is already running. A mark counts only while its process is alive (same start time).
+function Tg-RunsDir([string]$root){Join-Path $root '.context/test-runs'}
+function Tg-MarkRun([string]$root,[string]$fingerprint){
+    $dir=Tg-RunsDir $root;[IO.Directory]::CreateDirectory($dir)|Out-Null
+    $path=Join-Path $dir ([string]$PID+'-'+[guid]::NewGuid().ToString('N').Substring(0,8)+'.json')
+    $me=Get-Process -Id $PID
+    [IO.File]::WriteAllText($path,([ordered]@{Fingerprint=$fingerprint;Pid=$PID;ProcessStart=$me.StartTime.ToUniversalTime().Ticks;StartedUtc=[datetime]::UtcNow.ToString('o');Edition=$PSVersionTable.PSEdition}|ConvertTo-Json),(New-Object Text.UTF8Encoding($false)))
+    return $path
+}
+function Tg-Alive($mark){
+    try{$p=Get-Process -Id ([int]$mark.Pid) -ErrorAction Stop;try{return $p.StartTime.ToUniversalTime().Ticks -eq [long]$mark.ProcessStart}finally{$p.Dispose()}}catch{return $false}
+}
+function Tg-RunningFor([string]$root,[string]$fingerprint){
+    $dir=Tg-RunsDir $root;if(-not [IO.Directory]::Exists($dir)){return $null}
+    $found=$null
+    foreach($f in @(Get-ChildItem -LiteralPath $dir -Filter '*.json' -ErrorAction SilentlyContinue)){
+        $m=$null;try{$m=[IO.File]::ReadAllText($f.FullName)|ConvertFrom-Json}catch{}
+        if(-not $m -or -not (Tg-Alive $m)){Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue;continue}
+        if([string]$m.Fingerprint -eq $fingerprint -and -not $found){$found=$m}
+    }
+    return $found
+}
 function Tg-Head([string]$root){$r=Invoke-Git $root @('rev-parse','--verify','-q','HEAD') -AllowFailure;if($r.ExitCode -eq 0){$r.Output.Trim()}else{''}}
 
 # Fingerprint of the uncommitted code: changed, new or deleted code files and their exact content.
@@ -117,11 +140,12 @@ function Tg-RemoveSnapshot([string]$root,[string]$dir){
 }
 function Tg-SnapshotRun([string]$projectPath,[string[]]$suites,[int]$parallel,[bool]$changed){
     $res=[ordered]@{Code=1;Status='RED';Fingerprint=$null;Results=@();Evidence=$null;Issues=@();Snapshot=$null}
-    $root=(Resolve-Path -LiteralPath $projectPath).Path
+    $root=(Resolve-Path -LiteralPath $projectPath).Path;$mark=$null
     $dir=Join-Path ([IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')) ('aoc-snapshot-'+[guid]::NewGuid().ToString('N').Substring(0,12))
     try{
         if(-not (Tg-Head $root)){throw 'La copia necesita al menos un commit en el repositorio.'}
         $before=Get-AgentOpsCodeFingerprint -ProjectPath $root;$res.Fingerprint=$before.Fingerprint
+        if($before.Fingerprint){$mark=Tg-MarkRun $root $before.Fingerprint}
         $raw=(Invoke-Git $root @('-c','core.quotePath=false','status','--porcelain=v1','-z','--untracked-files=all')).Output
         $null=Invoke-Git $root @('worktree','add','--detach','--quiet',$dir,'HEAD')
         $items=@($raw -split "`0")
@@ -144,7 +168,7 @@ function Tg-SnapshotRun([string]$projectPath,[string[]]$suites,[int]$parallel,[b
             [IO.File]::Copy($run.Evidence,$dest,$true);$res.Evidence=$dest
         }
     }catch{$res.Code=1;$res.Status='RED';$res.Issues=@($_.Exception.Message)}
-    finally{Tg-RemoveSnapshot $root $dir}
+    finally{if($mark){Remove-Item -LiteralPath $mark -Force -ErrorAction SilentlyContinue};Tg-RemoveSnapshot $root $dir}
     return [pscustomobject]$res
 }
 function Invoke-AgentOpsTestRun {
@@ -152,10 +176,11 @@ function Invoke-AgentOpsTestRun {
     param([Parameter(Mandatory)][string]$ProjectPath,[string[]]$Suites=@(),[int]$Parallel=1,[switch]$Changed,[switch]$Snapshot)
     if($Snapshot){return (Tg-SnapshotRun $ProjectPath $Suites $Parallel ([bool]$Changed))}
     $res=[ordered]@{Code=1;Status='RED';Fingerprint=$null;Results=@();Evidence=$null;Issues=@()}
-    $temp=@()
+    $temp=@();$runMark=$null
     try{
         $root=(Resolve-Path -LiteralPath $ProjectPath).Path
         $before=Get-AgentOpsCodeFingerprint -ProjectPath $root;$res.Fingerprint=$before.Fingerprint
+        if($before.Fingerprint){$runMark=Tg-MarkRun $root $before.Fingerprint}
         if($Changed){
             $names=@((Get-AgentOpsSuitesForChanges -ProjectPath $root).Suites)
             if(-not $names.Count){$res.Code=0;$res.Status='NOTHING_TO_RUN';return [pscustomobject]$res}
@@ -215,7 +240,7 @@ function Invoke-AgentOpsTestRun {
         [IO.File]::WriteAllText($path,($evidence|ConvertTo-Json -Depth 8),(New-Object Text.UTF8Encoding($false)))
         $res.Code=0;$res.Status='GREEN';$res.Evidence=$path
     }catch{$res.Issues=@($_.Exception.Message)}
-    finally{foreach($f in $temp){Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue}}
+    finally{foreach($f in $temp){Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue};if($runMark){Remove-Item -LiteralPath $runMark -Force -ErrorAction SilentlyContinue}}
     return [pscustomobject]$res
 }
 function Tg-Counter([string]$stateDir,[string]$sessionId){
@@ -236,6 +261,12 @@ function Test-AgentOpsTurnGate {
     $ev=Tg-Evidence $root
     if([IO.File]::Exists($ev)){
         try{if(([IO.File]::ReadAllText($ev)|ConvertFrom-Json).Fingerprint -eq $fp.Fingerprint){$res.Status='VERIFIED';if([IO.File]::Exists($counter)){[IO.File]::Delete($counter)};return [pscustomobject]$res}}catch{}
+    }
+    $running=Tg-RunningFor $root $fp.Fingerprint
+    if($running){
+        $res.Status='RUNNING'
+        $res.Reason="Agent Ops: las pruebas de este estado ya están corriendo (desde $(([datetime]$running.StartedUtc).ToLocalTime().ToString('HH:mm'))). Puedes terminar el turno: avisa una vez al usuario de qué corre y cuánto falta, y ofrécele esperar o adelantar una o dos tareas que no dependan de su resultado (R-015)."
+        return [pscustomobject]$res
     }
     $returns=0;if([IO.File]::Exists($counter)){try{$returns=[int](([IO.File]::ReadAllText($counter)|ConvertFrom-Json).Returns)}catch{}}
     if($returns -ge $script:maxReturns){

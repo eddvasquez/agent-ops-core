@@ -150,6 +150,25 @@ Test 'the installer refuses projects other than the framework repository during 
     $i=Install-AgentOpsTurnGate -ProjectPath $p
     Assert ($i.Status -eq 'NOT_PILOT' -and -not (Test-Path (Join-Path $p '.claude'))) ($i|ConvertTo-Json -Depth 5)
 }
+Test 'while tests of this exact state are already running, the turn may end (no bounce) and the agent is told to offer waiting or advancing' {
+    $r=Framework;$s=State;Put $r 'scripts/tool.ps1' "'v2'"
+    $fp=(Get-AgentOpsCodeFingerprint -ProjectPath $r).Fingerprint
+    $me=Get-Process -Id $PID
+    Put $r ".context/test-runs/$PID.json" (@{Fingerprint=$fp;Pid=$PID;ProcessStart=$me.StartTime.ToUniversalTime().Ticks;StartedUtc=[datetime]::UtcNow.ToString('o');Edition='Desktop'}|ConvertTo-Json)
+    $g=Test-AgentOpsTurnGate -ProjectPath $r -StateDir $s -SessionId 'run'
+    Assert ($g.Decision -eq 'ALLOW' -and $g.Status -eq 'RUNNING' -and $g.Reason -match 'esperar' -and $g.Reason -match 'adelantar') ($g|ConvertTo-Json)
+}
+Test 'a run that died or belongs to another state does not count' {
+    $r=Framework;$s=State;Put $r 'scripts/tool.ps1' "'v3'"
+    $fp=(Get-AgentOpsCodeFingerprint -ProjectPath $r).Fingerprint
+    $dead=Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList '-NoProfile','-Command','exit 0' -PassThru -WindowStyle Hidden;$dead.WaitForExit()
+    Put $r ".context/test-runs/$($dead.Id).json" (@{Fingerprint=$fp;Pid=$dead.Id;ProcessStart=$dead.StartTime.ToUniversalTime().Ticks;StartedUtc=[datetime]::UtcNow.ToString('o');Edition='Desktop'}|ConvertTo-Json)
+    $me=Get-Process -Id $PID
+    Put $r ".context/test-runs/$PID.json" (@{Fingerprint=('0'*64);Pid=$PID;ProcessStart=$me.StartTime.ToUniversalTime().Ticks;StartedUtc=[datetime]::UtcNow.ToString('o');Edition='Desktop'}|ConvertTo-Json)
+    $g=Test-AgentOpsTurnGate -ProjectPath $r -StateDir $s -SessionId 'dead'
+    Assert ($g.Decision -eq 'BLOCK' -and $g.Status -eq 'UNTESTED') ($g|ConvertTo-Json)
+    Assert (-not (Test-Path (Join-Path $r ".context/test-runs/$($dead.Id).json"))) 'Dead run marker not cleaned up'
+}
 Write-Host "Turn gate: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

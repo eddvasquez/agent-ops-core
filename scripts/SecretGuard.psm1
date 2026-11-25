@@ -81,14 +81,57 @@ function Sg-ClaudeGroup([string]$launcher){
 }
 function Sg-Without($list,[string]$marker){,@($list|Where-Object {($_|ConvertTo-Json -Depth 12 -Compress) -notmatch [regex]::Escape($marker)})}
 
+# Native rules (no process at all). Claude Code: "ask" rules only affect the agent's own file tools, so the list can
+# be broad; examples (.env.example…) are left out so they never prompt. The hook still covers commands and the rest.
+$script:nativeClaude=@('.env','.env.local','.env.*.local','.env.production','.env.prod','.env.staging','.env.development','.env.dev','.env.test',
+    '*.pem','*.key','*.pfx','*.p12','*.jks','*.keystore','*.kdbx','id_rsa','id_dsa','id_ecdsa','id_ed25519',
+    'google-ads.yaml','google-ads.yml','.npmrc','.pypirc','.netrc','.htpasswd','token.json','credentials.json','client_secret*.json',
+    'secrets.yaml','secrets.yml','secrets.json','service-account*.json','*.tfstate','*.tfvars')
+function Sg-NativeClaudeRules{,@(foreach($g in $script:nativeClaude){"Read(//**/$g)";"Edit(//**/$g)"})}
+# Codex: a sandbox deny also stops every program Codex runs, so only private keys, which ordinary programs never read
+# (decided by the user, 2026-11-25). .env, google-ads.yaml, .npmrc or .pem stay with the hook (block and explain).
+$script:nativeCodex=@('**/id_rsa','**/id_dsa','**/id_ecdsa','**/id_ed25519','**/*.pfx','**/*.p12','**/*.jks','**/*.keystore','**/*.kdbx')
+$script:codexTop='default_permissions = "agent-ops"  # agent-ops-core: credenciales'
+$script:codexBegin='# >>> agent-ops-core: perfil de credenciales (gestionado; se quita con install-secret-guard.ps1 -Uninstall)'
+$script:codexEnd='# <<< agent-ops-core'
+function Sg-CodexBlock([string]$n){
+    $lines=@($script:codexBegin,'[permissions.agent-ops]','description = "Como :workspace, sin leer claves privadas (Agent Ops Core)"','extends = ":workspace"','',
+        '[permissions.agent-ops.filesystem.":workspace_roots"]','"." = "write"')
+    foreach($g in $script:nativeCodex){$lines+="`"$g`" = `"deny`""}
+    $lines+=$script:codexEnd
+    return ($lines -join $n)+$n
+}
+function Sg-CodexStrip([string]$t){
+    $t=[regex]::Replace($t,'(?m)^default_permissions = "agent-ops"  # agent-ops-core: credenciales\r?\n','')
+    return [regex]::Replace($t,'\r?\n'+[regex]::Escape($script:codexBegin)+'[\s\S]*?'+[regex]::Escape($script:codexEnd)+'\r?\n','')
+}
+# Returns @{Text;Warning}: the new config.toml text, or the unchanged one with a warning when the user manages the sandbox.
+function Sg-CodexConfig([string]$current,[bool]$remove){
+    $base=Sg-CodexStrip $current
+    if($remove){return @{Text=$base;Warning=$null}}
+    if($base -match '(?m)^\s*(sandbox_mode|default_permissions)\s*=' -or $base -match '(?m)^\s*\[sandbox_workspace_write\]'){
+        return @{Text=$current;Warning='Codex: config.toml ya define su propio aislamiento (sandbox_mode o default_permissions); no se cambia. Las claves privadas siguen protegidas por el hook.'}
+    }
+    $n=$(if($base.Contains("`r`n")){"`r`n"}else{"`n"})
+    if($base -and -not $base.EndsWith("`n")){$base+=$n}
+    $m=[regex]::Match($base,'(?m)^\s*\[')
+    $text=$(if($m.Success){$base.Substring(0,$m.Index)+$script:codexTop+$n+$base.Substring($m.Index)}else{$base+$script:codexTop+$n})
+    $text+=$n+(Sg-CodexBlock $n)
+    $warn=$(if($base -match '(?m)^\s*sandbox\s*=\s*"unelevated"'){'Codex: con el aislamiento "unelevated" de Windows la negación de lectura no se aplica; el hook sigue protegiendo.'}else{$null})
+    return @{Text=$text;Warning=$warn}
+}
+
 function Install-AgentOpsSecretGuard {
     [CmdletBinding()]
     param([string]$StateDir=(Join-Path $env:LOCALAPPDATA 'AgentOps'),
           [string]$ClaudeSettingsPath=(Join-Path $HOME '.claude/settings.json'),
           [string]$CodexHooksPath=$(if($env:CODEX_HOME){Join-Path $env:CODEX_HOME 'hooks.json'}else{Join-Path $HOME '.codex/hooks.json'}),
           [string]$AntigravityHooksPath=(Join-Path $HOME '.gemini/config/hooks.json'),
+          [string]$CodexConfigPath='',
           [switch]$Uninstall)
-    $res=[ordered]@{Code=0;Status='UP_TO_DATE';Files=@();Issues=@()}
+    $res=[ordered]@{Code=0;Status='UP_TO_DATE';Files=@();Issues=@();Warnings=@()}
+    # Next to the Codex hooks file, so a test (or another CODEX_HOME) never touches the real configuration.
+    if(-not $CodexConfigPath){$CodexConfigPath=Join-Path (Split-Path -Parent $CodexHooksPath) 'config.toml'}
     try{
         $launcher=Join-Path $StateDir 'hooks/agent-ops-hook.ps1'
         $marker='secret-guard'
@@ -108,12 +151,29 @@ function Install-AgentOpsSecretGuard {
             if($entry){$list=@($list)+@($entry)}
             if(@($list).Count){$c['hooks']['PreToolUse']=@($list)}elseif($c['hooks'].Contains('PreToolUse')){$c['hooks'].Remove('PreToolUse')}
             return $c}
-        & $edit $ClaudeSettingsPath {param($c) & $swap $c $(if($Uninstall){$null}else{Sg-ClaudeGroup $launcher})}
+        & $edit $ClaudeSettingsPath {param($c)
+            $c=& $swap $c $(if($Uninstall){$null}else{Sg-ClaudeGroup $launcher})
+            $ours=Sg-NativeClaudeRules
+            if(-not $c.Contains('permissions')){$c['permissions']=[ordered]@{}}
+            $ask=@($(if($c['permissions'].Contains('ask')){@($c['permissions']['ask'])}else{@()})|Where-Object {$ours -notcontains $_})
+            if(-not $Uninstall){$ask=@($ask)+@($ours)}
+            if(@($ask).Count){$c['permissions']['ask']=@($ask)}elseif($c['permissions'].Contains('ask')){$c['permissions'].Remove('ask')}
+            if(-not $c['permissions'].Count){$c.Remove('permissions')}
+            return $c}
         & $edit $CodexHooksPath {param($c) & $swap $c $(if($Uninstall){$null}else{[ordered]@{matcher='Bash|apply_patch|mcp__.*';hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook secret-guard -Harness codex";commandWindows=(& $win 'codex');timeout=15})}})}
         & $edit $AntigravityHooksPath {param($c)
             if($c.Contains('agent-ops-secret-guard')){$c.Remove('agent-ops-secret-guard')}
             if(-not $Uninstall){$c['agent-ops-secret-guard']=[ordered]@{PreToolUse=@([ordered]@{matcher='view_file|write_to_file|replace_file_content|multi_replace_file_content|run_command|grep_search';hooks=@([ordered]@{type='command';command=(& $win 'antigravity');timeout=15})})}}
             return $c}
+        # Codex native profile (text edit of config.toml: top-level key before the first table, block at the end).
+        $current=$(if([IO.File]::Exists($CodexConfigPath)){[IO.File]::ReadAllText($CodexConfigPath)}else{''})
+        $codex=Sg-CodexConfig $current ([bool]$Uninstall)
+        if($codex.Warning){$res.Warnings=@($res.Warnings)+@($codex.Warning)}
+        if($codex.Text -ne $current){
+            if($current){$backups=Join-Path $StateDir 'backups';[IO.Directory]::CreateDirectory($backups)|Out-Null;[IO.File]::WriteAllText((Join-Path $backups ('codex-config-'+[datetime]::UtcNow.ToString('yyyyMMddTHHmmssfff')+'.toml')),$current,(New-Object Text.UTF8Encoding($false)))}
+            [IO.Directory]::CreateDirectory((Split-Path -Parent $CodexConfigPath))|Out-Null
+            [IO.File]::WriteAllText($CodexConfigPath,$codex.Text,(New-Object Text.UTF8Encoding($false)));$script:changedFiles+=@($CodexConfigPath)
+        }
         $res.Files=@($script:changedFiles)
         if($script:changedFiles.Count){$res.Status=$(if($Uninstall){'REMOVED'}else{'INSTALLED'})}elseif($Uninstall){$res.Status='NOT_INSTALLED'}
     }catch{$res.Code=1;$res.Status='FAILED';$res.Issues=@($_.Exception.Message)}

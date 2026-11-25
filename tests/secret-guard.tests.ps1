@@ -169,6 +169,55 @@ Test 'the launcher answers ordinary actions itself and only runs the guard, and 
     $log=Join-Path $state 'hooks/invocations.log'
     Assert ((Test-Path $log) -and @([IO.File]::ReadAllLines($log)).Count -eq 1 -and ([IO.File]::ReadAllText($log) -match 'secret-guard') -and ([IO.File]::ReadAllText($log) -notmatch 'README|\.env')) 'The log must record one invocation, without paths'
 }
+Test 'Claude Code also gets native ask rules for credential files; the user''s own rules stay and nothing duplicates' {
+    $home2=NewDir 'home';$state=NewDir 'state'
+    $claude=Join-Path $home2 '.claude/settings.json';[IO.Directory]::CreateDirectory((Split-Path $claude))|Out-Null
+    [IO.File]::WriteAllText($claude,'{"permissions":{"allow":["Bash(npm run test *)"],"ask":["Bash(git push *)"],"deny":["Read(./privado/**)"]}}',$utf8)
+    $paths=@{StateDir=$state;ClaudeSettingsPath=$claude;CodexHooksPath=(Join-Path $home2 '.codex/hooks.json');AntigravityHooksPath=(Join-Path $home2 '.gemini/config/hooks.json')}
+    Install-AgentOpsSecretGuard @paths|Out-Null
+    $c=[IO.File]::ReadAllText($claude)|ConvertFrom-Json
+    $ask=@($c.permissions.ask)
+    foreach($r in 'Read(//**/.env)','Edit(//**/.env)','Read(//**/.env.production)','Read(//**/*.pem)','Read(//**/id_rsa)','Read(//**/google-ads.yaml)'){Assert ($ask -contains $r) "Missing native rule $r"}
+    Assert ($ask -notcontains 'Read(//**/.env.example)' -and @($ask|Where-Object {$_ -match 'example|sample|template'}).Count -eq 0) 'Examples must not be asked'
+    Assert ($ask -contains 'Bash(git push *)' -and @($c.permissions.allow) -contains 'Bash(npm run test *)' -and @($c.permissions.deny) -contains 'Read(./privado/**)') 'User rules lost'
+    Install-AgentOpsSecretGuard @paths|Out-Null
+    $again=@(([IO.File]::ReadAllText($claude)|ConvertFrom-Json).permissions.ask)
+    Assert ($again.Count -eq $ask.Count) 'Reinstall duplicated rules'
+    Install-AgentOpsSecretGuard @paths -Uninstall|Out-Null
+    $c=[IO.File]::ReadAllText($claude)|ConvertFrom-Json
+    Assert ((@($c.permissions.ask) -join ',') -eq 'Bash(git push *)' -and @($c.permissions.allow) -contains 'Bash(npm run test *)') ($c|ConvertTo-Json -Depth 5)
+}
+Test 'Codex gets a permission profile that extends :workspace and denies only private keys, with a backup; uninstall restores the file exactly' {
+    $home2=NewDir 'home';$state=NewDir 'state';$codexDir=Join-Path $home2 '.codex';[IO.Directory]::CreateDirectory($codexDir)|Out-Null
+    $toml=Join-Path $codexDir 'config.toml'
+    $original="model = `"gpt-5`"`n`n[features]`nprefer_mxc = true`n`n[mcp_servers.demo]`ncommand = `"demo`"`n"
+    [IO.File]::WriteAllText($toml,$original,$utf8)
+    $paths=@{StateDir=$state;ClaudeSettingsPath=(Join-Path $home2 '.claude/settings.json');CodexHooksPath=(Join-Path $codexDir 'hooks.json');AntigravityHooksPath=(Join-Path $home2 '.gemini/config/hooks.json')}
+    $i=Install-AgentOpsSecretGuard @paths
+    Assert ($i.Code -eq 0) ($i|ConvertTo-Json -Depth 5)
+    $t=[IO.File]::ReadAllText($toml)
+    $top=$t.Substring(0,$t.IndexOf('[features]'))
+    Assert ($top -match '(?m)^default_permissions = "agent-ops"(\s+#[^\r\n]*)?\r?$')"default_permissions must be a top-level key before the first table:`n$t"
+    Assert ($t -match '(?m)^\[permissions\.agent-ops\]$' -and $t -match '(?m)^extends = ":workspace"$') $t
+    foreach($g in '**/id_rsa','**/*.pfx','**/*.p12','**/*.kdbx','**/*.jks'){Assert ($t.Contains("`"$g`" = `"deny`"")) "Missing deny $g"}
+    Assert ($t -notmatch '\.env|google-ads|\.npmrc|\*\.pem') 'Files that programs need were denied'
+    Assert ($t.Contains('[mcp_servers.demo]') -and $t.Contains('prefer_mxc = true')) 'User configuration lost'
+    Assert (@(Get-ChildItem (Join-Path $state 'backups') -Filter 'codex-config-*.toml').Count -eq 1) 'No backup of config.toml'
+    Assert ((Install-AgentOpsSecretGuard @paths).Status -eq 'UP_TO_DATE') 'Second install was not idempotent'
+    Install-AgentOpsSecretGuard @paths -Uninstall|Out-Null
+    Assert (([IO.File]::ReadAllText($toml) -replace "`r",'') -eq $original) "Uninstall did not restore the original:`n$([IO.File]::ReadAllText($toml))"
+}
+Test 'Codex configuration with its own sandbox settings is never changed' {
+    foreach($own in "sandbox_mode = `"workspace-write`"`n","default_permissions = `"mio`"`n`n[permissions.mio]`nextends = `":workspace`"`n"){
+        $home2=NewDir 'home';$state=NewDir 'state';$codexDir=Join-Path $home2 '.codex';[IO.Directory]::CreateDirectory($codexDir)|Out-Null
+        $toml=Join-Path $codexDir 'config.toml';[IO.File]::WriteAllText($toml,$own,$utf8)
+        $paths=@{StateDir=$state;ClaudeSettingsPath=(Join-Path $home2 '.claude/settings.json');CodexHooksPath=(Join-Path $codexDir 'hooks.json');AntigravityHooksPath=(Join-Path $home2 '.gemini/config/hooks.json')}
+        $i=Install-AgentOpsSecretGuard @paths
+        Assert ([IO.File]::ReadAllText($toml) -eq $own) 'User sandbox settings were changed'
+        Assert ($i.Code -eq 0 -and (@($i.Warnings) -join ' ') -match 'Codex') ('Expected a warning and the rest installed: '+($i|ConvertTo-Json -Depth 5))
+        Assert ([IO.File]::Exists($paths.CodexHooksPath)) 'The Codex hook must still be installed'
+    }
+}
 Write-Host "Secret guard: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

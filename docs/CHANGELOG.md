@@ -5,6 +5,12 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Mientras ya corren las pruebas de un estado, la comprobación al terminar el turno deja terminar (`RUNNING`) en lugar de devolver al agente a ejecutarlas, y le recuerda ofrecer al usuario esperar o adelantar algo que no dependa del resultado (R-015). Cada ejecución marca el proyecto mientras corre (`.context/test-runs/`); una marca solo cuenta si su proceso sigue vivo.
+- Permisos nativos para credenciales, sin lanzar ningún proceso. Claude Code: reglas «preguntar» para leer o editar `.env` (no los ejemplos), claves (.pem, .key, .pfx, .p12, id_rsa…), `google-ads.yaml`, `.npmrc`, `.tfstate`/`.tfvars` y similares; conservan las reglas propias del usuario. Codex: un perfil de permisos `agent-ops` que parte de `:workspace` y niega solo las claves privadas (el aislamiento también se lo impide a los programas que Codex ejecuta, por eso no incluye `.env` ni `google-ads.yaml`, que siguen con la protección actual); guarda copia de `config.toml` y no lo toca si ya define su propio aislamiento. `-Uninstall` lo deja exactamente como estaba. Antigravity queda «esperando»: sus permisos de archivos no admiten patrones.
+
+### Fixed
+- El canal local daba 5 s a cada llamada a Git de este PC: con el equipo cargado fallaba sin error real. Ahora 60 s (son operaciones locales, sin red).
 
 ## [3.18.0] - 2026-11-25
 ### Added
