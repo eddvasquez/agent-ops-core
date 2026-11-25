@@ -120,6 +120,16 @@ Test 'automatic parallelism follows the free cores and memory, with no fixed cei
     $auto=Get-AgentOpsTestSlots
     Assert ($auto -ge 1 -and $auto -le [Math]::Max(1,[Math]::Floor([Environment]::ProcessorCount/2))) "Measured value out of range: $auto"
 }
+Test 'a red suite reports which tests failed, also when it ran in parts' {
+    $red="param([string]`$Shard='')`nWrite-Host 'PASS bien'`nif(`$Shard -ne '1/2'){Write-Host ('FAIL la prueba rota '+`$Shard+' : detalle')}`nWrite-Host 'x: 1 passed, 1 failed.'`nexit 1"
+    $r=Repo @{'tests/red.tests.ps1'=$red}
+    $run=Invoke-AgentOpsTestRun -ProjectPath $r -Suites red -Parallel 1
+    $res=@($run.Results)[0]
+    Assert ($run.Code -ne 0 -and @($res.Failures).Count -eq 1 -and @($res.Failures)[0] -match '^FAIL la prueba rota') ($run|ConvertTo-Json -Depth 5)
+    $run=Invoke-AgentOpsTestRun -ProjectPath $r -Suites red -Parallel 2
+    $res=@($run.Results)[0]
+    Assert (@($res.Failures).Count -eq 1 -and @($res.Failures)[0] -match '^\[2/2\] FAIL la prueba rota 2/2') ($run|ConvertTo-Json -Depth 5)
+}
 Test 'run-tests uses the automatic parallelism by default (R-012)' {
     $tokens=$null;$errors=$null
     $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $source 'scripts/run-tests.ps1'),[ref]$tokens,[ref]$errors)

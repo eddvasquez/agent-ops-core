@@ -69,37 +69,7 @@ function Get-AgentOpsSecretDecision {
 }
 
 # --- Per-user installation in the three harnesses -------------------------------------------------------
-$script:launcher=@'
-# agent-ops hook launcher v2. Managed by Agent Ops: runs a hook of the active, verified release.
-# secret-guard: ordinary actions are answered here, without loading any module, so they stay fast.
-param([Parameter(Mandatory=$true)][string]$Hook,[Parameter(Mandatory=$true)][string]$Harness)
-$utf8=New-Object Text.UTF8Encoding($false)
-function Out-Hook([string]$t){if($t){$b=$utf8.GetBytes($t);$o=[Console]::OpenStandardOutput();$o.Write($b,0,$b.Length);$o.Flush()}}
-$allow=$(if($Harness -eq 'antigravity'){'{"decision":"allow"}'}else{''})
-$stateDir=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'})
-$buffer=New-Object IO.MemoryStream;[Console]::OpenStandardInput().CopyTo($buffer);$bytes=$buffer.ToArray()
-$suspicious='(?i)\.env|secret|credential|\.pem|\.key\b|\.pfx|\.p12|\.jks|keystore|id_(rsa|dsa|ecdsa|ed25519)|google-ads|\.npmrc|\.pypirc|\.netrc|token\.json'
-if($Hook -eq 'secret-guard' -and $utf8.GetString($bytes) -notmatch $suspicious){Out-Hook $allow;exit 0}
-$frame=$null
-try{
-    $s=[IO.File]::ReadAllText((Join-Path $stateDir 'update-state.json'))|ConvertFrom-Json
-    if($s.Active -and $s.Active.Path){$frame=[string]$s.Active.Path}
-    elseif($s.Mode -eq 'LOCAL_DEV' -and $s.Config -and $s.Config.InstallRoot){$frame=[string]$s.Config.InstallRoot}
-}catch{}
-$script=$(if($frame -and $Hook -match '^[a-z-]+$'){Join-Path $frame "scripts/$Hook-hook.ps1"}else{$null})
-if(-not $script -or -not (Test-Path -LiteralPath $script -PathType Leaf)){Out-Hook $allow;exit 0}
-# Minimal trace (time, hook, harness; never paths or content), capped at 256 KB.
-try{
-    $log=Join-Path $stateDir 'hooks/invocations.log'
-    if([IO.File]::Exists($log) -and (New-Object IO.FileInfo $log).Length -gt 262144){[IO.File]::Copy($log,"$log.1",$true);[IO.File]::WriteAllText($log,'')}
-    [IO.File]::AppendAllText($log,("{0}`t{1}`t{2}`n" -f [datetime]::UtcNow.ToString('o'),$Hook,$Harness))
-}catch{}
-# The hook reads the event from this temporary file because stdin was already consumed above.
-$eventFile=[IO.Path]::GetTempFileName();[IO.File]::WriteAllBytes($eventFile,$bytes);$env:AGENT_OPS_HOOK_INPUT_FILE=$eventFile
-$code=0
-try{& $script -Harness $Harness;$code=$LASTEXITCODE}finally{[IO.File]::Delete($eventFile)}
-exit $code
-'@
+# The shared launcher lives in HookIO (Install-AgentOpsHookLauncher).
 # Claude: one filtered handler per suspicious pattern, so ordinary actions never start a process.
 $script:pathGlobs=@('.env*','*secret*','*Secret*','*SECRET*','*credential*','*Credential*','*CREDENTIAL*','*.pem','*.key','*.pfx','*.p12','*.jks','*.keystore','id_rsa*','id_dsa*','id_ecdsa*','id_ed25519*','google-ads.y*ml','.npmrc','.pypirc','.netrc','token.json')
 $script:commandWords=@('.env','secret','Secret','SECRET','credential','Credential','CREDENTIAL','.pem','.key','.pfx','.p12','.jks','keystore','id_rsa','id_dsa','id_ecdsa','id_ed25519','google-ads','.npmrc','.pypirc','.netrc','token.json')
@@ -130,12 +100,7 @@ function Install-AgentOpsSecretGuard {
             if(($c|ConvertTo-Json -Depth 12 -Compress) -ne $before){Write-AgentOpsJsonFile $path $c;$script:changedFiles+=@($path)}
         }
         $script:changedFiles=@()
-        if(-not $Uninstall){
-            $text=($script:launcher -replace "`r",'')
-            if(-not [IO.File]::Exists($launcher) -or ([IO.File]::ReadAllText($launcher) -replace "`r",'').TrimStart([char]0xFEFF) -ne $text){
-                [IO.Directory]::CreateDirectory((Split-Path $launcher))|Out-Null;[IO.File]::WriteAllText($launcher,$text,(New-Object Text.UTF8Encoding($true)));$script:changedFiles+=@($launcher)
-            }
-        }
+        if(-not $Uninstall){$l=Install-AgentOpsHookLauncher -StateDir $StateDir;if($l.Changed){$script:changedFiles+=@($l.Path)}}
         # Each entry is rebuilt from scratch: older versions are replaced, never duplicated, and only real changes are written.
         $swap={param($c,$entry)
             if(-not $c.Contains('hooks')){$c['hooks']=[ordered]@{}}

@@ -43,9 +43,9 @@
       "Capabilities": [
         {
           "Id": "hook.SessionStart",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://code.claude.com/docs/en/hooks",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "MODO ENTRADA por instrucciones de AGENTS.md"
         },
         {
@@ -136,9 +136,9 @@
       "Capabilities": [
         {
           "Id": "hook.SessionStart",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://learn.chatgpt.com/docs/hooks",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "MODO ENTRADA por instrucciones de AGENTS.md"
         },
         {
@@ -225,9 +225,9 @@
       "Capabilities": [
         {
           "Id": "hook.SessionStart",
-          "Status": "pendiente",
+          "Status": "aprovechada",
           "Doc": "https://antigravity.google/docs/hooks",
-          "VerifiedAt": "2026-11-23",
+          "VerifiedAt": "2026-11-25",
           "Fallback": "MODO ENTRADA por instrucciones de AGENTS.md"
         },
         {

@@ -91,8 +91,10 @@ Test 'activation waits for a short synchronization already in progress instead o
 }
 Test 'a synchronization longer than the wait returns busy and keeps the approved candidate' {
     $f=Fixture;$new=Publish $f;Detect $f $new;Run $f 'Prepare' 'A' $new|Out-Null
-    $ready=Join-Path $f.Parameters.StateDir 'long-holder-ready'
-    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+$(if($env:AGENT_OPS_LOCK_NAMESPACE){"-"+$env:AGENT_OPS_LOCK_NAMESPACE}))); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");Start-Sleep -Seconds 13}finally{$m.ReleaseMutex();$m.Dispose()}'
+    $ready=Join-Path $f.Parameters.StateDir 'long-holder-ready';$release=Join-Path $f.Parameters.StateDir 'long-holder-release'
+    # Held until the test says so (not for a fixed time): on a loaded machine the work before the 10 s wait can take
+    # more than 3 s, and a 13 s hold then ended inside the wait, so the lock was taken instead of reporting BUSY.
+    $body='$m=New-Object Threading.Mutex($false,("Local\AgentOpsSkillsSync-"+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+$(if($env:AGENT_OPS_LOCK_NAMESPACE){"-"+$env:AGENT_OPS_LOCK_NAMESPACE}))); try{$m.WaitOne()|Out-Null;[IO.File]::WriteAllText('''+$ready.Replace("'","''")+''',"ready");$end=[datetime]::UtcNow.AddSeconds(120);while(-not [IO.File]::Exists('''+$release.Replace("'","''")+''') -and [datetime]::UtcNow -lt $end){Start-Sleep -Milliseconds 100}}finally{$m.ReleaseMutex();$m.Dispose()}'
     $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($body))
     $child=Start-Process -FilePath (Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -WindowStyle Hidden -PassThru
     try{
@@ -103,7 +105,7 @@ Test 'a synchronization longer than the wait returns busy and keeps the approved
         Assert ($r.Code -eq 3 -and $r.Status -eq 'BUSY' -and $r.ActiveSha -eq $f.OldSha) ($r|ConvertTo-Json -Depth 8)
         $state=Get-Content $f.StatePath -Raw|ConvertFrom-Json
         Assert ($state.Candidate.Status -eq 'READY' -and $state.Candidate.Approved) ('Contention revoked the approval: '+($state.Candidate|ConvertTo-Json -Compress))
-    }finally{if(-not $child.WaitForExit(20000)){$child.Kill()};$child.Dispose()}
+    }finally{[IO.File]::WriteAllText($release,'go');if(-not $child.WaitForExit(20000)){$child.Kill()};$child.Dispose()}
     $r=Run $f 'Apply' 'A' $new
     Assert ($r.Code -eq 0 -and $r.ActiveSha -eq $new) ($r|ConvertTo-Json -Depth 8)
 }

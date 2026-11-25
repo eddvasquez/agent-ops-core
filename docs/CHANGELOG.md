@@ -5,6 +5,15 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Aviso al empezar cada sesión en Claude Code, Codex y Antigravity: en un proyecto que sigue Agent Ops Core, el arnés le dice al agente que haga el MODO ENTRADA antes de tocar nada, y le da un resumen local y sin red (archivos sin guardar, si la sesión anterior se cortó y si hay una actualización verificada pendiente). Nunca copia lo que dejó escrito la sesión anterior. Tras compactar la conversación (Claude Code y Codex) vuelve a darle las reglas activas del proyecto, literales (Protocolo 8). En otras carpetas no dice nada y, si algo falla, la sesión empieza igual. Se instala una vez por usuario con `scripts/install-session-start.ps1` y conserva los demás hooks de inicio. `hook.SessionStart` pasa a «aprovechada» en los tres arneses (3 de 8).
+- Cuando una suite falla, `run-tests.ps1` dice qué pruebas fallaron (`Failures`, también por parte), en lugar de solo su última línea.
+
+### Changed
+- El lanzador común de hooks se instala desde `HookIO.psm1` (`Install-AgentOpsHookLauncher`), compartido por la protección de credenciales y el aviso de inicio; su contenido no cambia.
+
+### Fixed
+- La prueba de «sincronización más larga que la espera» del actualizador mantenía el bloqueo un tiempo fijo (13 s): con el equipo cargado se soltaba dentro de la espera y la prueba fallaba sin haber error. Ahora lo mantiene hasta que la prueba lo suelta.
 
 ## [3.17.0] - 2026-11-24
 ### Added

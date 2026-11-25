@@ -114,7 +114,7 @@ function Invoke-AgentOpsTestRun {
         while($queue.Count -or $running.Count){
             while($queue.Count -and $running.Count -lt $slots){
                 $job=$queue.Dequeue()
-                if(-not [IO.File]::Exists($job.File)){[void]$parts[$job.Suite].Add([pscustomobject]@{Exit=-1;Summary='no existe';Shard=''});continue}
+                if(-not [IO.File]::Exists($job.File)){[void]$parts[$job.Suite].Add([pscustomobject]@{Exit=-1;Summary='no existe';Shard='';Failures=@()});continue}
                 $out=[IO.Path]::GetTempFileName();$err=[IO.Path]::GetTempFileName();$temp+=@($out,$err)
                 $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$($job.File)`"");if($job.Shard){$arguments+=@('-Shard',$job.Shard)}
                 $proc=Start-Process -FilePath $engine -ArgumentList $arguments -RedirectStandardOutput $out -RedirectStandardError $err -NoNewWindow -PassThru
@@ -126,7 +126,9 @@ function Invoke-AgentOpsTestRun {
             foreach($r in $finished){
                 $r.Process.WaitForExit()
                 $lines=@([IO.File]::ReadAllLines($r.Out)|Where-Object {$_.Trim()})
-                [void]$parts[$r.Job.Suite].Add([pscustomobject]@{Exit=$r.Process.ExitCode;Summary=$(if($lines.Count){$lines[-1].Trim()}else{''});Shard=$r.Job.Shard})
+                # A red part keeps its FAIL lines (at most 10) so the run says which tests failed.
+                $fails=$(if($r.Process.ExitCode -ne 0){@($lines|Where-Object {$_ -match '^\s*FAIL\b'}|Select-Object -First 10|ForEach-Object {$t=$_.Trim();if($t.Length -gt 300){$t.Substring(0,300)}else{$t}})}else{@()})
+                [void]$parts[$r.Job.Suite].Add([pscustomobject]@{Exit=$r.Process.ExitCode;Summary=$(if($lines.Count){$lines[-1].Trim()}else{''});Shard=$r.Job.Shard;Failures=$fails})
                 $r.Process.Dispose()
             }
             $running=@($running|Where-Object {$finished -notcontains $_})
@@ -135,7 +137,8 @@ function Invoke-AgentOpsTestRun {
             $p=@($parts[$_]|Sort-Object Shard)
             $exit=0;foreach($x in $p){if($x.Exit -ne 0){$exit=$x.Exit}}
             $summary=if($p.Count -eq 1 -and -not $p[0].Shard){$p[0].Summary}else{($p|ForEach-Object {"[$($_.Shard)] $($_.Summary)"}) -join ' | '}
-            [pscustomobject]@{Suite=$_;Exit=$exit;Summary=$summary}
+            $failures=@(foreach($x in $p){foreach($l in @($x.Failures)){if($x.Shard){"[$($x.Shard)] $l"}else{$l}}})
+            [pscustomobject]@{Suite=$_;Exit=$exit;Summary=$summary;Failures=$failures}
         })
         $after=Get-AgentOpsCodeFingerprint -ProjectPath $root
         if(@($res.Results|Where-Object {$_.Exit -ne 0}).Count){return [pscustomobject]$res}
