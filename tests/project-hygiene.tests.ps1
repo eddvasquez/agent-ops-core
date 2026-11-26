@@ -107,6 +107,16 @@ Test 'backup and unreferenced files are reported while node_modules and sql migr
     Assert (@($f[0].Paths) -contains 'config.bak' -and @($f[0].Paths) -contains 'web/dump.sql') ($f|ConvertTo-Json -Depth 5)
     Assert (@($f[0].Paths) -notcontains 'migrations/001_init.sql' -and @($f[0].Paths) -notcontains 'node_modules/pkg/test.bak') ($f|ConvertTo-Json -Depth 5)
 }
+Test 'excessive Codex turn-diff references are reported in read-only mode' {
+    $h=Hub;$p=GitProject
+    $sha=(& git -C $p rev-parse HEAD).Trim()
+    foreach($i in 1..26){
+        Put $p ".git/refs/codex/turn-diffs/checkpoints/c-$i" "$sha`n"|Out-Null
+    }
+    $r=Get-AgentOpsProjectHygiene -ProjectPath $p -HubDir $h
+    $f=@($r.Findings|Where-Object {$_.Kind -eq 'codex-turn-diffs'})
+    Assert ($r.Status -eq 'FINDINGS' -and $f.Count -eq 1 -and $f[0].Message -match '26') ($r|ConvertTo-Json -Depth 5)
+}
 Write-Host "Project hygiene: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

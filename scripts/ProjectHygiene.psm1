@@ -26,7 +26,8 @@ function Ph-Finding([string]$kind,[string]$message,[string]$fix,[string[]]$paths
 function Get-AgentOpsProjectHygiene {
     [CmdletBinding()]
     param([string]$ProjectPath=(Get-Location).Path,[string]$HubDir='',
-          [string]$ConfigPath=(Join-Path $env:LOCALAPPDATA 'AgentOps/watch-config.json'))
+          [string]$ConfigPath=(Join-Path $env:LOCALAPPDATA 'AgentOps/watch-config.json'),
+          [int]$CodexRefsThreshold=25)
     $res=[ordered]@{Code=0;Status='CLEAN';Findings=@();Lines=@();Issues=@()}
     try{
         $root=(Resolve-Path -LiteralPath $ProjectPath).Path
@@ -91,6 +92,15 @@ function Get-AgentOpsProjectHygiene {
         $candidates=@($candidates|Sort-Object -Unique)
         if($candidates.Count){
             $res.Findings+=Ph-Finding 'backup-or-unreferenced' "Hay $(Ph-Count $candidates.Count 'copia de respaldo o resto sensible olvidado' 'copias de respaldo o restos sensibles olvidados') en el proyecto." 'Revisa estas rutas: borra las copias que ya no sirvan o muevelas fuera del proyecto (y fuera de carpetas web).' $candidates
+        }
+
+        # 5. Accumulated Codex turn-diff references (read-only).
+        if($isGit){
+            $cref=Invoke-Git $root @('for-each-ref','--format=%(refname)','refs/codex/turn-diffs') -AllowFailure
+            $refs=@($cref.Output -split "\r?\n"|Where-Object {$_.Trim()})
+            if($refs.Count -gt $CodexRefsThreshold){
+                $res.Findings+=Ph-Finding 'codex-turn-diffs' "Hay $($refs.Count) referencias internas de Codex acumuladas en el repositorio (refs/codex/turn-diffs)." 'Si ya no las necesitas, puedes limpiarlas en este proyecto (por ejemplo con git update-ref -d).' @('.git/refs/codex/turn-diffs')
+            }
         }
         if(@($res.Findings).Count){$res.Status='FINDINGS';$res.Lines=@($res.Findings|ForEach-Object {"Higiene del proyecto: $($_.Message)"})}
     }catch{$res.Code=1;$res.Status='FAILED';$res.Issues=@($_.Exception.Message)}

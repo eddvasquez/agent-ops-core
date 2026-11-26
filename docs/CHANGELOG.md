@@ -6,6 +6,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Added
+- Sensor de higiene (`ProjectHygiene.psm1`): avisa cuando se acumulan más de 25 referencias internas de Codex en `refs/codex/turn-diffs/`.
+### Added
 - Detección automática de escritor único (Protocolo 5): `ActivityLog.psm1` (`Get-AgentOpsConcurrentWriters`) y `SessionStart.psm1` avisan al iniciar sesión si otro arnés escribió recientemente en el mismo proyecto (últimos 15 min) sin crear archivos extra en `.context/`.
 
 ## [3.22.0] - 2026-11-25
