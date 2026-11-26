@@ -183,6 +183,20 @@ Test 'an acceptance review that is not passed sends the agent back; an accepted 
     $plain=Framework
     Assert ((Test-AgentOpsTurnGate -ProjectPath $plain -StateDir $s -SessionId 'none').Decision -eq 'ALLOW') 'No contract must not block'
 }
+Test 'Get-AgentOpsActiveTestRun detects live marks and cleans dead ones; RUNNING reminds R-018' {
+    $r=Framework;$s=State;Put $r 'scripts/tool.ps1' "'v4'"
+    $fp=(Get-AgentOpsCodeFingerprint -ProjectPath $r).Fingerprint
+    $dead=Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList '-NoProfile','-Command','exit 0' -PassThru -WindowStyle Hidden;$dead.WaitForExit()
+    Put $r ".context/test-runs/$($dead.Id).json" (@{Fingerprint=$fp;Pid=$dead.Id;ProcessStart=$dead.StartTime.ToUniversalTime().Ticks;StartedUtc=[datetime]::UtcNow.ToString('o');Edition='Desktop'}|ConvertTo-Json)
+    Assert ($null -eq (Get-AgentOpsActiveTestRun -ProjectPath $r)) 'Dead run must return null'
+    Assert (-not (Test-Path (Join-Path $r ".context/test-runs/$($dead.Id).json"))) 'Dead mark not cleaned'
+    $me=Get-Process -Id $PID
+    Put $r ".context/test-runs/$PID.json" (@{Fingerprint=$fp;Pid=$PID;ProcessStart=$me.StartTime.ToUniversalTime().Ticks;StartedUtc=[datetime]::UtcNow.ToString('o');Edition='Desktop'}|ConvertTo-Json)
+    $active=Get-AgentOpsActiveTestRun -ProjectPath $r
+    Assert ($active -and $active.Pid -eq $PID) 'Live run not detected'
+    $g=Test-AgentOpsTurnGate -ProjectPath $r -StateDir $s -SessionId 'r18'
+    Assert ($g.Status -eq 'RUNNING' -and $g.Reason -match 'R-018' -and $g.Reason -match 'worktree') ($g|ConvertTo-Json)
+}
 Write-Host "Turn gate: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

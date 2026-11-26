@@ -31,6 +31,7 @@ Todo agente o modelo de Inteligencia Artificial (Claude Code, Antigravity/Gemini
   - Las que el proyecto declare en `reglas_proyecto.md` como «Skill crítica: X, cuando Y».
 - **Sin excepciones:** ni «cambio pequeño», ni «es una línea», ni prisa. Solo el usuario puede eximir un cambio concreto, y la exención se anota en `activeContext.md`.
 - **Verificación antes del commit:** las suites que cubren lo modificado se ejecutan y deben estar en verde; si no existen, se escriben antes. El resultado (suite y n.º de pruebas) se anota en `activeContext.md`. Las pruebas crean sus archivos temporales en una carpeta propia y la borran al terminar en verde; si fallan, la conservan para revisar el fallo y se borra sola después.
+- **Nunca esperar pasivamente:** cuando se lancen pruebas o tareas en segundo plano, ofrecer siempre en ese mismo turno con botones qué siguiente tarea o diseño adelantar en paralelo (usando `ops-git-worktrees` si toca código mientras corren pruebas).
 - **Resto de skills, criterio de dominio:** son obligatorias cuando la tarea entra en el dominio que declara su descripción. Fuera de él se razona sin forzarlas: una skill mal aplicada también empeora el resultado.
 
 ---

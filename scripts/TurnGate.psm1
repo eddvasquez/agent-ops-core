@@ -23,16 +23,19 @@ function Tg-MarkRun([string]$root,[string]$fingerprint){
 function Tg-Alive($mark){
     try{$p=Get-Process -Id ([int]$mark.Pid) -ErrorAction Stop;try{return $p.StartTime.ToUniversalTime().Ticks -eq [long]$mark.ProcessStart}finally{$p.Dispose()}}catch{return $false}
 }
-function Tg-RunningFor([string]$root,[string]$fingerprint){
-    $dir=Tg-RunsDir $root;if(-not [IO.Directory]::Exists($dir)){return $null}
+function Get-AgentOpsActiveTestRun {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$ProjectPath,[string]$Fingerprint='')
+    $dir=Tg-RunsDir $ProjectPath;if(-not [IO.Directory]::Exists($dir)){return $null}
     $found=$null
     foreach($f in @(Get-ChildItem -LiteralPath $dir -Filter '*.json' -ErrorAction SilentlyContinue)){
         $m=$null;try{$m=[IO.File]::ReadAllText($f.FullName)|ConvertFrom-Json}catch{}
         if(-not $m -or -not (Tg-Alive $m)){Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue;continue}
-        if([string]$m.Fingerprint -eq $fingerprint -and -not $found){$found=$m}
+        if((-not $Fingerprint -or [string]$m.Fingerprint -eq $Fingerprint) -and -not $found){$found=$m}
     }
     return $found
 }
+function Tg-RunningFor([string]$root,[string]$fingerprint){Get-AgentOpsActiveTestRun -ProjectPath $root -Fingerprint $fingerprint}
 # Acceptance (R-016): an open contract whose review was started but is not passed keeps the turn open.
 function Tg-AcceptancePending([string]$root){
     $dir=Join-Path $root '.context/aceptacion';if(-not [IO.Directory]::Exists($dir)){return $null}
@@ -103,6 +106,7 @@ function Get-AgentOpsSuitesForChanges {
     foreach($path in $changed){
         if($path -match '^tests/([^/]+)\.tests\.ps1$'){$picked+=$Matches[1];continue}
         if($path -match '^(tests|\.github)/'){$res.All=$true;break}
+        if($path -match '^scripts/.*\.(ps1|psm1)$' -and [IO.File]::Exists((Join-Path $root 'tests/repo-hygiene.tests.ps1'))){$picked+='repo-hygiene'}
         # Closure: the changed file plus every script/module that references a name already in the set.
         $names=@([IO.Path]::GetFileName($path));$grew=$true
         while($grew){
@@ -287,7 +291,7 @@ function Test-AgentOpsTurnGate {
     $running=Tg-RunningFor $root $fp.Fingerprint
     if($running){
         $res.Status='RUNNING'
-        $res.Reason="Agent Ops: las pruebas de este estado ya están corriendo (desde $(([datetime]$running.StartedUtc).ToLocalTime().ToString('HH:mm'))). Puedes terminar el turno: avisa una vez al usuario de qué corre y cuánto falta, y ofrécele esperar o adelantar una o dos tareas que no dependan de su resultado (R-015)."
+        $res.Reason="Agent Ops: las pruebas de este estado ya están corriendo (desde $(([datetime]$running.StartedUtc).ToLocalTime().ToString('HH:mm'))). No esperes pasivamente (ni digas que vas a esperar): ofrece ya con botones qué siguiente tarea o diseño adelantar en paralelo (usa ops-git-worktrees si toca código) (R-015, R-018)."
         return [pscustomobject]$res
     }
     $returns=0;if([IO.File]::Exists($counter)){try{$returns=[int](([IO.File]::ReadAllText($counter)|ConvertFrom-Json).Returns)}catch{}}
@@ -352,4 +356,4 @@ function Install-AgentOpsTurnGate {
     }catch{$res.Code=1;$res.Status='FAILED';$res.Issues=@($_.Exception.Message)}
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function Get-AgentOpsCodeFingerprint,Get-AgentOpsSuitesForChanges,Get-AgentOpsTestSlots,Invoke-AgentOpsTestRun,Test-AgentOpsTurnGate,Install-AgentOpsTurnGate
+Export-ModuleMember -Function Get-AgentOpsCodeFingerprint,Get-AgentOpsSuitesForChanges,Get-AgentOpsTestSlots,Get-AgentOpsActiveTestRun,Invoke-AgentOpsTestRun,Test-AgentOpsTurnGate,Install-AgentOpsTurnGate

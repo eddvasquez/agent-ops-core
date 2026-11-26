@@ -4,12 +4,23 @@
 param([Parameter(Mandatory=$true)][ValidateSet('claude','codex','antigravity')][string]$Harness)
 $ErrorActionPreference='Stop'
 $utf8=New-Object Text.UTF8Encoding($false)
+$out='{}'
 try{
     Import-Module (Join-Path $PSScriptRoot 'ActivityLog.psm1') -Force
     $file=$env:AGENT_OPS_HOOK_INPUT_FILE
     $json=$(if($file -and [IO.File]::Exists($file)){$utf8.GetString([IO.File]::ReadAllBytes($file))}else{$b=New-Object IO.MemoryStream;[Console]::OpenStandardInput().CopyTo($b);$utf8.GetString($b.ToArray())})
     $state=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'})
     Add-AgentOpsActivity -StateDir $state -Harness $Harness -Event $json
+    if($Harness -eq 'antigravity'){
+        $e=$json.TrimStart([char]0xFEFF)|ConvertFrom-Json
+        $dir=$(if($e.PSObject.Properties['workspacePaths']){[string](@($e.workspacePaths)|Select-Object -First 1)}else{''})
+        if($dir -and [IO.Directory]::Exists((Join-Path $dir '.context/test-runs')) -and @(Get-ChildItem -LiteralPath (Join-Path $dir '.context/test-runs') -Filter '*.json' -ErrorAction SilentlyContinue).Count){
+            Import-Module (Join-Path $PSScriptRoot 'TurnGate.psm1') -Force
+            if(Get-AgentOpsActiveTestRun -ProjectPath $dir){
+                $out=(@{hookSpecificOutput=@{hookEventName='PostToolUse';additionalContext='R-018: Hay pruebas corriendo en segundo plano. No esperes pasivamente; ofrece ahora al usuario con botones que siguiente tarea o diseno adelantar en paralelo (usa ops-git-worktrees si toca codigo).'}}|ConvertTo-Json -Compress -Depth 4)
+            }
+        }
+    }
 }catch{}
-if($Harness -eq 'antigravity'){$o=[Console]::OpenStandardOutput();$bytes=$utf8.GetBytes('{}');$o.Write($bytes,0,$bytes.Length);$o.Flush()}
+if($Harness -eq 'antigravity'){$o=[Console]::OpenStandardOutput();$bytes=$utf8.GetBytes($out);$o.Write($bytes,0,$bytes.Length);$o.Flush()}
 exit 0

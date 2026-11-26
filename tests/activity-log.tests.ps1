@@ -118,6 +118,23 @@ Test 'concurrent writers from another harness within the window are detected and
     $b=Get-AgentOpsSessionBrief -ProjectPath $p -StateDir $s -Harness 'antigravity'
     Assert ($b -match 'escritor' -and $b -match 'claude' -and $b -match 'scripts/a\.ps1') $b
 }
+Test 'post-tool-hook injects R-018 additionalContext for Antigravity when a test run is active' {
+    Import-Module (Join-Path $source 'scripts/TurnGate.psm1') -Force
+    $p=Governed;$s=NewDir 'state'
+    $run={param($h,$json)
+        $psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName=(Get-Process -Id $PID).Path
+        $psi.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $source 'scripts/post-tool-hook.ps1')+'" -Harness '+$h
+        $psi.UseShellExecute=$false;$psi.CreateNoWindow=$true;$psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
+        $psi.StandardOutputEncoding=$utf8;$psi.EnvironmentVariables['AGENT_OPS_STATE_DIR']=$s
+        $pr=[Diagnostics.Process]::Start($psi);$b=$utf8.GetBytes($json);$pr.StandardInput.BaseStream.Write($b,0,$b.Length);$pr.StandardInput.Close()
+        $o=$pr.StandardOutput.ReadToEnd();$null=$pr.StandardError.ReadToEnd();$pr.WaitForExit();@{Exit=$pr.ExitCode;Out=$o.Trim()}}
+    $me=Get-Process -Id $PID
+    [IO.Directory]::CreateDirectory((Join-Path $p '.context/test-runs'))|Out-Null
+    [IO.File]::WriteAllText((Join-Path $p ".context/test-runs/$PID.json"),(@{Fingerprint='abc';Pid=$PID;ProcessStart=$me.StartTime.ToUniversalTime().Ticks;StartedUtc=[datetime]::UtcNow.ToString('o');Edition='Desktop'}|ConvertTo-Json),$utf8)
+    $r=& $run 'antigravity' (@{workspacePaths=@($p);toolCall=@{name='run_command';args=@{CommandLine='powershell -File scripts/run-tests.ps1'}}}|ConvertTo-Json -Compress -Depth 5)
+    $j=$r.Out|ConvertFrom-Json
+    Assert ($r.Exit -eq 0 -and $j.hookSpecificOutput.hookEventName -eq 'PostToolUse' -and $j.hookSpecificOutput.additionalContext -match 'R-018') ($r|ConvertTo-Json)
+}
 Write-Host "Activity log: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

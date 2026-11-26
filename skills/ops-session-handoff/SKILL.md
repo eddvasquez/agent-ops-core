@@ -88,8 +88,8 @@ La sesión puede terminar sin aviso: por cuota, por contexto o por un cierre. Pa
 - Es barato y no hace commit. Escribe `.context/checkpoint.json`, que viaja en el commit de relevo.
 - Si el arnés muestra la cuota restante y baja de ~10 %, no empieces pasos nuevos. Haz el checkpoint y el **MODO SALIDA MÍNIMO**: `checkpoint.ps1 -Close` y commit de relevo de `.context/`, sin lecciones ni aprendizaje. Quien reciba la sesión completa el resto.
 
-## DURANTE LA SESIÓN: ESPERAS LARGAS (R-015)
-- Si unas pruebas u otra tarea larga corren en segundo plano, avisar **una vez**: qué corre, cuánto falta y qué queda bloqueado hasta que termine. Ofrecer, con la herramienta de preguntas, una o dos tareas concretas que no dependan de su resultado ni alteren lo que se prueba (la recomendada primero) y siempre «esperamos». Nada de avisos repetidos. Plantilla en `references/lenguaje.md`.
+## DURANTE LA SESIÓN: ESPERAS Y TRABAJO EN PARALELO (R-015, R-018)
+- **Nunca esperar pasivamente** a que terminen pruebas o tareas en segundo plano (sin importar su duración): en el mismo turno en que se lanzan, avisar **una vez** qué corre y qué queda bloqueado, y ofrecer inmediatamente con botones una o dos tareas concretas para adelantar en paralelo (diseño, pruebas TDD o la siguiente tarea usando `ops-git-worktrees` si toca código), además de «esperamos». Nada de avisos repetidos. Plantilla en `references/lenguaje.md`.
 
 ## ACEPTACIÓN: LO PEDIDO, NO OTRA COSA (R-016, R-017)
 - Al recibir una solicitud sustancial: `& "$ActivePath/scripts/acceptance.ps1" -Action New -Request <archivo con la petición literal> -Criteria <3-7 criterios verificables> -Invariants <lo que no se toca: promesa, mecanismo, precio, garantía, público, tono, frases; con " | patrón" cuando se pueda> -Sources <brief u oferta>`.

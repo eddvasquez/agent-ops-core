@@ -3,6 +3,8 @@
 Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/), versionado [SemVer](https://semver.org/lang/es/). Archivo de mantenimiento: no se carga al usar la skill.
 
 ## [Unreleased]
+### Changed
+- Esperas y trabajo en paralelo (R-018): nunca esperar pasivamente a que terminen pruebas o tareas en segundo plano; ofrecer siempre con botones qué siguiente tarea o diseño adelantar en paralelo (usando `ops-git-worktrees` si toca código).
 
 ## [2.12.0] - 2026-11-25
 ### Added

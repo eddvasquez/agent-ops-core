@@ -224,6 +224,12 @@ Test 'run-tests uses the automatic parallelism by default (R-012)' {
     $p=@($ast.ParamBlock.Parameters|Where-Object {$_.Name.VariablePath.UserPath -eq 'Parallel'})[0]
     Assert ($p -and $p.DefaultValue.Extent.Text -eq '0') "Default -Parallel is $($p.DefaultValue.Extent.Text), expected 0 (automatic)"
 }
+Test 'changing any script under scripts/ includes repo-hygiene automatically in -Changed' {
+    $r=Repo @{'scripts/helper.ps1'="'v1'";'tests/helper.tests.ps1'="Import-Module `"`$PSScriptRoot\..\scripts\helper.ps1`"`nexit 0";'tests/repo-hygiene.tests.ps1'='exit 0'}
+    Put $r 'scripts/helper.ps1' "'v2'"
+    $sel=Get-AgentOpsSuitesForChanges -ProjectPath $r
+    Assert ((@($sel.Suites) -contains 'repo-hygiene') -and (@($sel.Suites) -contains 'helper')) ($sel|ConvertTo-Json -Depth 4)
+}
 Write-Host "Test runner: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

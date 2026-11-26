@@ -6,6 +6,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Added
+- Sensor inmediato `R-018` en `post-tool-hook.ps1` y `TurnGate.psm1` (`Get-AgentOpsActiveTestRun`): detecta pruebas vivas en `.context/test-runs/` e inyecta aviso para no esperar pasivamente y ofrecer tareas en paralelo con botones (`ops-git-worktrees` si toca código); `templates/AGENTS.md` lo hereda a todos los proyectos.
+
+### Fixed
+- `run-tests.ps1 -Changed` (`Get-AgentOpsSuitesForChanges`) ahora incluye automáticamente `repo-hygiene` cuando cambia cualquier `.ps1` o `.psm1` bajo `scripts/`.
+### Added
 - Flujo seguro `.env` para pedir credenciales fuera del chat (`EnvRequest.psm1`, `request-env.ps1`): `Prepare` crea/completa `.env.example` y `.env` (solo si `.gitignore` ignora `.env`), y `Check` verifica qué claves tienen valor sin leer ni mostrar secretos.
 ### Added
 - Sensor de higiene (`ProjectHygiene.psm1`): avisa cuando se acumulan más de 25 referencias internas de Codex en `refs/codex/turn-diffs/`.
