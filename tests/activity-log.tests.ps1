@@ -135,6 +135,26 @@ Test 'post-tool-hook injects R-018 additionalContext for Antigravity when a test
     $j=$r.Out|ConvertFrom-Json
     Assert ($r.Exit -eq 0 -and $j.hookSpecificOutput.hookEventName -eq 'PostToolUse' -and $j.hookSpecificOutput.additionalContext -match 'R-018') ($r|ConvertTo-Json)
 }
+Test 'Skill tool in Claude is matched in SessionStart and post-tool-hook logs usage without polluting activity log' {
+    Import-Module (Join-Path $source 'scripts/SessionStart.psm1') -Force
+    $s=NewDir 'state';$p=Governed;$hub=NewDir 'hub'
+    [IO.Directory]::CreateDirectory((Join-Path $hub 'dev-tdd'))|Out-Null
+    [IO.File]::WriteAllText((Join-Path $hub 'dev-tdd/SKILL.md'),"---`nname: dev-tdd`nversion: 1.0.0`ndescription: tdd`n---`n",$utf8)
+    $paths=@{StateDir=$s;ClaudeSettingsPath=(Join-Path $s 'c.json');CodexHooksPath=(Join-Path $s 'x.json');AntigravityHooksPath=(Join-Path $s 'a.json')}
+    Install-AgentOpsSessionStart @paths|Out-Null
+    $c=[IO.File]::ReadAllText($paths.ClaudeSettingsPath)|ConvertFrom-Json
+    $post=@($c.hooks.PostToolUse|Where-Object {($_|ConvertTo-Json -Depth 8) -match 'post-tool'})
+    Assert ($post[0].matcher -match 'Skill') ($post|ConvertTo-Json -Depth 6)
+    $psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName=(Get-Process -Id $PID).Path
+    $psi.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $source 'scripts/post-tool-hook.ps1')+'" -Harness claude'
+    $psi.UseShellExecute=$false;$psi.CreateNoWindow=$true;$psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
+    $psi.EnvironmentVariables['AGENT_OPS_STATE_DIR']=$s;$psi.EnvironmentVariables['AGENT_OPS_HUB_DIR']=$hub
+    $pr=[Diagnostics.Process]::Start($psi)
+    $ev=(@{cwd=$p;session_id='s-skill';tool_name='Skill';tool_input=@{skill='dev-tdd'}}|ConvertTo-Json -Compress)
+    $b=$utf8.GetBytes($ev);$pr.StandardInput.BaseStream.Write($b,0,$b.Length);$pr.StandardInput.Close();$pr.WaitForExit()
+    Assert ($pr.ExitCode -eq 0 -and @(Lines $s $p).Count -eq 0) 'Skill call polluted activity log'
+    Assert (Test-Path (Join-Path $hub 'proposals/usage.jsonl')) 'Skill usage was not logged to hub usage.jsonl'
+}
 Write-Host "Activity log: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

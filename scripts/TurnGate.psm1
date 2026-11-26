@@ -5,7 +5,7 @@
 Import-Module (Join-Path $PSScriptRoot 'NativeProcess.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'HarnessRadar.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Acceptance.psm1') -Force
-$script:codePattern='\.(ps1|psm1|psd1|sh|bat|cmd|py|js|mjs|cjs|ts)$|^\.github/workflows/.+\.ya?ml$|^scripts/.+\.json$'
+$script:codePattern='\.(ps1|psm1|psd1|sh|bat|cmd|py|js|mjs|cjs|ts)$|^\.github/workflows/.+\.ya?ml$|^scripts/.+\.json$|^skills/[^/]+/SKILL\.md$'
 $script:maxReturns=2
 
 function Tg-Sha([byte[]]$bytes){$h=[Security.Cryptography.SHA256]::Create();try{([BitConverter]::ToString($h.ComputeHash($bytes))).Replace('-','').ToLowerInvariant()}finally{$h.Dispose()}}
@@ -106,7 +106,7 @@ function Get-AgentOpsSuitesForChanges {
     foreach($path in $changed){
         if($path -match '^tests/([^/]+)\.tests\.ps1$'){$picked+=$Matches[1];continue}
         if($path -match '^(tests|\.github)/'){$res.All=$true;break}
-        if($path -match '^scripts/.*\.(ps1|psm1)$' -and [IO.File]::Exists((Join-Path $root 'tests/repo-hygiene.tests.ps1'))){$picked+='repo-hygiene'}
+        if($path -match '^(scripts/.*\.(ps1|psm1)|skills/[^/]+/SKILL\.md)$' -and [IO.File]::Exists((Join-Path $root 'tests/repo-hygiene.tests.ps1'))){$picked+='repo-hygiene'}
         # Closure: the changed file plus every script/module that references a name already in the set.
         $names=@([IO.Path]::GetFileName($path));$grew=$true
         while($grew){

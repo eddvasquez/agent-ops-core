@@ -197,6 +197,16 @@ Test 'Get-AgentOpsActiveTestRun detects live marks and cleans dead ones; RUNNING
     $g=Test-AgentOpsTurnGate -ProjectPath $r -StateDir $s -SessionId 'r18'
     Assert ($g.Status -eq 'RUNNING' -and $g.Reason -match 'R-018' -and $g.Reason -match 'worktree') ($g|ConvertTo-Json)
 }
+Test 'editing a framework SKILL.md is fingerprinted and schedules repo-hygiene' {
+    $r=Framework
+    Put $r 'tests/repo-hygiene.tests.ps1' "'ok'"
+    & git -C $r add tests/repo-hygiene.tests.ps1;& git -C $r commit -q --no-verify -m hygiene
+    Put $r 'skills/dev-tdd/SKILL.md' "---`nname: dev-tdd`nversion: 1.0.0`ndescription: updated`n---`n"
+    $fp=Get-AgentOpsCodeFingerprint -ProjectPath $r
+    Assert ($fp.Files -contains 'skills/dev-tdd/SKILL.md') ($fp|ConvertTo-Json)
+    $sel=Get-AgentOpsSuitesForChanges -ProjectPath $r
+    Assert ($sel.Suites -contains 'repo-hygiene') ($sel|ConvertTo-Json)
+}
 Write-Host "Turn gate: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

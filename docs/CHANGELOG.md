@@ -6,7 +6,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Added
+- Aprendizaje gobernado, fase 3 (`record-usage.ps1`, `prune-skills.ps1`, `check-skill-catalog.ps1` en `LearningProposals.psm1`): telemetría híbrida Piso+Techo en `<hub>/proposals/usage.jsonl` con bloqueo Mutex y consolidación de copias `usage*.jsonl`, extractor en trazas (`Sync-SkillUsageFromTranscripts`), poda con guarda de arranque en frío y detección `hurt`, destinos `6` (`archivar` en `proposals/archived/`) y `7` (`fusionar`), e inspector dual (`Jaccard` + contención) con parser YAML multilínea entre hub y skills núcleo.
 - Aprendizaje gobernado, fase 2 (`triage-learnings.ps1`, `apply-proposal.ps1` en `LearningProposals.psm1`): triaje por recurrencia entre proyectos/sesiones, descarte con motivo, aplicación parcial por bloques aprobados, actualización de SemVer y changelog de skill.
+
+### Changed
+- Sensores de uso y catálogo: `SessionStart.psm1` (`PostToolUse` `Skill` async en Claude Code), `post-tool-hook.ps1` (registro no bloqueante de uso), `TurnGate.psm1` (vigilancia de `skills/*/SKILL.md` → `repo-hygiene`) y `repo-hygiene.tests.ps1` (validación estructural estricta del catálogo núcleo).
 
 ## [3.23.0] - 2026-11-25
 ### Added

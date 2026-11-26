@@ -11,6 +11,21 @@ try{
     $json=$(if($file -and [IO.File]::Exists($file)){$utf8.GetString([IO.File]::ReadAllBytes($file))}else{$b=New-Object IO.MemoryStream;[Console]::OpenStandardInput().CopyTo($b);$utf8.GetString($b.ToArray())})
     $state=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'})
     Add-AgentOpsActivity -StateDir $state -Harness $Harness -Event $json
+    if($Harness -ne 'antigravity'){
+        try{
+            $ev=$json.TrimStart([char]0xFEFF)|ConvertFrom-Json
+            if($ev.PSObject.Properties['tool_name'] -and [string]$ev.tool_name -eq 'Skill' -and $ev.PSObject.Properties['tool_input'] -and $ev.tool_input.PSObject.Properties['skill']){
+                $sk=[string]$ev.tool_input.skill
+                $hub=$(if($env:AGENT_OPS_HUB_DIR){$env:AGENT_OPS_HUB_DIR}else{$wc=Join-Path $state 'watch-config.json';if([IO.File]::Exists($wc)){(Get-Content -LiteralPath $wc -Raw|ConvertFrom-Json).HubDir}else{''}})
+                if($sk -and $hub -and [IO.Directory]::Exists($hub)){
+                    Import-Module (Join-Path $PSScriptRoot 'LearningProposals.psm1') -Force
+                    $cwd=if($ev.PSObject.Properties['cwd'] -and $ev.cwd){Split-Path -Leaf ([string]$ev.cwd)}else{'(sin proyecto)'}
+                    $sid=if($ev.PSObject.Properties['session_id']){[string]$ev.session_id}else{''}
+                    Register-SkillUsage -HubPath $hub -Skill $sk -Project $cwd -SessionId $sid -Harness $Harness -Source 'hook' -Outcome 'used'|Out-Null
+                }
+            }
+        }catch{}
+    }
     if($Harness -eq 'antigravity'){
         $e=$json.TrimStart([char]0xFEFF)|ConvertFrom-Json
         $dir=$(if($e.PSObject.Properties['workspacePaths']){[string](@($e.workspacePaths)|Select-Object -First 1)}else{''})

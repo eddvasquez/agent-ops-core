@@ -195,7 +195,7 @@ function Install-AgentOpsSessionStart {
             $c=& $swap $c $(if($off){$null}else{$claude})
             & $swap $c $(if($off){$null}else{$compact}) 'PreCompact' 'agent-ops-hook\.ps1.{0,40}pre-compact'}
         # After each action (activity log): in the background where the harness allows it (Claude Code, Codex).
-        $postClaude=[ordered]@{matcher='Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell';hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','post-tool','-Harness','claude');async=$true;timeout=20})}
+        $postClaude=[ordered]@{matcher='Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell|Skill';hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','post-tool','-Harness','claude');async=$true;timeout=20})}
         $postCodex=[ordered]@{matcher='apply_patch|Bash';hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook post-tool -Harness codex";commandWindows=("powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$launcher`" -Hook post-tool -Harness codex");async=$true;timeout=20})}
         $postPattern='agent-ops-hook\.ps1.{0,40}post-tool'
         & $edit $ClaudeSettingsPath {param($c) $off=$Uninstall -or (& $isClaudePluginOn $c); & $swap $c $(if($off){$null}else{$postClaude}) 'PostToolUse' $postPattern}

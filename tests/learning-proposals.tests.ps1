@@ -197,6 +197,83 @@ Test 'triage-learnings and apply-proposal CLI wrappers return JSON contract' {
     $out=& $ps -NoProfile -ExecutionPolicy Bypass -File (Join-Path $source 'scripts/triage-learnings.ps1') -HubPath $hub
     Assert ($LASTEXITCODE -eq 0 -and ($out -join "`n"|ConvertFrom-Json).Code -eq 0) ($out -join "`n")
 }
+Test 'Register-SkillUsage writes single usage.jsonl, merges conflict copies and upgrades outcome without duplicating session' {
+    $hub=Hub
+    $r1=Register-SkillUsage -HubPath $hub -Skill 'google-ads-media-buyer' -Project 'proj1' -SessionId 'sess-1' -Harness 'claude' -Source 'hook' -Outcome 'used' -Now ([datetime]'2026-11-20T10:00:00Z')
+    $r2=Register-SkillUsage -HubPath $hub -Skill 'google-ads-media-buyer' -Project 'proj1' -SessionId 'sess-1' -Harness 'claude' -Source 'declared' -Outcome 'helped' -Now ([datetime]'2026-11-20T10:05:00Z')
+    Assert ($r1.Code -eq 0 -and $r2.Code -eq 0 -and $r2.Status -eq 'UPDATED') ($r2|ConvertTo-Json -Depth 4)
+    $usageFile=Join-Path $hub 'proposals/usage.jsonl'
+    Assert (Test-Path $usageFile) 'usage.jsonl missing'
+    $rows=@([IO.File]::ReadAllLines($usageFile)|Where-Object {$_}|ForEach-Object {$_|ConvertFrom-Json})
+    Assert ($rows.Count -eq 1 -and $rows[0].outcome -eq 'helped') ($rows|ConvertTo-Json -Depth 4)
+    # Conflict copy from cloud sync is consolidated on read
+    $conflict=Join-Path $hub 'proposals/usage (conflicted copy).jsonl'
+    [IO.File]::WriteAllText($conflict,((@{timestamp='2026-11-21T10:00:00Z';skill='gtm-media-buyer-orchestrator';project='proj2';session_id='sess-2';harness='codex';source='declared';outcome='hurt'}|ConvertTo-Json -Compress)+"`n"),[Text.UTF8Encoding]::new($false))
+    $all=@(Get-SkillUsageHistory -HubPath $hub)
+    Assert ($all.Count -eq 2 -and (@($all|Where-Object {$_.skill -eq 'gtm-media-buyer-orchestrator'}).Count -eq 1)) ($all|ConvertTo-Json -Depth 4)
+}
+Test 'Sync-SkillUsageFromTranscripts detects Skill calls and SKILL.md reads across harnesses' {
+    $hub=Hub;$proj=Join-Path $base ('proj-'+[guid]::NewGuid().ToString('N').Substring(0,6));[IO.Directory]::CreateDirectory($proj)|Out-Null
+    $clRoot=Join-Path $base ('cl-'+[guid]::NewGuid().ToString('N').Substring(0,6));[IO.Directory]::CreateDirectory((Join-Path $clRoot 'p1'))|Out-Null
+    $clJson=(@{type='assistant';sessionId='cl-s1';timestamp='2026-11-25T10:00:00Z';cwd=$proj;message=@{role='assistant';content=@(@{type='tool_use';name='Skill';input=@{skill='google-ads-media-buyer'}})}}|ConvertTo-Json -Compress -Depth 6)
+    [IO.File]::WriteAllText((Join-Path $clRoot 'p1/conv.jsonl'),"$clJson`n",[Text.UTF8Encoding]::new($false))
+    $agRoot=Join-Path $base ('ag-'+[guid]::NewGuid().ToString('N').Substring(0,6));$agConv=Join-Path $agRoot 'conv1/.system_generated/logs';[IO.Directory]::CreateDirectory($agConv)|Out-Null
+    $agLine=(@{source='MODEL';type='PLANNER_RESPONSE';created_at='2026-11-25T11:00:00Z';tool_calls=@(@{name='read_file';args=@{Path=(Join-Path $hub 'gtm-media-buyer-orchestrator/SKILL.md')}});content="Using $proj"}|ConvertTo-Json -Compress -Depth 6)
+    [IO.File]::WriteAllText((Join-Path $agConv 'transcript.jsonl'),"$agLine`n",[Text.UTF8Encoding]::new($false))
+    $sync=Sync-SkillUsageFromTranscripts -HubPath $hub -ProjectPath $proj -ClaudeProjectsRoot $clRoot -CodexSessionsRoot (Join-Path $base 'no-codex') -AntigravityBrainRoot $agRoot
+    Assert ($sync.Code -eq 0 -and $sync.Recorded -ge 2) ($sync|ConvertTo-Json -Depth 5)
+    $hist=@(Get-SkillUsageHistory -HubPath $hub)
+    Assert ((@($hist|Where-Object {$_.skill -eq 'google-ads-media-buyer'}).Count -ge 1) -and (@($hist|Where-Object {$_.skill -eq 'gtm-media-buyer-orchestrator'}).Count -ge 1)) ($hist|ConvertTo-Json -Depth 4)
+}
+Test 'Get-SkillPruningCandidates guards cold-start, protects core/always_keep, detects 90d inactive & hurt, and closes archive/merge loop' {
+    $hub=Hub 4
+    $fw=Join-Path $base ('fw-'+[guid]::NewGuid().ToString('N').Substring(0,6));$fwSkills=Join-Path $fw 'skills';[IO.Directory]::CreateDirectory((Join-Path $fwSkills 'dev-tdd'))|Out-Null
+    [IO.File]::WriteAllText((Join-Path $fwSkills 'dev-tdd/SKILL.md'),"---`nname: dev-tdd`nversion: 1.0.0`ndescription: tdd`n---`n# dev-tdd`n",[Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $hub 'skill-3/SKILL.md'),"---`nname: skill-3`nversion: 1.0.0`ndescription: d`nalways_keep: true`n---`n# s3`n",[Text.UTF8Encoding]::new($false))
+    $now=[datetime]'2026-11-26T12:00:00Z'
+    # Cold start: usage started only 10 days ago
+    Register-SkillUsage -HubPath $hub -Skill 'google-ads-media-buyer' -Project 'p' -SessionId 's-cold' -Outcome 'used' -Now $now.AddDays(-10)|Out-Null
+    $cold=Get-SkillPruningCandidates -HubPath $hub -FrameworkPath $fw -Now $now
+    Assert ($cold.Code -eq 0 -and $cold.Status -eq 'INSUFFICIENT_HISTORY' -and @($cold.Candidates|Where-Object {$_.Status -eq 'PRUNE_INACTIVE'}).Count -eq 0) ($cold|ConvertTo-Json -Depth 5)
+    # Mature history (>90 days): make google-ads-palabras-clave-nuevas old on disk and unused, and gtm hurt twice
+    $oldDir=Join-Path $hub 'google-ads-palabras-clave-nuevas';(Get-Item $oldDir).CreationTimeUtc=$now.AddDays(-120);(Get-Item (Join-Path $oldDir 'SKILL.md')).LastWriteTimeUtc=$now.AddDays(-120)
+    (Get-Item (Join-Path $hub 'skill-3')).CreationTimeUtc=$now.AddDays(-120);(Get-Item (Join-Path $hub 'skill-3/SKILL.md')).LastWriteTimeUtc=$now.AddDays(-120)
+    Register-SkillUsage -HubPath $hub -Skill 'google-ads-media-buyer' -Project 'p' -SessionId 's-old' -Outcome 'used' -Now $now.AddDays(-110)|Out-Null
+    Register-SkillUsage -HubPath $hub -Skill 'gtm-media-buyer-orchestrator' -Project 'p' -SessionId 'h1' -Outcome 'hurt' -Now $now.AddDays(-5)|Out-Null
+    Register-SkillUsage -HubPath $hub -Skill 'gtm-media-buyer-orchestrator' -Project 'p' -SessionId 'h2' -Outcome 'hurt' -Now $now.AddDays(-2)|Out-Null
+    $pr=Get-SkillPruningCandidates -HubPath $hub -FrameworkPath $fw -Now $now -EmitProposals
+    Assert ($pr.Code -eq 0 -and (@($pr.Candidates|Where-Object {$_.Skill -eq 'google-ads-palabras-clave-nuevas' -and $_.Status -eq 'PRUNE_INACTIVE'}).Count -eq 1)) ($pr|ConvertTo-Json -Depth 5)
+    Assert ((@($pr.Candidates|Where-Object {$_.Skill -eq 'gtm-media-buyer-orchestrator' -and $_.Status -eq 'REVIEW_HURT'}).Count -eq 1)) ($pr|ConvertTo-Json -Depth 5)
+    Assert ((@($pr.Candidates|Where-Object {$_.Skill -eq 'skill-3' -and $_.Status -eq 'PROTECTED'}).Count -eq 1)) ($pr|ConvertTo-Json -Depth 5)
+    Assert ($pr.EmittedProposals.Count -ge 1 -and (Test-Path $pr.EmittedProposals[0])) ($pr|ConvertTo-Json -Depth 5)
+    $check=Test-LearningProposal -Path $pr.EmittedProposals[0] -HubPath $hub
+    Assert ($check.Code -eq 0) ($check|ConvertTo-Json -Depth 4)
+    # Apply archive proposal (destination 6) without deleting
+    $app=Invoke-LearningProposalApply -HubPath $hub -Path $pr.EmittedProposals[0] -ApprovedBlocks @(1)
+    Assert ($app.Code -eq 0 -and $app.Status -eq 'APPLIED' -and -not (Test-Path $oldDir) -and (Test-Path (Join-Path $hub 'proposals/archived/google-ads-palabras-clave-nuevas/SKILL.md'))) ($app|ConvertTo-Json -Depth 4)
+}
+Test 'Test-SkillCatalog parses multiline YAML, detects containment + Jaccard overlaps across hub and core, and distinguishes errors vs warnings' {
+    $hub=Hub 2;$fw=Join-Path $base ('fw2-'+[guid]::NewGuid().ToString('N').Substring(0,6));$fwSkills=Join-Path $fw 'skills'
+    [IO.Directory]::CreateDirectory((Join-Path $fwSkills 'dev-tdd'))|Out-Null
+    [IO.File]::WriteAllText((Join-Path $fwSkills 'dev-tdd/SKILL.md'),"---`nname: dev-tdd`nversion: 1.0.0`ndescription: >-`n  Metodologia estricta TDD para pruebas automatizadas antes de codigo.`ntriggers:`n  - `"dev-tdd`"`n  - `"red-green-refactor`"`n---`n# dev-tdd`n",[Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $hub 'google-ads-media-buyer/SKILL.md'),"---`nname: google-ads-media-buyer`nversion: 1.0.0`ndescription: Auditoria completa de campanas Google Ads, pujas Smart Bidding, palabras clave negativas, calidad de subasta, presupuestos y conversiones offline para cuentas B2B y e-commerce.`n---`n# big`n",[Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $hub 'gtm-media-buyer-orchestrator/SKILL.md'),"---`nname: gtm-media-buyer-orchestrator`nversion: 1.0.0`ndescription: Auditoria de campanas Google Ads y palabras clave negativas.`n---`n# small`n",[Text.UTF8Encoding]::new($false))
+    $cat=Test-SkillCatalog -HubPath $hub -FrameworkPath $fw -Strict
+    Assert ($cat.Code -eq 0 -and $cat.Summary.HubSkills -eq 2 -and $cat.Summary.TotalDescriptionChars -gt 100 -and $cat.Overlaps.Count -ge 1 -and (@($cat.Overlaps|Where-Object {$_.Containment -ge 0.7}).Count -ge 1)) ($cat|ConvertTo-Json -Depth 5)
+    # Hard error when > 1024 chars
+    [IO.File]::WriteAllText((Join-Path $hub 'gtm-media-buyer-orchestrator/SKILL.md'),"---`nname: gtm-media-buyer-orchestrator`nversion: 1.0.0`ndescription: $('x'*1025)`n---`n# too long`n",[Text.UTF8Encoding]::new($false))
+    $bad=Test-SkillCatalog -HubPath $hub -FrameworkPath $fw -Strict
+    Assert ($bad.Code -eq 2 -and $bad.Errors.Count -ge 1) ($bad|ConvertTo-Json -Depth 5)
+}
+Test 'Phase 3 CLI wrappers record-usage, prune-skills and check-skill-catalog return JSON contract' {
+    $hub=Hub;$ps=(Get-Process -Id $PID).Path
+    $o1=& $ps -NoProfile -ExecutionPolicy Bypass -File (Join-Path $source 'scripts/record-usage.ps1') -HubPath $hub -Skill 'google-ads-media-buyer' -Project p1 -Outcome helped
+    Assert ($LASTEXITCODE -eq 0 -and ($o1 -join "`n"|ConvertFrom-Json).Code -eq 0) ($o1 -join "`n")
+    $o2=& $ps -NoProfile -ExecutionPolicy Bypass -File (Join-Path $source 'scripts/prune-skills.ps1') -HubPath $hub
+    Assert ($LASTEXITCODE -eq 0 -and ($o2 -join "`n"|ConvertFrom-Json).Code -eq 0) ($o2 -join "`n")
+    $o3=& $ps -NoProfile -ExecutionPolicy Bypass -File (Join-Path $source 'scripts/check-skill-catalog.ps1') -HubPath $hub -FrameworkPath $source
+    Assert ($LASTEXITCODE -eq 0 -and ($o3 -join "`n"|ConvertFrom-Json).Code -eq 0) ($o3 -join "`n")
+}
 Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "Passed: $passed Failed: $failed"
 if(-not $failed){Remove-TestFixtures $base}

@@ -138,5 +138,14 @@ foreach($f in @($tracked|Where-Object {$_ -notmatch '\.(png|jpg|exe|dll|zip)$'})
 }
 if($failures.Count -eq $before){$passed++;Write-Host 'PASS tracked files contain no private project names, personal emails or local user paths'}
 
+# 9. Core framework skills catalogue: valid YAML, within 1024-char official cap and no duplicate names.
+$before=$failures.Count
+try{
+    Import-Module (Join-Path $source 'scripts/LearningProposals.psm1') -Force
+    $cat=Test-SkillCatalog -FrameworkPath $source -Strict
+    foreach($err in @($cat.Errors)){$failures.Add("catalog: $($err.Message)")}
+}catch{$failures.Add("catalog: $($_.Exception.Message)")}
+if($failures.Count -eq $before){$passed++;Write-Host 'PASS core skills catalogue passes strict structural checks'}
+
 if($failures.Count){$failures|ForEach-Object {Write-Host "FAIL $_"};Write-Host "Repository hygiene: $passed passed, $($failures.Count) failures.";exit 1}
 Write-Host "Repository hygiene: $passed passed."
