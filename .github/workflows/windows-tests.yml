@@ -25,7 +25,7 @@ jobs:
           - part: integration
             suites: 'skills-sync -IncludeLinkTest; windows-integration; project-migration; release-policy; commit'
           - part: governance
-            suites: 'harness-radar; project-hygiene; secret-guard; run-tests; turn-gate; pre-commit; repo-hygiene; rules-check; user-profile; learning-proposals; session-checkpoint; session-start; wait-ci; local-release; acceptance; activity-log; antigravity-plugin; antigravity-permissions; claude-plugin; deploy-audit; watcher-guard; integrations; instruction-harvest; hub-reconfigure; versioning'
+            suites: 'harness-radar; project-hygiene; secret-guard; run-tests; turn-gate; pre-commit; repo-hygiene; rules-check; user-profile; learning-proposals; session-checkpoint; session-start; wait-ci; local-release; acceptance; activity-log; antigravity-plugin; antigravity-permissions; claude-plugin; deploy-audit; env-request; watcher-guard; integrations; instruction-harvest; hub-reconfigure; versioning'
     env:
       AGENT_OPS_TEST_SHELL: ${{ matrix.shell }}
       AGENT_OPS_SUITES: ${{ matrix.suites }}

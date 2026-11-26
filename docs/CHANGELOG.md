@@ -6,6 +6,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Added
+- Flujo seguro `.env` para pedir credenciales fuera del chat (`EnvRequest.psm1`, `request-env.ps1`): `Prepare` crea/completa `.env.example` y `.env` (solo si `.gitignore` ignora `.env`), y `Check` verifica qué claves tienen valor sin leer ni mostrar secretos.
+### Added
 - Sensor de higiene (`ProjectHygiene.psm1`): avisa cuando se acumulan más de 25 referencias internas de Codex en `refs/codex/turn-diffs/`.
 ### Added
 - Detección automática de escritor único (Protocolo 5): `ActivityLog.psm1` (`Get-AgentOpsConcurrentWriters`) y `SessionStart.psm1` avisan al iniciar sesión si otro arnés escribió recientemente en el mismo proyecto (últimos 15 min) sin crear archivos extra en `.context/`.
