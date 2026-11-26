@@ -5,17 +5,16 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.23.0] - 2026-11-25
 ### Added
 - Sensor inmediato `R-018` en `post-tool-hook.ps1` y `TurnGate.psm1` (`Get-AgentOpsActiveTestRun`): detecta pruebas vivas en `.context/test-runs/` e inyecta aviso para no esperar pasivamente y ofrecer tareas en paralelo con botones (`ops-git-worktrees` si toca código); `templates/AGENTS.md` lo hereda a todos los proyectos.
+- Flujo seguro `.env` para pedir credenciales fuera del chat (`EnvRequest.psm1`, `request-env.ps1`): `Prepare` crea/completa `.env.example` y `.env` (solo si `.gitignore` ignora `.env`), y `Check` verifica qué claves tienen valor sin leer ni mostrar secretos.
+- Sensor de higiene (`ProjectHygiene.psm1`): avisa cuando se acumulan más de 25 referencias internas de Codex en `refs/codex/turn-diffs/`.
+- Detección automática de escritor único (Protocolo 5): `ActivityLog.psm1` (`Get-AgentOpsConcurrentWriters`) y `SessionStart.psm1` avisan al iniciar sesión si otro arnés escribió recientemente en el mismo proyecto (últimos 15 min) sin crear archivos extra en `.context/`.
 
 ### Fixed
 - `run-tests.ps1 -Changed` (`Get-AgentOpsSuitesForChanges`) ahora incluye automáticamente `repo-hygiene` cuando cambia cualquier `.ps1` o `.psm1` bajo `scripts/`.
-### Added
-- Flujo seguro `.env` para pedir credenciales fuera del chat (`EnvRequest.psm1`, `request-env.ps1`): `Prepare` crea/completa `.env.example` y `.env` (solo si `.gitignore` ignora `.env`), y `Check` verifica qué claves tienen valor sin leer ni mostrar secretos.
-### Added
-- Sensor de higiene (`ProjectHygiene.psm1`): avisa cuando se acumulan más de 25 referencias internas de Codex en `refs/codex/turn-diffs/`.
-### Added
-- Detección automática de escritor único (Protocolo 5): `ActivityLog.psm1` (`Get-AgentOpsConcurrentWriters`) y `SessionStart.psm1` avisan al iniciar sesión si otro arnés escribió recientemente en el mismo proyecto (últimos 15 min) sin crear archivos extra en `.context/`.
 
 ## [3.22.0] - 2026-11-25
 ### Changed
@@ -121,7 +120,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Fixed
 - La prueba de recuperación tras un cierre brusco da 60 s (antes 20) al proceso simulado: con el equipo cargado fallaba sin que hubiera error.
-
-## [3.14.0] - 2026-11-24
-### Added
-- Sensor de higiene del proyecto (`scripts/project-hygiene.ps1`, solo lectura): al empezar la sesión avisa de copias de skills del hub dentro del proyecto (idénticas o distintas), archivos provisionales con más de 7 días en `scratch/`, `tmp/` o `.tmp/` y gobernanza sin guardar en el historial. Nunca borra ni cambia nada; la decisión es del usuario en cada proyecto.

@@ -1,5 +1,9 @@
 # Historial de versiones anteriores: ops-session-handoff
 
+## [2.4.0] - 2026-11-23
+### Changed
+- El reporte de entrada y el relevo citan cada regla con el texto literal de su línea `Regla:`, no solo su ID, para entenderla sin abrir `reglas_proyecto.md`.
+
 ## [2.3.0] - 2026-11-20
 ### Added
 - Punto de control por paso con `-Request`, la petición literal del usuario, para retomar desde cualquier arnés con terminal. La reanudación devuelve `UserRequests` y lee también Antigravity.
