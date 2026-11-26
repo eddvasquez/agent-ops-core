@@ -94,7 +94,7 @@ Test 'a new AGENTS.md is a managed block and the framework version is recorded' 
 }
 Test 'an unedited managed block is updated automatically and the text outside it is kept byte for byte' {
     $f=Fixture;$agents=Join-Path $f.ProjectPath 'AGENTS.md'
-    $before="# Reglas de Kavan`r`n- No afirmar rentabilidad garantizada.`r`n`r`n"
+    $before="# Reglas de Ejemplo`r`n- No afirmar rentabilidad garantizada.`r`n`r`n"
     $after="`r`n`r`n## Notas propias`r`n- Tutear siempre.`r`n"
     [IO.File]::WriteAllText($agents,$before+(Block 'Protocolos antiguos del marco')+$after)
     $r=Invoke-ProjectMigration @f -Mode Apply
@@ -197,7 +197,7 @@ Test 'a project without Git gets no hook actions' {
 Test 'rollback returns every file of the project to its exact previous state' {
     $f=Fixture;$ctx=Join-Path $f.ProjectPath '.context';[IO.Directory]::CreateDirectory($ctx)|Out-Null
     [IO.File]::WriteAllText((Join-Path $ctx 'systemPatterns.md'),'patrones propios')
-    [IO.File]::WriteAllText((Join-Path $f.ProjectPath 'landing.html'),'<h1>Kavan</h1>')
+    [IO.File]::WriteAllText((Join-Path $f.ProjectPath 'landing.html'),'<h1>Ejemplo</h1>')
     $before=Snapshot $f.ProjectPath
     $r=Invoke-ProjectMigration @f -Mode Apply
     Assert ($r.Code -eq 0 -and $r.JournalId) ($r|ConvertTo-Json -Depth 4)

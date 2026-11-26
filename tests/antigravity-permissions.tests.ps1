@@ -38,7 +38,7 @@ function Grants($p){([IO.File]::ReadAllText($p.Config)|ConvertFrom-Json).userSet
 function Install($p){Install-AgentOpsAntigravityPermissions -ConfigPath $p.Config -HomeDir $p.Home -BackupDir $p.Backups}
 
 Test 'paths are written the way Antigravity reads them on Windows' {
-    Assert ((Convert-AgentOpsAntigravityPath 'C:\Users\PC\.ssh') -eq '/Users/PC/.ssh') (Convert-AgentOpsAntigravityPath 'C:\Users\PC\.ssh')
+    Assert ((Convert-AgentOpsAntigravityPath 'C:\Users\example\.ssh') -eq '/Users/example/.ssh') (Convert-AgentOpsAntigravityPath 'C:\Users\example\.ssh')
     Assert ((Convert-AgentOpsAntigravityPath 'D:\x\y\') -eq '/x/y') 'Trailing separator or drive kept'
 }
 Test 'only the credential folders that exist get an ask rule; the user rules stay as they were' {

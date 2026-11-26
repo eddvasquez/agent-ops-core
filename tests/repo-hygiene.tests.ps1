@@ -127,5 +127,16 @@ if(-not $gate){$failures.Add('ci: no job keeps the required check names "test (p
 elseif($gate -match '(?m)^    needs:' -and ($gate -notmatch 'if: always\(\)' -or $gate -notmatch "needs\.[a-z-]+\.result")){$failures.Add('ci: the required checks must run always and fail unless every part succeeded (a skipped job counts as passed)')}
 if($failures.Count -eq $before){$passed++;Write-Host 'PASS CI runs every suite and part, counts every exit code and keeps the required checks honest'}
 
+# 8. Public repository privacy: no private client/project names, personal emails or real user paths in tracked files.
+$before=$failures.Count
+$privacyPattern='Kav[a]n|Villas de Tosk[a]na|Arv[e]nda|ecov[a]cs|@gma[i]l\.com|C:\\Users\\P[C]'
+foreach($f in @($tracked|Where-Object {$_ -notmatch '\.(png|jpg|exe|dll|zip)$'})){
+    $p=Join-Path $source $f
+    if(-not [IO.File]::Exists($p)){continue}
+    $text=[IO.File]::ReadAllText($p,[Text.Encoding]::UTF8)
+    if($text -match $privacyPattern){$failures.Add("privacy: $f contains a private project name, personal email or local user path ($($Matches[0]))")}
+}
+if($failures.Count -eq $before){$passed++;Write-Host 'PASS tracked files contain no private project names, personal emails or local user paths'}
+
 if($failures.Count){$failures|ForEach-Object {Write-Host "FAIL $_"};Write-Host "Repository hygiene: $passed passed, $($failures.Count) failures.";exit 1}
 Write-Host "Repository hygiene: $passed passed."

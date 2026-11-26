@@ -12,7 +12,7 @@ $utf8=New-Object Text.UTF8Encoding($false)
 function Assert($c,$m){if(-not $c){throw $m}}
 function Test($n,[scriptblock]$b){try{& $b;$script:passed++;Write-Host "PASS $n"}catch{$script:failed++;Write-Host "FAIL $n : $_"}}
 function Repo([switch]$Unborn){
-    $r=Join-Path $script:base ('Kavan - Villas de Toskana '+[guid]::NewGuid().ToString('N').Substring(0,6))
+    $r=Join-Path $script:base ('Proyecto Ejemplo '+[guid]::NewGuid().ToString('N').Substring(0,6))
     [IO.Directory]::CreateDirectory($r)|Out-Null
     & git init -q -b main $r
     & git -C $r config user.name 'Tests'
