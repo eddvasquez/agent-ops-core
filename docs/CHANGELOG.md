@@ -6,6 +6,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 ### Changed
+- `plugin.hooks` de Codex queda «esperando»: Codex no ofrece orden de terminal para instalar plugins locales (solo desde la app / `/plugins`); se mantienen las entradas sueltas en `~/.codex/hooks.json`.
 - `browser.allowlist` de Antigravity queda «descartada»: el navegador ya pregunta por defecto antes de abrir sitios o descargar archivos, y la lista de sitios permitidos la decide cada usuario desde Settings > Browser.
 
 ### Added

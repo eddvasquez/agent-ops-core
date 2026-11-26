@@ -185,10 +185,10 @@
         },
         {
           "Id": "plugin.hooks",
-          "Status": "pendiente",
+          "Status": "esperando",
           "Doc": "https://learn.chatgpt.com/docs/hooks",
-          "VerifiedAt": "2026-11-23",
-          "Fallback": "Instalación de hooks por la migración"
+          "VerifiedAt": "2026-11-25",
+          "Fallback": "Entradas sueltas en ~/.codex/hooks.json; Codex solo instala plugins locales desde la app"
         }
       ],
       "VersionCommand": "codex"
