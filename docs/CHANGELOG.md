@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.21.0] - 2026-11-25
 ### Changed
 - `plugin.hooks` de Codex queda «esperando»: Codex no ofrece orden de terminal para instalar plugins locales (solo desde la app / `/plugins`); se mantienen las entradas sueltas en `~/.codex/hooks.json`.
 - `browser.allowlist` de Antigravity queda «descartada»: el navegador ya pregunta por defecto antes de abrir sitios o descargar archivos, y la lista de sitios permitidos la decide cada usuario desde Settings > Browser.
@@ -114,8 +116,3 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Fixed
 - Las pruebas ya no comparten los bloqueos de sistema con la instalación real del equipo: cada suite usa su propio espacio de nombres (`AGENT_OPS_LOCK_NAMESPACE`, fijado por `tests/TestFixtures.ps1`), así que ni las pruebas fallan ni la instalación responde «ocupado» mientras corren. Los procesos reales conservan exactamente los mismos nombres.
 - La comprobación al terminar el turno lee y escribe UTF-8 directamente: en Windows PowerShell 5.1 los acentos del aviso salían rotos y una entrada con marca BOM hacía que dejara terminar sin comprobar.
-
-## [3.13.0] - 2026-11-24
-### Added
-- Comprobación al terminar el turno (piloto en el repositorio del marco): un hook Stop común a Claude Code, Codex y Antigravity devuelve al agente a trabajar si hay cambios de código sin pruebas en verde de ese mismo estado. La evidencia la registra scripts/run-tests.ps1, no el agente; como mucho dos devoluciones seguidas por sesión. Se instala con scripts/install-turn-gate.ps1 en archivos locales que no se publican. Primera capacidad de la tabla de arneses que pasa a «aprovechada».
-- .gitignore excluye la configuración local de los arneses (.claude/settings.local.json, .codex/, .agents/).

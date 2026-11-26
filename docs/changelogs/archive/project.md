@@ -1,5 +1,10 @@
 # Historial de versiones anteriores
 
+## [3.13.0] - 2026-11-24
+### Added
+- Comprobación al terminar el turno (piloto en el repositorio del marco): un hook Stop común a Claude Code, Codex y Antigravity devuelve al agente a trabajar si hay cambios de código sin pruebas en verde de ese mismo estado. La evidencia la registra scripts/run-tests.ps1, no el agente; como mucho dos devoluciones seguidas por sesión. Se instala con scripts/install-turn-gate.ps1 en archivos locales que no se publican. Primera capacidad de la tabla de arneses que pasa a «aprovechada».
+- .gitignore excluye la configuración local de los arneses (.claude/settings.local.json, .codex/, .agents/).
+
 ## [3.12.0] - 2026-11-24
 ### Added
 - Radar de arneses, tercera fase: `-Action Evaluate` prepara en `docs/radar/` el informe de cada novedad (fuentes oficiales y capacidades relacionadas); `-Action Ack -Report` solo la cierra con un veredicto válido (APROVECHAR, ESPERAR, DESCARTAR o YA CUBIERTO) y lo registra; `-Action Coverage` muestra cuántas capacidades de cada arnés se aprovechan; las novedades sin decisión durante más de 14 días lo dicen en su aviso.
