@@ -106,6 +106,18 @@ Test 'after a cut session the start notice says what it did since its last check
     $b=Get-AgentOpsSessionBrief -ProjectPath $p -StateDir $s
     Assert ($b -match 'tocó 1 archivo' -and $b -match 'scripts/a\.ps1' -and $b -match '1 ejecución de pruebas' -and $b -match '1 en rojo') $b
 }
+Test 'concurrent writers from another harness within the window are detected and reported at session start' {
+    Import-Module (Join-Path $source 'scripts/SessionStart.psm1') -Force
+    $p=Governed;$s=NewDir 'state'
+    & git init -q -b main $p;& git -C $p config user.name T;& git -C $p config user.email t@localhost;& git -C $p add -A;& git -C $p commit -q --no-verify -m base
+    Add-AgentOpsActivity -StateDir $s -Harness claude -Event (@{cwd=$p;tool_name='Edit';tool_input=@{file_path=(Join-Path $p 'scripts/a.ps1')}}|ConvertTo-Json -Compress)
+    $cw=Get-AgentOpsConcurrentWriters -StateDir $s -ProjectPath $p -CurrentHarness 'antigravity' -WindowMinutes 15
+    Assert ($cw.Detected -and (@($cw.Harnesses) -contains 'claude') -and (@($cw.Files) -contains 'scripts/a.ps1')) ($cw|ConvertTo-Json -Depth 4)
+    $same=Get-AgentOpsConcurrentWriters -StateDir $s -ProjectPath $p -CurrentHarness 'claude' -WindowMinutes 15
+    Assert (-not $same.Detected) 'Same harness must not trigger concurrent writer warning'
+    $b=Get-AgentOpsSessionBrief -ProjectPath $p -StateDir $s -Harness 'antigravity'
+    Assert ($b -match 'escritor' -and $b -match 'claude' -and $b -match 'scripts/a\.ps1') $b
+}
 Write-Host "Activity log: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

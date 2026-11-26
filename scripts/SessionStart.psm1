@@ -73,7 +73,8 @@ function Get-AgentOpsSessionBrief {
     [CmdletBinding()]
     param([Parameter(Mandatory=$true)][string]$ProjectPath,
           [string]$StateDir=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'}),
-          [ValidateSet('startup','resume','clear','compact','fork')][string]$Source='startup')
+          [ValidateSet('startup','resume','clear','compact','fork')][string]$Source='startup',
+          [string]$Harness='')
     $root=Ss-Root $ProjectPath
     if(-not (Ss-Governed $root)){return ''}
     $out=New-Object Collections.Generic.List[string]
@@ -93,6 +94,14 @@ function Get-AgentOpsSessionBrief {
         $did=Ss-SinceCheckpoint $root $StateDir;if($did){$facts.Add($did)}
     }
     if(Ss-PendingUpdate $StateDir){$facts.Add('- Hay una actualización verificada del marco pendiente de decisión: preséntala en el Paso 0.')}
+    try{
+        if(-not (Get-Module ActivityLog)){Import-Module (Join-Path $PSScriptRoot 'ActivityLog.psm1') -Force}
+        $cw=Get-AgentOpsConcurrentWriters -StateDir $StateDir -ProjectPath $root -CurrentHarness $Harness -WindowMinutes 15
+        if($cw.Detected){
+            $cFiles=@($cw.Files|Select-Object -First 4) -join ', '
+            $facts.Add("- Aviso de escritor único (Protocolo 5): otro arnés ($($cw.Harnesses -join ', ')) escribió recientemente en este proyecto (hace $($cw.MinutesAgo) min: $cFiles). Confirma con el usuario antes de modificar archivos.")
+        }
+    }catch{}
     if($facts.Count -and $Source -ne 'compact'){$out.Add('Estado local (sin red; si discrepa con Git, prevalece Git):');foreach($f in $facts){$out.Add($f)}}
     if($Source -eq 'compact'){
         $used=($out -join "`n").Length

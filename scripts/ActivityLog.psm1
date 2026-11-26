@@ -81,4 +81,33 @@ function Get-AgentOpsActivitySummary {
     $res.Files=@($files)
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function Get-AgentOpsActivityPath,Add-AgentOpsActivity,Get-AgentOpsActivitySummary
+function Get-AgentOpsConcurrentWriters {
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true)][string]$StateDir,[Parameter(Mandatory=$true)][string]$ProjectPath,
+          [int]$WindowMinutes=15,[string]$CurrentHarness='')
+    $res=[ordered]@{Detected=$false;Harnesses=@();Files=@();MinutesAgo=$null}
+    $path=Get-AgentOpsActivityPath -StateDir $StateDir -ProjectPath $ProjectPath
+    if(-not [IO.File]::Exists($path)){return [pscustomobject]$res}
+    $now=[datetime]::UtcNow;$cutoff=$now.AddMinutes(-$WindowMinutes)
+    $others=@{};$files=New-Object Collections.Generic.List[string];$latest=[datetime]::MinValue
+    foreach($raw in [IO.File]::ReadAllLines($path)){
+        if(-not $raw.Trim()){continue}
+        try{$l=$raw|ConvertFrom-Json}catch{continue}
+        if(-not @($l.Files).Count){continue}
+        $at=$(if($l.At -is [datetime]){$l.At.ToUniversalTime()}else{[datetime]::Parse([string]$l.At,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()})
+        if($at -lt $cutoff){continue}
+        $h=[string]$l.Harness
+        if($CurrentHarness -and $h -eq $CurrentHarness){continue}
+        $others[$h]=$true
+        if($at -gt $latest){$latest=$at}
+        foreach($f in @($l.Files)){if($f -and -not $files.Contains([string]$f)){$files.Add([string]$f)}}
+    }
+    if($CurrentHarness){$res.Detected=($others.Count -gt 0)}else{$res.Detected=($others.Count -gt 1)}
+    if($res.Detected){
+        $res.Harnesses=@($others.Keys|Sort-Object)
+        $res.Files=@($files)
+        $res.MinutesAgo=[Math]::Max(0,[int][Math]::Round(($now-$latest).TotalMinutes))
+    }
+    return [pscustomobject]$res
+}
+Export-ModuleMember -Function Get-AgentOpsActivityPath,Add-AgentOpsActivity,Get-AgentOpsActivitySummary,Get-AgentOpsConcurrentWriters

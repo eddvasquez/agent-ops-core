@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Detección automática de escritor único (Protocolo 5): `ActivityLog.psm1` (`Get-AgentOpsConcurrentWriters`) y `SessionStart.psm1` avisan al iniciar sesión si otro arnés escribió recientemente en el mismo proyecto (últimos 15 min) sin crear archivos extra en `.context/`.
 
 ## [3.22.0] - 2026-11-25
 ### Changed
