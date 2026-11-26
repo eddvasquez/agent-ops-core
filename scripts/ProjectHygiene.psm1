@@ -62,12 +62,35 @@ function Get-AgentOpsProjectHygiene {
 
         # 3. Governance not saved in history (only for Git projects, and only what the project does not ignore).
         $top=Invoke-Git $root @('rev-parse','--show-toplevel') -AllowFailure
-        if($top.ExitCode -eq 0 -and [IO.Path]::GetFullPath(($top.Output.Trim() -replace '/','\')).TrimEnd('\') -eq $root.TrimEnd('\')){
+        $isGit=($top.ExitCode -eq 0 -and [IO.Path]::GetFullPath(($top.Output.Trim() -replace '/','\')).TrimEnd('\') -eq $root.TrimEnd('\'))
+        if($isGit){
             $raw=(Invoke-Git $root (@('--no-optional-locks','-c','core.quotePath=false','status','--porcelain=v1','-z','--untracked-files=all','--')+$script:governance)).Output
             $unsaved=@(@($raw -split "`0")|Where-Object {$_.Length -gt 3}|ForEach-Object {$_.Substring(3)}|Sort-Object -Unique)
             if($unsaved.Count){
                 $res.Findings+=Ph-Finding 'unsaved-governance' "Hay $(Ph-Count $unsaved.Count 'archivo de gobernanza' 'archivos de gobernanza') sin guardar en el historial; si el equipo falla o se cambia de carpeta, se pierden." 'Guárdalos con la herramienta de commit del marco en la sesión de este proyecto.' $unsaved
             }
+        }
+
+        # 4. Old backups, dumps, state files and unreferenced leftovers (WSTG-CONF-03, read-only).
+        $skipRe='(^|/)(\.git|node_modules|\.venv|venv|vendor|scratch|tmp|\.tmp|__pycache__)(/|$)'
+        $webRe='^(web|public|www|dist|build)/'
+        $candidates=@()
+        foreach($f in @(Get-ChildItem -LiteralPath $root -Recurse -Force -File -ErrorAction SilentlyContinue)){
+            $rel=$f.FullName.Substring($root.Length).TrimStart('\').Replace('\','/')
+            if($rel -match $skipRe){continue}
+            $isSql=($rel -match '\.sql$' -and ($rel -notmatch '^(?:.*/)?(?:db/)?(?:migrations?|schema|seeds?)/' -or $rel -match '(?i)(dump|backup)'))
+            $isBak=($rel -match '\.(bak|old|orig|save|swp|swo|dump|tfstate|tfstate\.backup|kdbx)$' -or $rel -match '~$' -or $rel -match '(?i)(^|/)\.htpasswd$')
+            $isDiag=($rel -match '(?i)(^|/)(phpinfo\.php|debug\.log|error_log)$')
+            if(-not ($isSql -or $isBak -or $isDiag)){continue}
+            if($isGit -and $rel -notmatch $webRe){
+                $ig=Invoke-Git $root @('check-ignore','-q','--',$rel) -AllowFailure
+                if($ig.ExitCode -eq 0){continue}
+            }
+            $candidates+=$rel
+        }
+        $candidates=@($candidates|Sort-Object -Unique)
+        if($candidates.Count){
+            $res.Findings+=Ph-Finding 'backup-or-unreferenced' "Hay $(Ph-Count $candidates.Count 'copia de respaldo o resto sensible olvidado' 'copias de respaldo o restos sensibles olvidados') en el proyecto." 'Revisa estas rutas: borra las copias que ya no sirvan o muevelas fuera del proyecto (y fuera de carpetas web).' $candidates
         }
         if(@($res.Findings).Count){$res.Status='FINDINGS';$res.Lines=@($res.Findings|ForEach-Object {"Higiene del proyecto: $($_.Message)"})}
     }catch{$res.Code=1;$res.Status='FAILED';$res.Issues=@($_.Exception.Message)}

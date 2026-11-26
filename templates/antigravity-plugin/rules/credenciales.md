@@ -1,6 +1,6 @@
 ---
 trigger: glob
-globs: "**/.env, **/.env.local, **/.env.*.local, **/.env.production, **/*.pem, **/*.key, **/*.pfx, **/*.p12, **/id_rsa*, **/id_ed25519*, **/google-ads.yaml, **/google-ads.yml, **/*.tfstate, **/*.tfvars"
+globs: "**/.env, **/.env.local, **/.env.*.local, **/.env.production, **/.env.bak, **/*.pem, **/*.key, **/*.pfx, **/*.p12, **/*.kdbx, **/.htpasswd, **/id_rsa*, **/id_ed25519*, **/google-ads.yaml, **/google-ads.yml, **/*.tfstate, **/*.tfstate.backup, **/*.tfvars, **/wp-config.php.bak, **/wp-config.php~"
 description: Archivos de credenciales (Agent Ops Core)
 ---
 

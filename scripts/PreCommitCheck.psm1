@@ -6,6 +6,7 @@
 Import-Module (Join-Path $PSScriptRoot 'NativeProcess.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Versioning.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'SecretScan.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'SecretGuard.psm1') -Force
 $script:marker='agent-ops:pre-commit'
 $script:hookVersion='1'
 $script:shim="#!/bin/sh`n# $($script:marker) v$($script:hookVersion)`n# Managed by Agent Ops: automatic review before each commit.`nif command -v powershell.exe >/dev/null 2>&1; then ps=powershell.exe; else ps=pwsh; fi`nexec `"`$ps`" -NoProfile -ExecutionPolicy Bypass -File `"`$(dirname `"`$0`")/agent-ops-pre-commit.ps1`"`n"
@@ -53,6 +54,21 @@ function Test-AgentOpsPreCommit {
         }
         foreach($f in ($flagged.Keys|Sort-Object)){
             $issues+=Pc-Issue 'secrets' $f "Posible contraseña o clave en una línea nueva de $f." 'Quita la clave del archivo y guárdala fuera del proyecto (por ejemplo, en una variable de entorno). Si ya se compartió, cámbiala o revócala en el servicio.'
+        }
+        $stagedRaw=(Invoke-Git $root @('-c','core.quotePath=false','diff','--cached','--name-only','--diff-filter=ACMR','-z')).Output
+        foreach($sf in @($stagedRaw -split "`0"|Where-Object {$_}|Sort-Object -Unique)){
+            $norm=$sf -replace '\\','/'
+            if(Test-AgentOpsSecretPath $norm){
+                $issues+=Pc-Issue 'sensitive-file' $sf "Archivo de credenciales o estado sensible preparado en $sf." "Sacalo del guardado (git restore --staged `"$sf`"), anadelo a .gitignore o guardalo fuera del proyecto."
+                continue
+            }
+            $isSql=($norm -match '\.sql$' -and ($norm -notmatch '^(?:.*/)?(?:db/)?(?:migrations?|schema|seeds?)/' -or $norm -match '(?i)(dump|backup)'))
+            $isBak=($norm -match '\.(bak|old|orig|save|swp|swo|dump|sqlite|sqlite3|db)$' -or $norm -match '~$')
+            $isArchive=($norm -match '(?i)(^|/)(.*(backup|dump).*|site|web|www|db)\.(zip|tar|tar\.gz|tgz|rar|7z)$')
+            $isDiag=($norm -match '(?i)(^|/)(phpinfo\.php|debug\.log|error_log)$')
+            if($isSql -or $isBak -or $isArchive -or $isDiag){
+                $issues+=Pc-Issue 'backup-file' $sf "Archivo de respaldo, volcado o diagnostico preparado en $sf." "Sacalo del guardado (git restore --staged `"$sf`"), borralo si no sirve o anadelo a .gitignore."
+            }
         }
     }catch{$issues+=Pc-Issue 'error' $null $_.Exception.Message 'Revisa que la carpeta sea un repositorio Git válido y vuelve a intentarlo.'}
     $blocked=@($issues).Count -gt 0

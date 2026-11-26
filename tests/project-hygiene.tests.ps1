@@ -94,6 +94,19 @@ Test 'the entry script returns JSON with code 0 even when there are findings' {
     $json=& $engine -NoProfile -ExecutionPolicy Bypass -File (Join-Path $source 'scripts/project-hygiene.ps1') -ProjectPath $p -HubDir $h|Out-String
     Assert ($LASTEXITCODE -eq 0 -and ($json|ConvertFrom-Json).Status -eq 'FINDINGS') $json
 }
+Test 'backup and unreferenced files are reported while node_modules and sql migrations are ignored' {
+    $h=Hub;$p=GitProject
+    Put $p '.gitignore' "web/dump.sql`n"|Out-Null;& git -C $p add .gitignore;& git -C $p commit -q --no-verify -m ig
+    Put $p 'config.bak' 'x'|Out-Null
+    Put $p 'web/dump.sql' 'SELECT 1;'|Out-Null
+    Put $p 'migrations/001_init.sql' 'CREATE TABLE t(id int);'|Out-Null
+    Put $p 'node_modules/pkg/test.bak' 'x'|Out-Null
+    $r=Get-AgentOpsProjectHygiene -ProjectPath $p -HubDir $h
+    $f=@($r.Findings|Where-Object {$_.Kind -eq 'backup-or-unreferenced'})
+    Assert ($r.Status -eq 'FINDINGS' -and $f.Count -eq 1) ($r|ConvertTo-Json -Depth 5)
+    Assert (@($f[0].Paths) -contains 'config.bak' -and @($f[0].Paths) -contains 'web/dump.sql') ($f|ConvertTo-Json -Depth 5)
+    Assert (@($f[0].Paths) -notcontains 'migrations/001_init.sql' -and @($f[0].Paths) -notcontains 'node_modules/pkg/test.bak') ($f|ConvertTo-Json -Depth 5)
+}
 Write-Host "Project hygiene: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

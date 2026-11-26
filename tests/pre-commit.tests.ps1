@@ -135,6 +135,20 @@ Test 'the credential pattern is the same one the public release policy uses' {
     $coordinator=[IO.File]::ReadAllText((Join-Path $source 'scripts/UpdateCoordinator.psm1'))
     Assert ($coordinator.Contains("-match '$pattern'")) 'UpdateCoordinator.psm1 uses a different credential pattern'
 }
+Test 'staged backup, dump and credential file paths are blocked; examples and sql migrations pass' {
+    foreach($bad in '.env','terraform.tfstate','config.php.bak','dump.sql','notes.swp','backup.zip','phpinfo.php'){
+        $r=Repo;Put $r $bad 'dato';Put $r 'CHANGELOG.md' "# Changelog`n`n## [Unreleased]`n- Cambio.`n"
+        & git -C $r add -- $bad CHANGELOG.md
+        $res=Test-AgentOpsPreCommit -RepositoryPath $r
+        Assert ($res.Code -eq 1 -and $res.Status -eq 'BLOCKED' -and (@($res.Issues|Where-Object {$_.File -eq $bad}).Count -ge 1)) ("Should block staged path ${bad}: "+($res|ConvertTo-Json -Depth 5))
+    }
+    foreach($ok in '.env.example','migrations/001_init.sql','assets/logo.png'){
+        $r=Repo;Put $r $ok 'dato';Put $r 'CHANGELOG.md' "# Changelog`n`n## [Unreleased]`n- Cambio.`n"
+        & git -C $r add -- $ok CHANGELOG.md
+        $res=Test-AgentOpsPreCommit -RepositoryPath $r
+        Assert ($res.Code -eq 0 -and $res.Status -eq 'PASSED') ("Should allow staged path ${ok}: "+($res|ConvertTo-Json -Depth 5))
+    }
+}
 Write-Host "Pre-commit review:$script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

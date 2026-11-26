@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Controles OWASP WSTG-CONF-03 de defensa en capas: análisis AppSec en `docs/analisis-owasp-wstg-conf-03.md`; cobertura de `.tfstate`, `.tfvars`, `.kdbx`, `.htpasswd` y respaldos de secretos en `SecretGuard.psm1` y `templates/antigravity-plugin/rules/credenciales.md`; bloqueo de rutas staged sensibles, respaldos y volcados en `PreCommitCheck.psm1` (respetando migraciones SQL legítimas); detección pasiva de copias olvidadas en `ProjectHygiene.psm1`; y nueva auditoría pre-despliegue de solo lectura (`DeployAudit.psm1`, `check-deploy.ps1`).
 
 ## [3.21.0] - 2026-11-25
 ### Changed

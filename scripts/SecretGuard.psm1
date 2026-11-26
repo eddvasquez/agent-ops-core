@@ -5,8 +5,22 @@
 Import-Module (Join-Path $PSScriptRoot 'HookIO.psm1') -Force
 $script:examples='^\.env\.(example|sample|template|dist)$'
 $script:dataExt='^(json|ya?ml|toml|ini|cfg|conf|env|txt|xml|properties)$'
-$script:keyExt='^(pem|key|pfx|p12|jks|keystore)$'
-$script:names='^(google-ads\.ya?ml|\.npmrc|\.pypirc|\.netrc|\.git-credentials|token\.json)$'
+$script:keyExt='^(pem|key|pfx|p12|jks|keystore|kdbx)$'
+$script:names='^(google-ads\.ya?ml|\.npmrc|\.pypirc|\.netrc|\.git-credentials|\.htpasswd|token\.json)$'
+$script:stateExt='^(tfstate|tfvars)$'
+$script:backupSuffix='(\.(bak|old|orig|save|swp|swo|backup)|~)$'
+
+function Sg-IsSecretName([string]$name,[bool]$hadBackup){
+    if(-not $name -or $name -match $script:examples){return $false}
+    if($hadBackup -and $name -eq 'wp-config.php'){return $true}
+    if($name -eq '.env' -or $name.StartsWith('.env.')){return $true}
+    if($name -match $script:names){return $true}
+    if($name -match '^id_(rsa|dsa|ecdsa|ed25519)(\.pub)?$'){return $true}
+    $ext=$(if($name.Contains('.')){$name.Substring($name.LastIndexOf('.')+1)}else{''})
+    if($ext -match $script:keyExt -or $ext -match $script:stateExt){return $true}
+    if($name -match 'credential|secret' -and ($ext -eq '' -or $ext -match $script:dataExt)){return $true}
+    return $false
+}
 
 function Test-AgentOpsSecretPath {
     [CmdletBinding()]
@@ -14,12 +28,11 @@ function Test-AgentOpsSecretPath {
     if(-not $Path){return $false}
     $name=(($Path.Trim().TrimEnd('\','/')) -split '[\\/]')[-1].ToLowerInvariant()
     if(-not $name -or $name -match $script:examples){return $false}
-    if($name -eq '.env' -or $name.StartsWith('.env.')){return $true}
-    if($name -match $script:names){return $true}
-    if($name -match '^id_(rsa|dsa|ecdsa|ed25519)(\.pub)?$'){return $true}
-    $ext=$(if($name.Contains('.')){$name.Substring($name.LastIndexOf('.')+1)}else{''})
-    if($ext -match $script:keyExt){return $true}
-    if($name -match 'credential|secret' -and ($ext -eq '' -or $ext -match $script:dataExt)){return $true}
+    if(Sg-IsSecretName $name $false){return $true}
+    if($name -match $script:backupSuffix){
+        $base=[regex]::Replace($name,$script:backupSuffix,'')
+        if($base -ne $name -and (Sg-IsSecretName $base $true)){return $true}
+    }
     return $false
 }
 
@@ -71,8 +84,8 @@ function Get-AgentOpsSecretDecision {
 # --- Per-user installation in the three harnesses -------------------------------------------------------
 # The shared launcher lives in HookIO (Install-AgentOpsHookLauncher).
 # Claude: one filtered handler per suspicious pattern, so ordinary actions never start a process.
-$script:pathGlobs=@('.env*','*secret*','*Secret*','*SECRET*','*credential*','*Credential*','*CREDENTIAL*','*.pem','*.key','*.pfx','*.p12','*.jks','*.keystore','id_rsa*','id_dsa*','id_ecdsa*','id_ed25519*','google-ads.y*ml','.npmrc','.pypirc','.netrc','token.json')
-$script:commandWords=@('.env','secret','Secret','SECRET','credential','Credential','CREDENTIAL','.pem','.key','.pfx','.p12','.jks','keystore','id_rsa','id_dsa','id_ecdsa','id_ed25519','google-ads','.npmrc','.pypirc','.netrc','token.json')
+$script:pathGlobs=@('.env*','*secret*','*Secret*','*SECRET*','*credential*','*Credential*','*CREDENTIAL*','*.pem','*.key','*.pfx','*.p12','*.jks','*.keystore','*.kdbx','*.tfstate*','*.tfvars','id_rsa*','id_dsa*','id_ecdsa*','id_ed25519*','google-ads.y*ml','.npmrc','.pypirc','.netrc','.htpasswd*','token.json','wp-config.php*')
+$script:commandWords=@('.env','secret','Secret','SECRET','credential','Credential','CREDENTIAL','.pem','.key','.pfx','.p12','.jks','keystore','.kdbx','.tfstate','.tfvars','id_rsa','id_dsa','id_ecdsa','id_ed25519','google-ads','.npmrc','.pypirc','.netrc','.htpasswd','token.json','wp-config.php')
 function Sg-ClaudeGroup([string]$launcher){
     $runArgs=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','secret-guard','-Harness','claude')
     $rules=@();foreach($g in $script:pathGlobs){$rules+="Read(//**/$g)";$rules+="Edit(//**/$g)"}

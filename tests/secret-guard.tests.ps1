@@ -29,10 +29,10 @@ function Hook([string]$harness,$event){
 }
 
 Test 'credential files are recognised; examples, code and documentation are not' {
-    foreach($p in '.env','C:\p\.env.production','config/credentials.json','client_secret_123.apps.json','secrets.yaml','server.pem','tls.key','cert.pfx','id_rsa','id_ed25519.pub','google-ads.yaml','.npmrc','.git-credentials','service-account-credentials.json'){
+    foreach($p in '.env','C:\p\.env.production','config/credentials.json','client_secret_123.apps.json','secrets.yaml','server.pem','tls.key','cert.pfx','id_rsa','id_ed25519.pub','google-ads.yaml','.npmrc','.git-credentials','service-account-credentials.json','terraform.tfstate','prod.tfvars','vault.kdbx','.htpasswd','.env.bak','secrets.yaml.old','terraform.tfstate.backup','wp-config.php.bak','wp-config.php~'){
         Assert (Test-AgentOpsSecretPath $p) "Not recognised as credential: $p"
     }
-    foreach($p in '.env.example','.env.sample','.env.template','scripts/SecretScan.psm1','docs/secrets.md','app.py','credentials_helper.py','README.md','environment.yml'){
+    foreach($p in '.env.example','.env.sample','.env.template','.env.dist','scripts/SecretScan.psm1','docs/secrets.md','app.py','credentials_helper.py','README.md','environment.yml','styles.css.map'){
         Assert (-not (Test-AgentOpsSecretPath $p)) "Wrongly taken for a credential: $p"
     }
 }
