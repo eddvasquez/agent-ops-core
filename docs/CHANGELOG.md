@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.24.0] - 2026-11-26
 ### Added
 - Aprendizaje gobernado, fase 3 (`record-usage.ps1`, `prune-skills.ps1`, `check-skill-catalog.ps1` en `LearningProposals.psm1`): telemetría híbrida Piso+Techo en `<hub>/proposals/usage.jsonl` con bloqueo Mutex y consolidación de copias `usage*.jsonl`, extractor en trazas (`Sync-SkillUsageFromTranscripts`), poda con guarda de arranque en frío y detección `hurt`, destinos `6` (`archivar` en `proposals/archived/`) y `7` (`fusionar`), e inspector dual (`Jaccard` + contención) con parser YAML multilínea entre hub y skills núcleo.
 - Aprendizaje gobernado, fase 2 (`triage-learnings.ps1`, `apply-proposal.ps1` en `LearningProposals.psm1`): triaje por recurrencia entre proyectos/sesiones, descarte con motivo, aplicación parcial por bloques aprobados, actualización de SemVer y changelog de skill.
