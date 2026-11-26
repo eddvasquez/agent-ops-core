@@ -136,4 +136,97 @@ function Get-LearningQueue {
              ActiveSkills=$skills.Count;SkillCeiling=$script:SkillCeiling;Issues=@()}
 }
 
-Export-ModuleMember -Function New-LearningCandidate,Test-LearningProposal,Get-LearningQueue
+function Invoke-LearningTriage {
+    param([Parameter(Mandatory=$true)][string]$HubPath,[string]$DiscardId='',[string]$Reason='')
+    if(-not [IO.Directory]::Exists($HubPath)){return @{Code=1;Status='FAILED';Issues=@("Hub no encontrado: $HubPath");Groups=@()}}
+    $inbox=Join-Path $HubPath 'proposals/inbox'
+    if($DiscardId){
+        $src=Join-Path $inbox "$DiscardId.md"
+        if(-not [IO.File]::Exists($src)){return @{Code=1;Status='FAILED';Issues=@("Candidata no encontrada: $src")}}
+        $rej=Join-Path $HubPath 'proposals/rejected';[IO.Directory]::CreateDirectory($rej)|Out-Null
+        $dst=Join-Path $rej "$DiscardId.md"
+        $txt=[IO.File]::ReadAllText($src,[Text.Encoding]::UTF8)+"`n- Motivo rechazo: $Reason`n"
+        [IO.File]::WriteAllText($dst,$txt,[Text.UTF8Encoding]::new($false))
+        Remove-Item -LiteralPath $src -Force
+        return @{Code=0;Status='DISCARDED';Id=$DiscardId;Path=$dst;Issues=@()}
+    }
+    $bySkill=@{}
+    if([IO.Directory]::Exists($inbox)){
+        foreach($f in @(Get-ChildItem -LiteralPath $inbox -Filter '*.md' -ErrorAction SilentlyContinue|Sort-Object Name)){
+            $p=Read-LearningProposal ([IO.File]::ReadAllText($f.FullName,[Text.Encoding]::UTF8))
+            $skill=if($p.Fields.ContainsKey('skill') -and $p.Fields['skill']){$p.Fields['skill']}else{'(sin asignar)'}
+            $proj=if($p.Fields.ContainsKey('proyecto')){$p.Fields['proyecto']}else{''}
+            $sig=if($p.Fields.ContainsKey('senal')){$p.Fields['senal']}else{''}
+            $dt=if($p.Fields.ContainsKey('fecha')){$p.Fields['fecha']}else{$f.BaseName}
+            if(-not $bySkill.ContainsKey($skill)){$bySkill[$skill]=@{Skill=$skill;Items=@();Projects=@();Sessions=@();Signals=@()}}
+            $bySkill[$skill].Items+=@($f.BaseName)
+            if($proj -and $bySkill[$skill].Projects -notcontains $proj){$bySkill[$skill].Projects+=@($proj)}
+            if($dt -and $bySkill[$skill].Sessions -notcontains $dt){$bySkill[$skill].Sessions+=@($dt)}
+            if($sig -and $bySkill[$skill].Signals -notcontains $sig){$bySkill[$skill].Signals+=@($sig)}
+        }
+    }
+    $groups=@(foreach($k in ($bySkill.Keys|Sort-Object)){
+        $g=$bySkill[$k]
+        $ready=($g.Projects.Count -ge 2) -or ($g.Sessions.Count -ge 3) -or ($k -ne '(sin asignar)' -and $g.Signals -contains 'correccion')
+        [pscustomobject]@{Skill=$k;Count=$g.Items.Count;Items=$g.Items;Projects=$g.Projects;Sessions=$g.Sessions;Signals=$g.Signals;Decision=$(if($ready){'READY_FOR_PROPOSAL'}else{'PROJECT_RULE_CANDIDATE'})}
+    })
+    return @{Code=0;Status='OK';Groups=$groups;Issues=@()}
+}
+
+function Invoke-LearningProposalApply {
+    param([Parameter(Mandatory=$true)][string]$HubPath,[Parameter(Mandatory=$true)][string]$Path,
+          [int[]]$ApprovedBlocks=@(),[switch]$Reject,[string]$Reason='')
+    if(-not [IO.File]::Exists($Path)){return @{Code=1;Status='FAILED';Issues=@("Ficha no encontrada: $Path")}}
+    $raw=[IO.File]::ReadAllText($Path,[Text.Encoding]::UTF8)
+    if($Reject){
+        $rej=Join-Path $HubPath 'proposals/rejected';[IO.Directory]::CreateDirectory($rej)|Out-Null
+        $dst=Join-Path $rej ([IO.Path]::GetFileName($Path))
+        [IO.File]::WriteAllText($dst,($raw+"`n- Motivo rechazo: $Reason`n"),[Text.UTF8Encoding]::new($false))
+        Remove-Item -LiteralPath $Path -Force
+        return @{Code=0;Status='REJECTED';Path=$dst;Issues=@()}
+    }
+    $v=Test-LearningProposal -Path $Path -HubPath $HubPath
+    if($v.Code -ne 0){return $v}
+    $p=Read-LearningProposal $raw
+    $change=Get-LearningSection $p 'Cambio'
+    $blockMatches=[regex]::Matches($change,'(?ms)^###\s+Bloque\s+(\d+)\s*\r?\n(.*?)(?=^###\s+Bloque\s+\d+|\z)')
+    $blocks=@{}
+    foreach($bm in $blockMatches){
+        $num=[int]$bm.Groups[1].Value;$body=$bm.Groups[2].Value
+        $before='';$after=''
+        if($body -match '(?ms)Antes:\s*\r?\n```[^\r\n]*\r?\n(.*?)\r?\n```'){$before=$Matches[1]}
+        if($body -match '(?ms)Despu[eé]s:\s*\r?\n```[^\r\n]*\r?\n(.*?)\r?\n```'){$after=$Matches[1]}
+        $blocks[$num]=@{Before=$before;After=$after}
+    }
+    if(-not $ApprovedBlocks.Count){return @{Code=2;Status='NO_BLOCKS_APPROVED';Issues=@('Especifica -ApprovedBlocks o -Reject.')}}
+    $skill=$v.Proposal.Skill
+    $skillMd=Join-Path $HubPath "$skill/SKILL.md"
+    if(-not [IO.File]::Exists($skillMd)){return @{Code=1;Status='FAILED';Issues=@("SKILL.md no encontrado: $skillMd")}}
+    $content=[IO.File]::ReadAllText($skillMd,[Text.Encoding]::UTF8)
+    foreach($b in $ApprovedBlocks){
+        if(-not $blocks.ContainsKey($b)){return @{Code=1;Status='PATCH_MISMATCH';Issues=@("Bloque $b no encontrado.")}}
+        $bef=$blocks[$b].Before
+        if(-not $bef -or -not $content.Contains($bef)){return @{Code=1;Status='PATCH_MISMATCH';Issues=@("Bloque $b no coincide en $skillMd.")}}
+        $content=$content.Replace($bef,$blocks[$b].After)
+    }
+    if($content -match '(?m)^version:\s*\d+\.\d+\.\d+'){
+        $content=[regex]::Replace($content,'(?m)^version:\s*\d+\.\d+\.\d+',"version: $($v.Proposal.To)",1)
+    }
+    [IO.File]::WriteAllText($skillMd,$content,[Text.UTF8Encoding]::new($false))
+    $clDir=Join-Path $HubPath 'changelogs';[IO.Directory]::CreateDirectory($clDir)|Out-Null
+    $clPath=Join-Path $clDir "$skill.md"
+    $why=(Get-LearningSection $p 'Por que');if(-not $why){$why=(Get-LearningSection $p 'Por qué')}
+    $entry="## [$($v.Proposal.To)] - $([datetime]::Now.ToString('yyyy-MM-dd'))`n### Changed`n- $why`n"
+    if([IO.File]::Exists($clPath)){
+        $clRaw=[IO.File]::ReadAllText($clPath,[Text.Encoding]::UTF8)
+        [IO.File]::WriteAllText($clPath,($clRaw+"`n"+$entry),[Text.UTF8Encoding]::new($false))
+    }else{
+        [IO.File]::WriteAllText($clPath,("# Changelog: $skill`n`n"+$entry),[Text.UTF8Encoding]::new($false))
+    }
+    $appDir=Join-Path $HubPath 'proposals/applied';[IO.Directory]::CreateDirectory($appDir)|Out-Null
+    $appPath=Join-Path $appDir ([IO.Path]::GetFileName($Path))
+    Move-Item -LiteralPath $Path -Destination $appPath -Force
+    return @{Code=0;Status='APPLIED';Skill=$skill;Version=$v.Proposal.To;AppliedBlocks=$ApprovedBlocks.Count;Path=$appPath;Issues=@()}
+}
+
+Export-ModuleMember -Function New-LearningCandidate,Test-LearningProposal,Get-LearningQueue,Invoke-LearningTriage,Invoke-LearningProposalApply

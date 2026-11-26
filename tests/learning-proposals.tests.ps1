@@ -149,6 +149,54 @@ Test 'the command-line wrappers return the same JSON contract and exit code' {
     Assert ($LASTEXITCODE -eq 0 -and ($out -join "`n"|ConvertFrom-Json).Inbox -eq 1) ($out -join "`n")
 }
 
+Test 'triage groups inbox candidates by skill, counts project recurrence and supports discarding' {
+    $hub=Hub
+    New-LearningCandidate -HubPath $hub -Signal patron -Project projA -Harness claude -Summary 'Regla X' -Evidence 'ev1' -Skill 'google-ads-media-buyer' -Now ([datetime]'2026-11-20T10:00:00')|Out-Null
+    New-LearningCandidate -HubPath $hub -Signal patron -Project projB -Harness codex -Summary 'Regla X' -Evidence 'ev2' -Skill 'google-ads-media-buyer' -Now ([datetime]'2026-11-21T10:00:00')|Out-Null
+    $c3=New-LearningCandidate -HubPath $hub -Signal fallo -Project projA -Harness claude -Summary 'Solo projA' -Evidence 'ev3' -Now ([datetime]'2026-11-22T10:00:00')
+    $t=Invoke-LearningTriage -HubPath $hub
+    $g=@($t.Groups|Where-Object {$_.Skill -eq 'google-ads-media-buyer'})
+    $single=@($t.Groups|Where-Object {$_.Skill -eq '(sin asignar)'})
+    Assert ($t.Code -eq 0 -and $g.Count -eq 1 -and $g[0].Projects.Count -eq 2 -and $g[0].Decision -eq 'READY_FOR_PROPOSAL') ($t|ConvertTo-Json -Depth 5)
+    Assert ($single.Count -eq 1 -and $single[0].Decision -eq 'PROJECT_RULE_CANDIDATE') ($t|ConvertTo-Json -Depth 5)
+    $d=Invoke-LearningTriage -HubPath $hub -DiscardId $c3.Id -Reason 'Caso aislado de projA'
+    Assert ($d.Code -eq 0 -and $d.Status -eq 'DISCARDED' -and -not (Test-Path $c3.Path) -and (Test-Path (Join-Path $hub "proposals/rejected/$($c3.Id).md"))) ($d|ConvertTo-Json -Depth 4)
+}
+Test 'apply-proposal applies only approved blocks, bumps SemVer, writes changelog and handles reject or mismatch' {
+    $hub=Hub
+    $skillMd=Join-Path $hub 'google-ads-media-buyer/SKILL.md'
+    [IO.File]::WriteAllText($skillMd,"---`nname: google-ads-media-buyer`nversion: 1.0.0`n---`nRegla uno.`nRegla dos.`n",[Text.UTF8Encoding]::new($false))
+    $pending=Join-Path $hub 'proposals/pending';[IO.Directory]::CreateDirectory($pending)|Out-Null
+    $propText=@(
+        '# Propuesta p1','',
+        '- Destino: 3','- Skill: google-ads-media-buyer','- Version: 1.0.0 -> 1.1.0','- Riesgo: bajo','- Tamano: +2 -2','',
+        '## Por que','Mejora verificada.','','## Evidencia','Caso real.','','## Cambio',
+        '### Bloque 1','Antes:','```','Regla uno.','```','Después:','```','Regla uno mejorada.','```','',
+        '### Bloque 2','Antes:','```','Regla dos.','```','Después:','```','Regla dos mejorada.','```','',
+        '## Solapamientos','Ninguno.','','## Alternativas descartadas','Nada.'
+    ) -join "`n"
+    $propPath=Join-Path $pending 'p1.md'
+    [IO.File]::WriteAllText($propPath,$propText,[Text.UTF8Encoding]::new($false))
+    $res=Invoke-LearningProposalApply -HubPath $hub -Path $propPath -ApprovedBlocks @(1)
+    Assert ($res.Code -eq 0 -and $res.Status -eq 'APPLIED' -and $res.AppliedBlocks -eq 1) ($res|ConvertTo-Json -Depth 4)
+    $updated=[IO.File]::ReadAllText($skillMd)
+    Assert ($updated -match 'version: 1\.1\.0' -and $updated -match 'Regla uno mejorada\.' -and $updated -match 'Regla dos\.' -and $updated -notmatch 'Regla dos mejorada\.') $updated
+    Assert (Test-Path (Join-Path $hub 'changelogs/google-ads-media-buyer.md')) 'Skill changelog missing'
+    Assert (-not (Test-Path $propPath) -and (Test-Path (Join-Path $hub 'proposals/applied/p1.md'))) 'Proposal not moved to applied'
+
+    $badPath=Join-Path $pending 'p2.md'
+    [IO.File]::WriteAllText($badPath,($propText -replace '1\.0\.0 -> 1\.1\.0','1.1.0 -> 1.2.0' -replace 'Regla uno\.','No existe en skill'),[Text.UTF8Encoding]::new($false))
+    $mm=Invoke-LearningProposalApply -HubPath $hub -Path $badPath -ApprovedBlocks @(1)
+    Assert ($mm.Code -eq 1 -and $mm.Status -eq 'PATCH_MISMATCH') ($mm|ConvertTo-Json -Depth 4)
+    $rej=Invoke-LearningProposalApply -HubPath $hub -Path $badPath -Reject -Reason 'No aplica'
+    Assert ($rej.Code -eq 0 -and $rej.Status -eq 'REJECTED' -and (Test-Path (Join-Path $hub 'proposals/rejected/p2.md'))) ($rej|ConvertTo-Json -Depth 4)
+}
+Test 'triage-learnings and apply-proposal CLI wrappers return JSON contract' {
+    $hub=Hub;$ps=(Get-Process -Id $PID).Path
+    New-LearningCandidate -HubPath $hub -Signal correccion -Project p1 -Harness claude -Summary 's1' -Evidence 'e1' -Skill 'google-ads-media-buyer'|Out-Null
+    $out=& $ps -NoProfile -ExecutionPolicy Bypass -File (Join-Path $source 'scripts/triage-learnings.ps1') -HubPath $hub
+    Assert ($LASTEXITCODE -eq 0 -and ($out -join "`n"|ConvertFrom-Json).Code -eq 0) ($out -join "`n")
+}
 Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "Passed: $passed Failed: $failed"
 if(-not $failed){Remove-TestFixtures $base}
