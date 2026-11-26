@@ -10,6 +10,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Aprendizaje gobernado, fase 2 (`triage-learnings.ps1`, `apply-proposal.ps1` en `LearningProposals.psm1`): triaje por recurrencia entre proyectos/sesiones, descarte con motivo, aplicación parcial por bloques aprobados, actualización de SemVer y changelog de skill.
 
 ### Changed
+- `ops-session-handoff` `2.14.0`: documenta en `references/aprendizaje.md` el registro híbrido de uso (`record-usage.ps1`), la poda sin borrado (`prune-skills.ps1`) y el inspector de catálogo (`check-skill-catalog.ps1`).
 - Sensores de uso y catálogo: `SessionStart.psm1` (`PostToolUse` `Skill` async en Claude Code), `post-tool-hook.ps1` (registro no bloqueante de uso), `TurnGate.psm1` (vigilancia de `skills/*/SKILL.md` → `repo-hygiene`) y `repo-hygiene.tests.ps1` (validación estructural estricta del catálogo núcleo).
 
 ## [3.23.0] - 2026-11-25

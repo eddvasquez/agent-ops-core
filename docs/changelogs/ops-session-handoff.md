@@ -4,6 +4,10 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-11-26
+### Added
+- `references/aprendizaje.md`: sección 6 documentando el registro híbrido de uso (`record-usage.ps1`), la poda sin borrado con destinos `6` (`archivar`) y `7` (`fusionar`) (`prune-skills.ps1`) y el inspector de catálogo (`check-skill-catalog.ps1`).
+
 ## [2.13.0] - 2026-11-25
 ### Changed
 - Esperas y trabajo en paralelo (R-018): nunca esperar pasivamente a que terminen pruebas o tareas en segundo plano; ofrecer siempre con botones qué siguiente tarea o diseño adelantar en paralelo (usando `ops-git-worktrees` si toca código).

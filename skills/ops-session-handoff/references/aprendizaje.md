@@ -63,4 +63,9 @@ Antes de presentarla: `& "$ActivePath/scripts/check-proposal.ps1" -Path <ficha>`
 - Por cada bloque: aprobar, ajustar, rechazar o aplazar. Lo rechazado se mueve a `proposals/rejected/` con su motivo, para no volver a proponerlo igual.
 
 ## 5. Aplicar
-Solo los bloques aprobados, en el hub: subir la versión SemVer de la skill, añadir la línea en `changelogs/<skill>.md` y hacer commit con `commit.ps1`. Mover la ficha a `proposals/applied/`. Propagar a máquinas y arneses (`sync-skills.ps1`) se confirma aparte.
+Solo los bloques aprobados, en el hub: subir la versión SemVer de la skill, añadir la línea en `changelogs/<skill>.md` y hacer commit con `commit.ps1` (o `apply-proposal.ps1`). Mover la ficha a `proposals/applied/`. Propagar a máquinas y arneses (`sync-skills.ps1`) se confirma aparte.
+
+## 6. Uso, poda y salud del catálogo (Fase 3)
+- **Uso en MODO SALIDA:** Claude Code registra llamadas `Skill` automáticamente en segundo plano; en cualquier arnés, usa `record-usage.ps1 -Skill <nombre> -Project "<proyecto>" -Outcome helped|hurt` para calificar si ayudó o perjudicó, o `-SyncFromTranscripts` para sincronizar trazas locales hacia `<hub>/proposals/usage.jsonl`.
+- **Poda trimestral (90 días sin uso o `hurt` repetido):** `prune-skills.ps1 -EmitProposals` genera fichas con destino `6` (`archivar` en `proposals/archived/<skill>/`, sin borrar nunca) o `7` (`fusionar`), protegiendo las 6 skills núcleo y `always_keep: true`.
+- **Salud del catálogo:** `check-skill-catalog.ps1` revisa techo (`25`), largo de descripción (`<= 300` aviso, `> 1024` error), cuerpo (`<= 500` líneas), presupuesto del listado y solapamientos (Jaccard y Contención).
