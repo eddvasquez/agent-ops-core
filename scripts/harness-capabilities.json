@@ -267,10 +267,11 @@
         },
         {
           "Id": "browser.allowlist",
-          "Status": "pendiente",
+          "Status": "descartada",
           "Doc": "https://antigravity.google/docs/ide/allowlist-denylist",
-          "VerifiedAt": "2026-11-23",
-          "Fallback": "Aprobación del usuario en el arnés"
+          "VerifiedAt": "2026-11-25",
+          "Reason": "El usuario decidió dejarlo por defecto: el navegador ya pregunta y los sitios los decide cada persona desde Settings > Browser.",
+          "Fallback": "El navegador pregunta por defecto; los sitios los decide el usuario desde Settings > Browser"
         },
         {
           "Id": "plugin.hooks",
