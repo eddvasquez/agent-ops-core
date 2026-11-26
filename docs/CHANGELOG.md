@@ -9,6 +9,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - `browser.allowlist` de Antigravity queda «descartada»: el navegador ya pregunta por defecto antes de abrir sitios o descargar archivos, y la lista de sitios permitidos la decide cada usuario desde Settings > Browser.
 
 ### Added
+- Plugin de Agent Ops Core para Claude Code (`ClaudePlugin.psm1`, integrado en `Integrations.psm1`): empaqueta los hooks del marco (`SessionStart`, `PreCompact`, `PostToolUse`, `SubagentStop` y `PreToolUse` de credenciales) en un marketplace local (`agent-ops-core@agent-ops`), lo valida e instala con `claude plugin` y solo entonces retira las entradas sueltas de `~/.claude/settings.json`, conservando `permissions.ask` y los hooks propios del usuario. `plugin.hooks` pasa a «aprovechada» en Claude Code (8 de 8).
 - Permisos nativos de Antigravity para carpetas de credenciales (`AntigravityPermissions.psm1`, integrado en `Integrations.psm1` y `session-start-hook.ps1`): tras pedir permiso una sola vez al usuario y guardar copia de respaldo, añade reglas `ask` en `~/.gemini/config/config.json` para las carpetas de credenciales existentes (`.ssh`, `gcloud`, `.aws`, `.azure`, `.kube`, `.docker`, `.git-credentials`, `.netrc`, `.npmrc`), respetando las decisiones previas del usuario y pidiendo reiniciar Antigravity cuando hay cambios. `permissions.deny` pasa a «aprovechada» en Antigravity (6 de 8).
 
 ## [3.20.1] - 2026-11-25

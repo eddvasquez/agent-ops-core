@@ -180,17 +180,19 @@ function Install-AgentOpsSessionStart {
         $codex=[ordered]@{matcher=$matcher;hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook session-start -Harness codex";commandWindows=(& $win 'codex');timeout=20;statusMessage='Agent Ops: preparando el inicio de sesión';additionalContextLimit=2500})}
         # Claude Code only: before a compaction its stdout becomes instructions for the summary (Codex ignores it).
         $compact=[ordered]@{matcher='manual|auto';hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','pre-compact','-Harness','claude');timeout=20})}
+        $isClaudePluginOn={param($c) ($c.Contains('enabledPlugins') -and $c['enabledPlugins'] -is [System.Collections.IDictionary] -and $c['enabledPlugins'].Contains('agent-ops-core@agent-ops') -and [bool]$c['enabledPlugins']['agent-ops-core@agent-ops'])}
         & $edit $ClaudeSettingsPath {param($c)
-            $c=& $swap $c $(if($Uninstall){$null}else{$claude})
-            & $swap $c $(if($Uninstall){$null}else{$compact}) 'PreCompact' 'agent-ops-hook\.ps1.{0,40}pre-compact'}
+            $off=$Uninstall -or (& $isClaudePluginOn $c)
+            $c=& $swap $c $(if($off){$null}else{$claude})
+            & $swap $c $(if($off){$null}else{$compact}) 'PreCompact' 'agent-ops-hook\.ps1.{0,40}pre-compact'}
         # After each action (activity log): in the background where the harness allows it (Claude Code, Codex).
         $postClaude=[ordered]@{matcher='Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell';hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','post-tool','-Harness','claude');async=$true;timeout=20})}
         $postCodex=[ordered]@{matcher='apply_patch|Bash';hooks=@([ordered]@{type='command';command="pwsh -NoProfile -File `"$($launcher -replace '\\','/')`" -Hook post-tool -Harness codex";commandWindows=("powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$launcher`" -Hook post-tool -Harness codex");async=$true;timeout=20})}
         $postPattern='agent-ops-hook\.ps1.{0,40}post-tool'
-        & $edit $ClaudeSettingsPath {param($c) & $swap $c $(if($Uninstall){$null}else{$postClaude}) 'PostToolUse' $postPattern}
+        & $edit $ClaudeSettingsPath {param($c) $off=$Uninstall -or (& $isClaudePluginOn $c); & $swap $c $(if($off){$null}else{$postClaude}) 'PostToolUse' $postPattern}
         # Claude Code: when a subagent stops, a reviewer that edited the deliverable is sent back (R-017).
         $subClaude=[ordered]@{hooks=@([ordered]@{type='command';command='powershell.exe';args=@('-NoProfile','-ExecutionPolicy','Bypass','-File',$launcher,'-Hook','subagent-stop','-Harness','claude');timeout=20})}
-        & $edit $ClaudeSettingsPath {param($c) & $swap $c $(if($Uninstall){$null}else{$subClaude}) 'SubagentStop' 'agent-ops-hook\.ps1.{0,40}subagent-stop'}
+        & $edit $ClaudeSettingsPath {param($c) $off=$Uninstall -or (& $isClaudePluginOn $c); & $swap $c $(if($off){$null}else{$subClaude}) 'SubagentStop' 'agent-ops-hook\.ps1.{0,40}subagent-stop'}
         & $edit $CodexHooksPath {param($c)
             $c=& $swap $c $(if($Uninstall){$null}else{$codex})
             & $swap $c $(if($Uninstall){$null}else{$postCodex}) 'PostToolUse' $postPattern}

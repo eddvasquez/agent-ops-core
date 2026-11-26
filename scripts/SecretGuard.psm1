@@ -80,6 +80,7 @@ function Sg-ClaudeGroup([string]$launcher){
     [ordered]@{matcher='Read|Edit|MultiEdit|Write|NotebookEdit|Bash|PowerShell';hooks=@($rules|ForEach-Object {[ordered]@{type='command';if=$_;command='powershell.exe';args=$runArgs;timeout=15}})}
 }
 function Sg-Without($list,[string]$marker){,@($list|Where-Object {($_|ConvertTo-Json -Depth 12 -Compress) -notmatch [regex]::Escape($marker)})}
+function Select-AgentOpsEntriesWithout($List,[string]$Marker){Sg-Without $List $Marker}
 
 # Native rules (no process at all). Claude Code: "ask" rules only affect the agent's own file tools, so the list can
 # be broad; examples (.env.example…) are left out so they never prompt. The hook still covers commands and the rest.
@@ -153,7 +154,8 @@ function Install-AgentOpsSecretGuard {
             if(@($list).Count){$c['hooks']['PreToolUse']=@($list)}elseif($c['hooks'].Contains('PreToolUse')){$c['hooks'].Remove('PreToolUse')}
             return $c}
         & $edit $ClaudeSettingsPath {param($c)
-            $c=& $swap $c $(if($Uninstall){$null}else{Sg-ClaudeGroup $launcher})
+            $pluginOn=($c.Contains('enabledPlugins') -and $c['enabledPlugins'] -is [System.Collections.IDictionary] -and $c['enabledPlugins'].Contains('agent-ops-core@agent-ops') -and [bool]$c['enabledPlugins']['agent-ops-core@agent-ops'])
+            $c=& $swap $c $(if($Uninstall -or $pluginOn){$null}else{Sg-ClaudeGroup $launcher})
             $ours=Sg-NativeClaudeRules
             if(-not $c.Contains('permissions')){$c['permissions']=[ordered]@{}}
             $ask=@($(if($c['permissions'].Contains('ask')){@($c['permissions']['ask'])}else{@()})|Where-Object {$ours -notcontains $_})
@@ -192,4 +194,4 @@ function Install-AgentOpsSecretGuard {
     }catch{$res.Code=1;$res.Status='FAILED';$res.Issues=@($_.Exception.Message)}
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function Test-AgentOpsSecretPath,Find-AgentOpsSecretInCommand,Get-AgentOpsToolTargets,Get-AgentOpsSecretDecision,Install-AgentOpsSecretGuard
+Export-ModuleMember -Function Test-AgentOpsSecretPath,Find-AgentOpsSecretInCommand,Get-AgentOpsToolTargets,Get-AgentOpsSecretDecision,Install-AgentOpsSecretGuard,Select-AgentOpsEntriesWithout

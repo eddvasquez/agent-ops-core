@@ -25,7 +25,9 @@ function Machine([string[]]$harnesses=@('claude','codex','gemini'),[bool]$modern
     return @{Home=$home2;State=$state;Boot=$boot}
 }
 $okPlugin={param($d) $true}
-function Sync($m,[string]$sha=''){Sync-AgentOpsIntegrations -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin}
+$noClaude={param($a) @{Code=1;Output='no claude in test'}}
+$okClaude={param($a) @{Code=0;Output='OK'}}
+function Sync($m,[string]$sha=''){Sync-AgentOpsIntegrations -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin -ClaudeRunner $noClaude}
 
 Test 'only the harnesses the user has are adjusted, and nothing is created for the others' {
     $m=Machine -harnesses @('claude')
@@ -66,12 +68,12 @@ Test 'an outdated bootstrap is reported; a current one is not' {
 }
 Test 'at session start the adjustment runs only when the active version changed' {
     $m=Machine
-    $first=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin
+    $first=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin -ClaudeRunner $noClaude
     Assert ($first.Status -eq 'SYNCED') ($first|ConvertTo-Json -Depth 4)
-    $again=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin
+    $again=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin -ClaudeRunner $noClaude
     Assert ($again.Status -eq 'SKIPPED') 'Ran again with the same version'
     $s=[IO.File]::ReadAllText((Join-Path $m.State 'update-state.json')) -replace ('a'*40),('b'*40);[IO.File]::WriteAllText((Join-Path $m.State 'update-state.json'),$s,$utf8)
-    $next=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin
+    $next=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin -ClaudeRunner $noClaude
     Assert ($next.Status -in @('SYNCED','UP_TO_DATE')) 'Did not run after an update'
     $none=Join-Path $script:base 'nostate';[IO.Directory]::CreateDirectory($none)|Out-Null
     Assert ((Invoke-AgentOpsIntegrationsIfNeeded -StateDir $none -HomeDir $m.Home).Status -eq 'NOT_INSTALLED') 'No installation must do nothing'
@@ -104,10 +106,18 @@ Test 'Antigravity permissions are only added with consent; a no is never asked a
 Test 'pending consents for Codex and Antigravity are both kept, also when the adjustment is skipped' {
     $m=Machine -harnesses @('claude','codex','gemini')
     [IO.File]::WriteAllText((Join-Path $m.Home '.gemini/config/config.json'),'{"userSettings":{}}',$utf8)
-    $first=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin
+    $first=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin -ClaudeRunner $noClaude
     Assert ((@($first.NeedsConsent)|Sort-Object) -join ',' -eq 'antigravity-permissions,codex-profile') ('Sync: '+(@($first.NeedsConsent) -join ','))
-    $skip=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin
+    $skip=Invoke-AgentOpsIntegrationsIfNeeded -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin -ClaudeRunner $noClaude
     Assert ($skip.Status -eq 'SKIPPED' -and ((@($skip.NeedsConsent)|Sort-Object) -join ',') -eq 'antigravity-permissions,codex-profile' -and -not $skip.AntigravityRestart) ('Skipped: '+($skip|ConvertTo-Json -Depth 4))
+}
+Test 'Claude Code gets the framework plugin and no loose hook entries when claude succeeds' {
+    $m=Machine -harnesses @('claude')
+    $r=Sync-AgentOpsIntegrations -StateDir $m.State -HomeDir $m.Home -AntigravityValidator $okPlugin -ClaudeRunner $okClaude
+    Assert ($r.Code -eq 0 -and $r.Status -eq 'SYNCED') ($r|ConvertTo-Json -Depth 4)
+    Assert ([IO.File]::Exists((Join-Path $m.State 'claude-plugin/agent-ops-core/.claude-plugin/plugin.json'))) 'Claude plugin not generated'
+    $c=[IO.File]::ReadAllText((Join-Path $m.Home '.claude/settings.json'))
+    Assert ($c -notmatch 'agent-ops-hook\.ps1') 'Loose Claude hook entries remained'
 }
 Test 'a state folder other than the real one never touches the real user folder unless one is given' {
     $m=Machine

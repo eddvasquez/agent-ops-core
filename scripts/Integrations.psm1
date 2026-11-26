@@ -7,6 +7,7 @@ Import-Module (Join-Path $PSScriptRoot 'HookIO.psm1')
 Import-Module (Join-Path $PSScriptRoot 'SecretGuard.psm1')
 Import-Module (Join-Path $PSScriptRoot 'SessionStart.psm1')
 Import-Module (Join-Path $PSScriptRoot 'AntigravityPlugin.psm1')
+Import-Module (Join-Path $PSScriptRoot 'ClaudePlugin.psm1')
 Import-Module (Join-Path $PSScriptRoot 'AntigravityPermissions.psm1')
 $script:utf8=New-Object Text.UTF8Encoding($false)
 $script:bootCapability='(?m)^# capability: local-channel-v1\s*$'
@@ -44,7 +45,7 @@ function In-HomeFor([string]$StateDir,[string]$HomeDir){Resolve-AgentOpsIntegrat
 function Sync-AgentOpsIntegrations {
     [CmdletBinding()]
     param([string]$StateDir=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'}),
-          [string]$HomeDir='',[scriptblock]$AntigravityValidator)
+          [string]$HomeDir='',[scriptblock]$AntigravityValidator,[scriptblock]$ClaudeRunner)
     $res=[ordered]@{Code=0;Status='UP_TO_DATE';Harnesses=@();Files=@();NeedsConsent=@();AntigravityRestart=$false;Bootstrap='UNKNOWN';Issues=@()}
     $state=In-Read (Join-Path $StateDir 'update-state.json')
     if(-not $state){$res.Status='NOT_INSTALLED';return [pscustomobject]$res}
@@ -67,6 +68,10 @@ function Sync-AgentOpsIntegrations {
         $changed=@()
         $g=Install-AgentOpsSecretGuard @p -SkipCodexProfile:($consent -ne 'yes');if($g.Code -ne 0){throw ('Credential guard: '+(@($g.Issues) -join '; '))};$changed+=@($g.Files)
         $s=Install-AgentOpsSessionStart @p;if($s.Code -ne 0){throw ('Session hooks: '+(@($s.Issues) -join '; '))};$changed+=@($s.Files)
+        if($present.claude -and ($ClaudeRunner -or (Get-Command claude -ErrorAction SilentlyContinue))){
+            $cp=Install-AgentOpsClaudePlugin -StateDir $StateDir -SettingsPath (Join-Path $HomeDir '.claude/settings.json') -Runner $ClaudeRunner
+            if($cp.Code -ne 0){$res.Issues=@($res.Issues)+@('Claude plugin: '+(@($cp.Issues) -join '; '))}elseif($cp.Status -eq 'INSTALLED'){$changed+=@((Join-Path $HomeDir '.claude/settings.json'))}
+        }
         if($present.antigravity){
             $a=Install-AgentOpsAntigravityPlugin -StateDir $StateDir -ConfigDir (Join-Path $HomeDir '.gemini/config') -Validator $AntigravityValidator
             if($a.Code -ne 0){$res.Issues=@($res.Issues)+@('Antigravity: '+(@($a.Issues) -join '; '))}elseif($a.Status -ne 'UP_TO_DATE'){$changed+=@($a.Plugin)}
@@ -92,7 +97,7 @@ function Sync-AgentOpsIntegrations {
 function Invoke-AgentOpsIntegrationsIfNeeded {
     [CmdletBinding()]
     param([string]$StateDir=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'}),
-          [string]$HomeDir='',[scriptblock]$AntigravityValidator)
+          [string]$HomeDir='',[scriptblock]$AntigravityValidator,[scriptblock]$ClaudeRunner)
     $state=In-Read (Join-Path $StateDir 'update-state.json')
     if(-not $state){return [pscustomobject]@{Status='NOT_INSTALLED';NeedsConsent=@();Bootstrap='UNKNOWN';Issues=@()}}
     $HomeDir=In-HomeFor $StateDir $HomeDir
@@ -105,7 +110,7 @@ function Invoke-AgentOpsIntegrationsIfNeeded {
         $pending=@();if($codexPending){$pending+='codex-profile'};if($agPending){$pending+='antigravity-permissions'}
         return [pscustomobject]@{Status='SKIPPED';NeedsConsent=$pending;AntigravityRestart=$false;Bootstrap=(In-BootstrapState $state);Issues=@()}
     }
-    return (Sync-AgentOpsIntegrations -StateDir $StateDir -HomeDir $HomeDir -AntigravityValidator $AntigravityValidator)
+    return (Sync-AgentOpsIntegrations -StateDir $StateDir -HomeDir $HomeDir -AntigravityValidator $AntigravityValidator -ClaudeRunner $ClaudeRunner)
 }
 
 # Updating the bootstrap: always from stable (root of trust), with this installation's real hub and targets and
