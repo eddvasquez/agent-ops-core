@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.25.0] - 2026-11-27
 ### Added
 - `ops-session-handoff` `2.15.0`: documenta `session-distill.ps1` en `references/aprendizaje.md`.
 - Mecanismo de destilación gobernada de sesión (`SessionDistill.psm1`, `session-distill.ps1`): observa correcciones y ciclos fallo→solución durante la sesión mediante semilla silenciosa en `SessionStart.psm1` / `PreCompact` y `templates/AGENTS.md`, permanece en silencio sin señal (`QUIET`), clasifica por destino más ligero y aplica barrera AppSec (`SecretScan` + anonimización de rutas, correos, query params y `.context/private_terms.txt`) en `New-LearningCandidate`.
