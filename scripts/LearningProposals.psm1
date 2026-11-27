@@ -1,6 +1,7 @@
 ﻿# Governed learning: candidates are captured in the hub inbox and proposals are validated
 # before a human decides. Nothing here modifies a skill.
 Set-StrictMode -Version 2
+Import-Module (Join-Path $PSScriptRoot 'SecretScan.psm1') -Force
 $script:Signals=@('correccion','fallo','patron','exito')
 $script:Risks=@('bajo','medio','alto')
 $script:SkillCeiling=25
@@ -21,11 +22,44 @@ function Get-LearningHubSkills([string]$HubPath){
 }
 function Test-LearningSkillName([string]$Name){ $Name -cmatch '^[a-z0-9][a-z0-9-]{0,63}$' }
 
+function Test-LearningSecretContent {
+    [CmdletBinding()]
+    param([AllowEmptyString()][string]$Text)
+    if([string]::IsNullOrWhiteSpace($Text)){return $false}
+    if(Test-AgentOpsSecret $Text){return $true}
+    if($Text -match '(?i)Authorization\s*:\s*Bearer\s+[A-Za-z0-9._-]{12,}'){return $true}
+    if($Text -match '(?i)(?:WP_API_PASSWORD|password|secret|api_key|token)\s*[:=]\s*["'']?[A-Za-z0-9_.-]{10,}'){return $true}
+    return $false
+}
+
+function ConvertTo-SanitizedLearningText {
+    [CmdletBinding()]
+    param([AllowEmptyString()][string]$Text,[string[]]$RedactTerms=@())
+    if([string]::IsNullOrEmpty($Text)){return [pscustomobject]@{Text='';Redactions=0}}
+    $out=$Text;$count=0
+    $rules=@(
+        @{Pattern='[A-Za-z]:\\Users\\[^\\/\s"''`]+';Replacement='<USER_HOME>'},
+        @{Pattern='(?<![A-Za-z0-9_])/Users/[^/\s"''`]+';Replacement='<USER_HOME>'},
+        @{Pattern='(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b';Replacement='<EMAIL>'},
+        @{Pattern='(?i)([?&](?:token|key|secret|password|auth)=)[^&\s"''`]+';Replacement='$1<REDACTED>'}
+    )
+    foreach($r in $rules){
+        $m=[regex]::Matches($out,$r.Pattern)
+        if($m.Count){$count+=$m.Count;$out=[regex]::Replace($out,$r.Pattern,$r.Replacement)}
+    }
+    foreach($term in @($RedactTerms|Where-Object {-not [string]::IsNullOrWhiteSpace($_)}|Sort-Object Length -Descending)){
+        $pat=[regex]::Escape($term.Trim())
+        $m=[regex]::Matches($out,$pat,[Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        if($m.Count){$count+=$m.Count;$out=[regex]::Replace($out,$pat,'<CLIENTE>',[Text.RegularExpressions.RegexOptions]::IgnoreCase)}
+    }
+    return [pscustomobject]@{Text=$out;Redactions=$count}
+}
+
 function New-LearningCandidate {
     param([Parameter(Mandatory=$true)][string]$HubPath,[Parameter(Mandatory=$true)][string]$Signal,
           [Parameter(Mandatory=$true)][AllowEmptyString()][string]$Project,[Parameter(Mandatory=$true)][AllowEmptyString()][string]$Harness,
           [Parameter(Mandatory=$true)][AllowEmptyString()][string]$Summary,[Parameter(Mandatory=$true)][AllowEmptyString()][string]$Evidence,
-          [string]$Skill='',[Nullable[datetime]]$Now=$null)
+          [string]$Skill='',[Nullable[datetime]]$Now=$null,[string[]]$RedactTerms=@(),[switch]$SkipSanitize)
     $issues=New-Object Collections.Generic.List[string]
     if(-not [IO.Directory]::Exists($HubPath)){$issues.Add("Hub no encontrado: $HubPath")}
     $sig=ConvertTo-LearningKey $Signal
@@ -34,22 +68,31 @@ function New-LearningCandidate {
         if([string]::IsNullOrWhiteSpace($f[1])){$issues.Add("$($f[0]) vacío.")}
     }
     if($Skill -and (Get-LearningHubSkills $HubPath) -notcontains $Skill){$issues.Add("SKILL_NOT_IN_HUB: '$Skill' no es una skill del hub; las de terceros no reciben propuestas.")}
-    if($issues.Count){return @{Code=2;Status='INVALID';Path=$null;Id=$null;Issues=@($issues)}}
+    if($issues.Count){return @{Code=2;Status='INVALID';Path=$null;Id=$null;Redactions=0;Issues=@($issues)}}
+    if((Test-LearningSecretContent $Summary) -or (Test-LearningSecretContent $Evidence) -or (Test-LearningSecretContent $Project)){
+        return @{Code=2;Status='SECRET_BLOCKED';Path=$null;Id=$null;Redactions=0;Issues=@('Posible secreto o credencial detectado; elimina el secreto antes de guardar en la bandeja del hub.')}
+    }
+    $redactions=0;$cleanSum=$Summary.Trim();$cleanEv=$Evidence.Trim();$cleanProj=$Project.Trim()
+    if(-not $SkipSanitize){
+        $s1=ConvertTo-SanitizedLearningText -Text $cleanSum -RedactTerms $RedactTerms;$cleanSum=$s1.Text;$redactions+=$s1.Redactions
+        $s2=ConvertTo-SanitizedLearningText -Text $cleanEv -RedactTerms $RedactTerms;$cleanEv=$s2.Text;$redactions+=$s2.Redactions
+        $s3=ConvertTo-SanitizedLearningText -Text $cleanProj -RedactTerms $RedactTerms;$cleanProj=$s3.Text;$redactions+=$s3.Redactions
+    }
     $stamp=if($null -ne $Now){[datetime]$Now}else{Get-Date}
     $inbox=Join-Path $HubPath 'proposals/inbox';[IO.Directory]::CreateDirectory($inbox)|Out-Null
-    $body=@('# Candidata {0}','',"- Señal: $sig","- Proyecto: $($Project.Trim())","- Arnés: $($Harness.Trim())",
+    $body=@('# Candidata {0}','',"- Señal: $sig","- Proyecto: $cleanProj","- Arnés: $($Harness.Trim())",
             "- Fecha: $($stamp.ToString('yyyy-MM-ddTHH:mm:ss'))","- Skill: $(if($Skill){$Skill}else{'(sin asignar)'})",
-            '','## Resumen',$Summary.Trim(),'','## Evidencia',$Evidence.Trim(),'') -join "`n"
+            '','## Resumen',$cleanSum,'','## Evidencia',$cleanEv,'') -join "`n"
     for($attempt=0;$attempt -lt 20;$attempt++){
         $id=$stamp.ToString('yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,6)
         $path=Join-Path $inbox "$id.md"
         try{
             $stream=[IO.File]::Open($path,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write)
             try{$bytes=[Text.UTF8Encoding]::new($false).GetBytes(($body -f $id));$stream.Write($bytes,0,$bytes.Length)}finally{$stream.Dispose()}
-            return @{Code=0;Status='CAPTURED';Path=$path;Id=$id;Issues=@()}
+            return @{Code=0;Status='CAPTURED';Path=$path;Id=$id;Redactions=$redactions;Issues=@()}
         }catch [IO.IOException]{ if([IO.File]::Exists($path)){continue}; throw }
     }
-    return @{Code=1;Status='FAILED';Path=$null;Id=$null;Issues=@('No se pudo crear un identificador único.')}
+    return @{Code=1;Status='FAILED';Path=$null;Id=$null;Redactions=0;Issues=@('No se pudo crear un identificador único.')}
 }
 
 function Read-LearningProposal([string]$Text){
@@ -232,16 +275,20 @@ function Invoke-LearningProposalApply {
     $skillMd=Join-Path $HubPath "$skill/SKILL.md"
     if(-not [IO.File]::Exists($skillMd)){return @{Code=1;Status='FAILED';Issues=@("SKILL.md no encontrado: $skillMd")}}
     $content=[IO.File]::ReadAllText($skillMd,[Text.Encoding]::UTF8)
+    $eol=if($content.Contains("`r`n")){"`r`n"}else{"`n"}
+    $normContent=$content.Replace("`r`n","`n")
     foreach($b in $ApprovedBlocks){
         if(-not $blocks.ContainsKey($b)){return @{Code=1;Status='PATCH_MISMATCH';Issues=@("Bloque $b no encontrado.")}}
-        $bef=$blocks[$b].Before
-        if(-not $bef -or -not $content.Contains($bef)){return @{Code=1;Status='PATCH_MISMATCH';Issues=@("Bloque $b no coincide en $skillMd.")}}
-        $content=$content.Replace($bef,$blocks[$b].After)
+        $bef=$blocks[$b].Before.Replace("`r`n","`n")
+        $aft=$blocks[$b].After.Replace("`r`n","`n")
+        if(-not $bef -or -not $normContent.Contains($bef)){return @{Code=1;Status='PATCH_MISMATCH';Issues=@("Bloque $b no coincide en $skillMd.")}}
+        $normContent=$normContent.Replace($bef,$aft)
     }
-    if($content -match '(?m)^version:\s*\d+\.\d+\.\d+'){
-        $content=[regex]::Replace($content,'(?m)^version:\s*\d+\.\d+\.\d+',"version: $($v.Proposal.To)",1)
+    if($normContent -match '(?m)^version:\s*\d+\.\d+\.\d+'){
+        $normContent=[regex]::Replace($normContent,'(?m)^version:\s*\d+\.\d+\.\d+',"version: $($v.Proposal.To)",1)
     }
-    [IO.File]::WriteAllText($skillMd,$content,[Text.UTF8Encoding]::new($false))
+    $outContent=if($eol -eq "`r`n"){$normContent.Replace("`n","`r`n")}else{$normContent}
+    [IO.File]::WriteAllText($skillMd,$outContent,[Text.UTF8Encoding]::new($false))
     $arcDst=$null
     if($v.Proposal.Destination -eq 7 -and $v.Proposal.Absorbed){$arcDst=& $moveArchive $v.Proposal.Absorbed}
     $clDir=Join-Path $HubPath 'changelogs';[IO.Directory]::CreateDirectory($clDir)|Out-Null
@@ -250,9 +297,15 @@ function Invoke-LearningProposalApply {
     $entry="## [$($v.Proposal.To)] - $([datetime]::Now.ToString('yyyy-MM-dd'))`n### Changed`n- $why`n"
     if([IO.File]::Exists($clPath)){
         $clRaw=[IO.File]::ReadAllText($clPath,[Text.Encoding]::UTF8)
-        [IO.File]::WriteAllText($clPath,($clRaw+"`n"+$entry),[Text.UTF8Encoding]::new($false))
+        $clNorm=$clRaw.Replace("`r`n","`n")
+        if($clNorm -match '(?m)^## \[Unreleased\]\s*$'){
+            $clUpdated=[regex]::Replace($clNorm,'(?m)^(## \[Unreleased\]\s*)$',"`$1`n`n$($entry.TrimEnd())",1)
+        }else{
+            $clUpdated=$clNorm.TrimEnd()+"`n`n"+$entry
+        }
+        [IO.File]::WriteAllText($clPath,$clUpdated,[Text.UTF8Encoding]::new($false))
     }else{
-        [IO.File]::WriteAllText($clPath,("# Changelog: $skill`n`n"+$entry),[Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText($clPath,("# Changelog: $skill`n`n## [Unreleased]`n`n"+$entry),[Text.UTF8Encoding]::new($false))
     }
     $appDir=Join-Path $HubPath 'proposals/applied';[IO.Directory]::CreateDirectory($appDir)|Out-Null
     $appPath=Join-Path $appDir ([IO.Path]::GetFileName($Path))
@@ -614,4 +667,4 @@ function Test-SkillCatalog {
     return @{Code=$code;Status=$status;Summary=@{HubSkills=$counts.Hub;TotalSkills=$skills.Count;TotalDescriptionChars=$counts.Chars;Errors=$errors.Count;Warnings=$warnings.Count;Overlaps=$overlaps.Count};Errors=$errors.ToArray();Warnings=$warnings.ToArray();Overlaps=$overlaps.ToArray();Skills=$skills.ToArray()}
 }
 
-Export-ModuleMember -Function New-LearningCandidate,Test-LearningProposal,Get-LearningQueue,Invoke-LearningTriage,Invoke-LearningProposalApply,Register-SkillUsage,Get-SkillUsageHistory,Sync-SkillUsageFromTranscripts,Get-SkillPruningCandidates,Test-SkillCatalog
+Export-ModuleMember -Function New-LearningCandidate,Test-LearningProposal,Get-LearningQueue,Invoke-LearningTriage,Invoke-LearningProposalApply,Register-SkillUsage,Get-SkillUsageHistory,Sync-SkillUsageFromTranscripts,Get-SkillPruningCandidates,Test-SkillCatalog,Test-LearningSecretContent,ConvertTo-SanitizedLearningText,Read-SkillFrontmatter,Get-SkillSemanticTokens,Get-LearningHubSkills

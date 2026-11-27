@@ -4,6 +4,10 @@ Cambios relevantes de la skill `ops-session-handoff`. Formato [Keep a Changelog]
 
 ## [Unreleased]
 
+## [2.15.0] - 2026-11-27
+### Added
+- `references/aprendizaje.md`: sección 6 documentando el comando silencioso de destilación de sesión (`session-distill.ps1`) en MODO SALIDA.
+
 ## [2.14.0] - 2026-11-26
 ### Added
 - `references/aprendizaje.md`: sección 6 documentando el registro híbrido de uso (`record-usage.ps1`), la poda sin borrado con destinos `6` (`archivar`) y `7` (`fusionar`) (`prune-skills.ps1`) y el inspector de catálogo (`check-skill-catalog.ps1`).

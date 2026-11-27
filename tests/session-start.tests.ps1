@@ -171,11 +171,13 @@ function PreCompact([string]$json){
 Test 'before a compaction the summary is told to keep the user''s words, the rules, the plan and the unsaved files' {
     $p=Governed;Put $p 'cambio.ps1' 'x'
     $t=Get-AgentOpsCompactInstructions -ProjectPath $p
-    Assert ($t -match 'literalmente' -and $t -match 'siguiente paso exacto' -and $t -match 'R-NNN') $t
+    Assert ($t -match 'literalmente' -and $t -match 'siguiente paso exacto' -and $t -match 'R-NNN' -and $t -match 'trayectoria') $t
     Assert ($t -match '1 sin guardar: cambio\.ps1') "Unsaved file missing: $t"
     Assert ($t -match 'R-001, R-003' -and $t -notmatch 'R-002') "Active rule IDs wrong: $t"
     Assert ($t.Length -le 3000) "Too long: $($t.Length)"
     Assert (-not (Get-AgentOpsCompactInstructions -ProjectPath (NewDir 'otro'))) 'Instructions given outside a governed project'
+    $b=Get-AgentOpsSessionBrief -ProjectPath $p -StateDir (NewDir 'st')
+    Assert ($b -match 'session-distill\.ps1') "SessionStart brief missing silent distill seed: $b"
 }
 Test 'the before-compaction adapter answers plain text with accents, never blocks, and fails open' {
     $p=Governed

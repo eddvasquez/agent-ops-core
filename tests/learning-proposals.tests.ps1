@@ -274,6 +274,36 @@ Test 'Phase 3 CLI wrappers record-usage, prune-skills and check-skill-catalog re
     $o3=& $ps -NoProfile -ExecutionPolicy Bypass -File (Join-Path $source 'scripts/check-skill-catalog.ps1') -HubPath $hub -FrameworkPath $source
     Assert ($LASTEXITCODE -eq 0 -and ($o3 -join "`n"|ConvertFrom-Json).Code -eq 0) ($o3 -join "`n")
 }
+Test 'New-LearningCandidate blocks secrets and sanitizes user paths, emails and private terms' {
+    $hub=Hub
+    $tok='ghp_'+'1234567890abcdefghij123456'
+    $sec=New-LearningCandidate -HubPath $hub -Signal fallo -Project 'p1' -Harness 'claude' -Summary 'Leak' -Evidence "Use token $tok"
+    Assert ($sec.Code -eq 2 -and $sec.Status -eq 'SECRET_BLOCKED' -and -not (Test-Path (Join-Path $hub 'proposals/inbox'))) ($sec|ConvertTo-Json -Depth 4)
+    $ok=New-LearningCandidate -HubPath $hub -Signal patron -Project 'p1' -Harness 'claude' -Summary 'Ruta limpia para ClientePrivado' -Evidence 'En C:\Users\Maria\app con maria@cliente.com y ?token=abc123' -RedactTerms @('ClientePrivado')
+    Assert ($ok.Code -eq 0 -and $ok.Status -eq 'CAPTURED') ($ok|ConvertTo-Json -Depth 4)
+    $t=[IO.File]::ReadAllText($ok.Path)
+    Assert ($t -notmatch 'ClientePrivado|Maria|maria@cliente\.com|abc123' -and $t -match '<CLIENTE>' -and $t -match '<USER_HOME>' -and $t -match '<EMAIL>' -and $t -match '<REDACTED>') $t
+}
+Test 'Invoke-LearningProposalApply prepends changelog under Unreleased and handles CRLF skills' {
+    $hub=Hub
+    $skillMd=Join-Path $hub 'google-ads-media-buyer/SKILL.md'
+    [IO.File]::WriteAllText($skillMd,"---`r`nname: google-ads-media-buyer`r`nversion: 1.0.0`r`n---`r`nLinea uno.`r`nLinea dos.`r`n",[Text.UTF8Encoding]::new($false))
+    $clPath=Join-Path $hub 'changelogs/google-ads-media-buyer.md'
+    [IO.File]::WriteAllText($clPath,"# Changelog`n`n## [Unreleased]`n`n## [1.0.0] - 2026-11-19`n### Added`n- Base.`n",[Text.UTF8Encoding]::new($false))
+    $pending=Join-Path $hub 'proposals/pending';[IO.Directory]::CreateDirectory($pending)|Out-Null
+    $propPath=Join-Path $pending 'crlf.md'
+    $propText=@(
+        '# Propuesta crlf','','- Destino: 3','- Skill: google-ads-media-buyer','- Version: 1.0.0 -> 1.0.1','- Riesgo: bajo','- Tamano: +1 -1','',
+        '## Por que','Soporte CRLF y orden Keep a Changelog.','','## Evidencia','Prueba real.','','## Cambio',
+        '### Bloque 1','Antes:','```',"Linea uno.`nLinea dos.",'```','Después:','```',"Linea uno.`nLinea dos mejorada.",'```','',
+        '## Solapamientos','Ninguno.','','## Alternativas descartadas','Nada.'
+    ) -join "`n"
+    [IO.File]::WriteAllText($propPath,$propText,[Text.UTF8Encoding]::new($false))
+    $res=Invoke-LearningProposalApply -HubPath $hub -Path $propPath -ApprovedBlocks @(1)
+    Assert ($res.Code -eq 0 -and $res.Status -eq 'APPLIED') ($res|ConvertTo-Json -Depth 4)
+    $cl=[IO.File]::ReadAllText($clPath)
+    Assert ($cl.IndexOf('## [1.0.1]') -gt $cl.IndexOf('## [Unreleased]') -and $cl.IndexOf('## [1.0.1]') -lt $cl.IndexOf('## [1.0.0]')) "1.0.1 not prepended above 1.0.0:`n$cl"
+}
 Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "Passed: $passed Failed: $failed"
 if(-not $failed){Remove-TestFixtures $base}

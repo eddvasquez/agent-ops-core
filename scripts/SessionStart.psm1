@@ -86,6 +86,7 @@ function Get-AgentOpsSessionBrief {
     }else{
         $out.Add('Este proyecto sigue AGENTS.md. Antes de tocar archivos o escribir código, haz el MODO ENTRADA con la skill ops-session-handoff (Paso 0 de actualización, lectura de AGENTS.md y .context/, auditoría Git y reporte de 5 puntos) y espera la confirmación explícita del usuario.')
     }
+    $out.Add('Destilación silenciosa (Protocolo 4): observa cada corrección del usuario (qué falló -> corrección -> verificación) para clasificarla al cierre en su destino más ligero con session-distill.ps1 si hubo señal.')
     $facts=New-Object Collections.Generic.List[string]
     $dirty=Ss-Dirty $root
     if($dirty -eq 1){$facts.Add('- Hay 1 archivo sin guardar en Git.')}elseif($dirty -gt 1){$facts.Add("- Hay $dirty archivos sin guardar en Git.")}
@@ -129,6 +130,7 @@ function Get-AgentOpsCompactInstructions {
     $out.Add('4. Los archivos modificados y si están guardados (commit), publicados (push) o solo en disco.')
     $out.Add('5. Las decisiones o preguntas pendientes del usuario y las aprobaciones dadas (qué y para qué).')
     $out.Add('6. Los resultados de pruebas con suite, número de pruebas y versión de PowerShell.')
+    $out.Add('7. Cada corrección del usuario resuelta en la sesión como trayectoria (qué falló -> corrección -> verificación) para destilar al cierre.')
     $out.Add('No conviertas en un resumen vago lo que el usuario pidió; si algo es incierto, dilo así.')
     $ErrorActionPreference='Continue'
     $files=@(& git -C $root -c core.quotepath=false status --porcelain --untracked-files=all 2>$null|Where-Object {$_}|ForEach-Object {$_.Substring(3).Trim('"')})
