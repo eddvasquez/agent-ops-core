@@ -5,6 +5,8 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+
+## [3.26.0] - 2026-11-28
 ### Added
 - Plantilla de plugin para Claude Code (`templates/claude-plugin/`) y lanzador `scripts/plugin-bootstrap-hook.ps1` para arranque desde el enlace del repositorio con guía de instalación asistida si falta el runtime local.
 - Guía de instalación asistida desde el chat en `README.md` (con permiso explícito antes de ejecutar `install.ps1`).
