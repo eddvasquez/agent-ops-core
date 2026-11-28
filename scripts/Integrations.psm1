@@ -126,4 +126,19 @@ function Update-AgentOpsBootstrap {
     try{$code=& $Runner $installer ([string]$watch.HubDir) @($watch.Targets);if($code -eq 0 -or $null -eq $code){$res.Code=0;$res.Status='UPDATED'}else{$res.Issues=@("install.ps1 exited with code $code")}}catch{$res.Issues=@($_.Exception.Message)}
     return [pscustomobject]$res
 }
-Export-ModuleMember -Function Resolve-AgentOpsIntegrationHome,Sync-AgentOpsIntegrations,Invoke-AgentOpsIntegrationsIfNeeded,Update-AgentOpsBootstrap,Get-AgentOpsConsent,Set-AgentOpsConsent
+function Set-AgentOpsProjectInitDefer{
+    [CmdletBinding()]param([Parameter(Mandatory=$true)][string]$StateDir,[Parameter(Mandatory=$true)][string]$ProjectPath)
+    $full=[IO.Path]::GetFullPath($ProjectPath).TrimEnd('\','/')
+    $p=Join-Path $StateDir 'uninitialized-defer.json'
+    $d=Read-AgentOpsJsonFile $p
+    $list=New-Object Collections.Generic.List[string]
+    if($d -is [System.Collections.IDictionary] -and $d.Contains('Projects') -and $d['Projects']){
+        foreach($item in @($d['Projects'])){
+            if($item -and ($list -notcontains [string]$item)){$list.Add([string]$item)}
+        }
+    }
+    if($list -notcontains $full){$list.Add($full)}
+    Write-AgentOpsJsonFile -Path $p -Value @{Projects=@($list)}
+    return [pscustomobject]@{Code=0;Status='DEFERRED';Project=$full;Path=$p}
+}
+Export-ModuleMember -Function Resolve-AgentOpsIntegrationHome,Sync-AgentOpsIntegrations,Invoke-AgentOpsIntegrationsIfNeeded,Update-AgentOpsBootstrap,Get-AgentOpsConsent,Set-AgentOpsConsent,Set-AgentOpsProjectInitDefer

@@ -1,0 +1,12 @@
+{
+  "name": "agent-ops",
+  "owner": {
+    "name": "Agent Ops Core"
+  },
+  "plugins": [
+    {
+      "name": "agent-ops-core",
+      "source": "./agent-ops-core"
+    }
+  ]
+}

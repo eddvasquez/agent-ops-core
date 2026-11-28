@@ -61,9 +61,9 @@ function Event([string]$harness,[string]$dir,[string]$sourceName='startup'){
 
 Test 'outside a governed project nothing is said' {
     $plain=NewDir 'otro';Put $plain 'README.md' 'x'
-    Assert (-not (Get-AgentOpsSessionBrief -ProjectPath $plain -StateDir (State))) 'Brief given for an ungoverned folder'
+    Assert (-not (Get-AgentOpsSessionBrief -ProjectPath $plain -StateDir (NewDir 'empty-state'))) 'Brief given for an ungoverned folder'
     $legacy=NewDir 'legado';Put $legacy 'AGENTS.md' '# Instrucciones propias del proyecto'
-    Assert (-not (Get-AgentOpsSessionBrief -ProjectPath $legacy -StateDir (State))) 'Brief given for a project without the framework protocol'
+    Assert (-not (Get-AgentOpsSessionBrief -ProjectPath $legacy -StateDir (NewDir 'empty-state'))) 'Brief given for a project without the framework protocol'
 }
 Test 'in a governed project the brief requires MODO ENTRADA before touching files' {
     $p=Governed;$b=Get-AgentOpsSessionBrief -ProjectPath $p -StateDir (State)
@@ -115,7 +115,7 @@ Test 'Claude Code and Codex receive additionalContext; Antigravity receives a sy
     Assert ($r.Exit -eq 0 -and @($j.injectSteps)[0].systemMessage.systemMessage -match 'MODO ENTRADA' -and @($j.injectSteps)[0].systemMessage.systemMessage -match 'confirmación') "antigravity output: $($r.Out)"
 }
 Test 'the adapter says nothing for an ungoverned folder and fails open on a broken event' {
-    $plain=NewDir 'otro';$s=State
+    $plain=NewDir 'otro';$s=NewDir 'empty-state'
     foreach($h in 'claude','codex'){
         $r=Hook $h (Event $h $plain) $s;Assert ($r.Exit -eq 0 -and -not $r.Out) "$h spoke outside a governed project: $($r.Out)"
         $r=Hook $h '{esto no es json' $s;Assert ($r.Exit -eq 0 -and -not $r.Out) "$h did not fail open: $($r.Out)"
@@ -178,6 +178,24 @@ Test 'before a compaction the summary is told to keep the user''s words, the rul
     Assert (-not (Get-AgentOpsCompactInstructions -ProjectPath (NewDir 'otro'))) 'Instructions given outside a governed project'
     $b=Get-AgentOpsSessionBrief -ProjectPath $p -StateDir (NewDir 'st')
     Assert ($b -match 'session-distill\.ps1') "SessionStart brief missing silent distill seed: $b"
+}
+Test 'in an ungoverned project folder with an active installation, SessionStart offers one-click setup unless deferred or in TEMP/HOME' {
+    $st=NewDir 'st';$proj=NewDir 'nuevo-proyecto'
+    [IO.File]::WriteAllText((Join-Path $st 'update-state.json'),'{"Active":{"Sha":"abc"}}',$utf8)
+    $b=Get-AgentOpsSessionBrief -ProjectPath $proj -StateDir $st -Source startup
+    Assert ($b -match 'no usa Agent Ops Core' -and $b -match 'DeferProjectInit') "Missing setup offer: $b"
+    Assert (-not (Get-AgentOpsSessionBrief -ProjectPath $proj -StateDir $st -Source compact)) 'Must not offer setup on compact'
+    Import-Module (Join-Path $source 'scripts/Integrations.psm1') -Force
+    Set-AgentOpsProjectInitDefer -StateDir $st -ProjectPath $proj|Out-Null
+    Assert (-not (Get-AgentOpsSessionBrief -ProjectPath $proj -StateDir $st -Source startup)) 'Deferred project still offered setup'
+    Assert (-not (Get-AgentOpsSessionBrief -ProjectPath ([IO.Path]::GetTempPath()) -StateDir $st -Source startup)) 'TEMP root offered setup'
+}
+Test 'when a governed project has an outdated AGENTS.md, SessionStart notices migration' {
+    $st=NewDir 'st';$proj=NewDir 'viejo'
+    [IO.File]::WriteAllText((Join-Path $st 'update-state.json'),'{"Active":{"Sha":"abc"}}',$utf8)
+    Put $proj 'AGENTS.md' "# Protocolo`n### Protocolo 1 (MODO ENTRADA)`n"
+    $b=Get-AgentOpsSessionBrief -ProjectPath $proj -StateDir $st -Source startup
+    Assert ($b -match 'migraci[oó]n|poner al d[ií]a|ops-project-migrate') "Missing migration notice: $b"
 }
 Test 'the before-compaction adapter answers plain text with accents, never blocks, and fails open' {
     $p=Governed

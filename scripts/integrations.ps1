@@ -4,8 +4,8 @@
 #   -Action Consent -Name codex-profile -Answer yes|no   record the user's decision (asked once)
 #   -Action UpdateBootstrap   update the bootstrap from stable with this installation's hub and targets (after a yes)
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][ValidateSet('Status','Sync','Consent','UpdateBootstrap')][string]$Action,
-      [ValidateSet('codex-profile','antigravity-permissions')][string]$Name='codex-profile',[ValidateSet('yes','no')][string]$Answer='')
+param([Parameter(Mandatory=$true)][ValidateSet('Status','Sync','Consent','UpdateBootstrap','DeferProjectInit')][string]$Action,
+      [ValidateSet('codex-profile','antigravity-permissions')][string]$Name='codex-profile',[ValidateSet('yes','no')][string]$Answer='',[string]$ProjectPath='')
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Integrations.psm1') -Force
 $state=$(if($env:AGENT_OPS_STATE_DIR){$env:AGENT_OPS_STATE_DIR}else{Join-Path $env:LOCALAPPDATA 'AgentOps'})
@@ -18,6 +18,7 @@ switch($Action){
         $r=Sync-AgentOpsIntegrations -StateDir $state
     }
     'UpdateBootstrap'{$r=Update-AgentOpsBootstrap -StateDir $state}
+    'DeferProjectInit'{if(-not $ProjectPath){throw 'Pass -ProjectPath.'};$r=Set-AgentOpsProjectInitDefer -StateDir $state -ProjectPath $ProjectPath}
 }
 $r|ConvertTo-Json -Depth 5
 exit $(if($r.PSObject.Properties['Code']){$r.Code}else{0})

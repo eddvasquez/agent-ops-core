@@ -22,6 +22,43 @@ function Ss-Governed([string]$root){
     $agents=Join-Path $root 'AGENTS.md'
     return ([IO.File]::Exists($agents) -and ([IO.File]::ReadAllText($agents,[Text.Encoding]::UTF8) -match 'MODO ENTRADA'))
 }
+function Ss-Norm([string]$p){
+    if([string]::IsNullOrWhiteSpace($p)){return ''}
+    try{return [IO.Path]::GetFullPath($p).TrimEnd('\','/')}catch{return $p.TrimEnd('\','/')}
+}
+function Ss-OutdatedAgents([string]$root){
+    $agents=Join-Path $root 'AGENTS.md'
+    if(-not [IO.File]::Exists($agents)){return $false}
+    $txt=[IO.File]::ReadAllText($agents,[Text.Encoding]::UTF8)
+    if($txt -notmatch '<!--\s*agent-ops:begin\s+version=(\d+\.\d+\.\d+)'){return $true}
+    $cur=[version]$Matches[1]
+    $vf=Join-Path (Split-Path $PSScriptRoot -Parent) 'docs\VERSION'
+    if([IO.File]::Exists($vf)){
+        $raw=([IO.File]::ReadAllText($vf,[Text.Encoding]::UTF8)).Trim()
+        if($raw -match '^\d+\.\d+\.\d+$'){return ($cur -lt [version]$raw)}
+    }
+    return $false
+}
+function Ss-CanOfferInit([string]$root,[string]$stateDir){
+    if([string]::IsNullOrWhiteSpace($stateDir) -or -not [IO.File]::Exists((Join-Path $stateDir 'update-state.json'))){return $false}
+    $n=Ss-Norm $root
+    if(-not $n){return $false}
+    $pr=Ss-Norm ([IO.Path]::GetPathRoot($n))
+    if($n -eq $pr){return $false}
+    $excluded=@($env:USERPROFILE,$HOME,[IO.Path]::GetTempPath(),$env:TEMP,$env:TMP,$env:LOCALAPPDATA,$env:APPDATA)|ForEach-Object{Ss-Norm $_}|Where-Object{$_}
+    if($excluded -contains $n){return $false}
+    $stNorm=Ss-Norm $stateDir
+    if($stNorm -and ($n -eq $stNorm -or $n.StartsWith($stNorm+'\',[StringComparison]::OrdinalIgnoreCase))){return $false}
+    if($n -match '(?i)(^|[\\/])AgentOps-runtime([\\/]|$)'){return $false}
+    $df=Join-Path $stateDir 'uninitialized-defer.json'
+    $dj=Read-AgentOpsJsonFile $df
+    if($dj -is [System.Collections.IDictionary] -and $dj.Contains('Projects') -and $dj['Projects']){
+        foreach($item in @($dj['Projects'])){
+            if((Ss-Norm ([string]$item)).Equals($n,[StringComparison]::OrdinalIgnoreCase)){return $false}
+        }
+    }
+    return $true
+}
 function Ss-Dirty([string]$root){
     $ErrorActionPreference='Continue'
     $lines=@(& git -C $root -c core.quotepath=false status --porcelain --untracked-files=all 2>$null)
@@ -76,7 +113,12 @@ function Get-AgentOpsSessionBrief {
           [ValidateSet('startup','resume','clear','compact','fork')][string]$Source='startup',
           [string]$Harness='')
     $root=Ss-Root $ProjectPath
-    if(-not (Ss-Governed $root)){return ''}
+    if(-not (Ss-Governed $root)){
+        if($Source -ne 'compact' -and (Ss-CanOfferInit $root $StateDir)){
+            return "Agent Ops Core · esta carpeta ($root) aún no usa Agent Ops Core. Si el usuario quiere empezar a usarlo aquí, explícale en lenguaje llano que puedes preparar la memoria del proyecto (ops-project-init) o recordar no volver a preguntar en esta carpeta con integrations.ps1 -Action DeferProjectInit -ProjectPath `"$root`"."
+        }
+        return ''
+    }
     $out=New-Object Collections.Generic.List[string]
     $out.Add("Agent Ops Core · inicio de sesión ($Source) en $root.")
     if($Source -eq 'compact'){
@@ -95,6 +137,7 @@ function Get-AgentOpsSessionBrief {
         $did=Ss-SinceCheckpoint $root $StateDir;if($did){$facts.Add($did)}
     }
     if(Ss-PendingUpdate $StateDir){$facts.Add('- Hay una actualización verificada del marco pendiente de decisión: preséntala en el Paso 0.')}
+    if($Source -ne 'compact' -and (Ss-OutdatedAgents $root)){$facts.Add('- AGENTS.md está desactualizado: sugiere al usuario poner al día el proyecto con migración (ops-project-migrate) en lenguaje llano; si aparece AGENTS_REVIEW_REQUIRED, explica cada cambio propio en lenguaje llano antes de decidir.')}
     try{
         if(-not (Get-Module ActivityLog)){Import-Module (Join-Path $PSScriptRoot 'ActivityLog.psm1') -Force}
         $cw=Get-AgentOpsConcurrentWriters -StateDir $StateDir -ProjectPath $root -CurrentHarness $Harness -WindowMinutes 15

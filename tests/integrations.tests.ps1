@@ -135,6 +135,20 @@ Test 'the real installation is recognised (with or without a trailing separator)
     Assert (-not (Resolve-AgentOpsIntegrationHome -StateDir (Join-Path $script:base 'other') -RealStateDir $real -RealHome $me)) 'Another state folder must be isolated'
     Assert ((Resolve-AgentOpsIntegrationHome -StateDir (Join-Path $script:base 'other') -HomeDir 'X:\given' -RealStateDir $real -RealHome $me) -eq 'X:\given') 'An explicit user folder must win'
 }
+Test 'DeferProjectInit persists per-project opt-out and plugin-bootstrap-hook guides install when runtime is missing' {
+    $m=Machine
+    Set-AgentOpsProjectInitDefer -StateDir $m.State -ProjectPath (Join-Path $script:base 'p-demo')|Out-Null
+    Assert (Test-Path (Join-Path $m.State 'uninitialized-defer.json')) 'uninitialized-defer.json not created'
+    $boot=Join-Path $source 'scripts/plugin-bootstrap-hook.ps1'
+    Assert (Test-Path $boot) 'plugin-bootstrap-hook.ps1 missing'
+    $psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName=(Get-Process -Id $PID).Path
+    $psi.Arguments="-NoProfile -ExecutionPolicy Bypass -File `"$boot`" -Hook session-start -Harness claude"
+    $psi.UseShellExecute=$false;$psi.CreateNoWindow=$true;$psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
+    $psi.StandardOutputEncoding=$utf8;$psi.EnvironmentVariables['AGENT_OPS_STATE_DIR']=(Join-Path $script:base 'empty-state')
+    $pr=[Diagnostics.Process]::Start($psi);$b=$utf8.GetBytes((@{cwd=$script:base;source='startup'}|ConvertTo-Json -Compress));$pr.StandardInput.BaseStream.Write($b,0,$b.Length);$pr.StandardInput.Close()
+    $out=$pr.StandardOutput.ReadToEnd();$null=$pr.StandardError.ReadToEnd();$pr.WaitForExit()
+    Assert ($pr.ExitCode -eq 0 -and $out -match 'additionalContext' -and $out -match 'install\.ps1') "Bootstrap hook output: $out"
+}
 Write-Host "Integrations: $script:passed passed, $script:failed failed. Fixtures: $script:base"
 if(-not $script:failed){Remove-TestFixtures $script:base}
 if($script:failed){exit 1}

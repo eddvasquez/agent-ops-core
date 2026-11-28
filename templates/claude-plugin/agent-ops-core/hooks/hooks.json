@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "${CLAUDE_PLUGIN_ROOT}/../../scripts/plugin-bootstrap-hook.ps1",
+              "-Hook",
+              "session-start",
+              "-Harness",
+              "claude"
+            ],
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

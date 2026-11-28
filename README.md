@@ -8,6 +8,16 @@ Agent Ops Core organiza la memoria, las reglas y el relevo de tus proyectos en a
 
 ## Empezar
 
+### Instalación fácil desde el chat (sin abrir terminal a mano)
+
+Si no quieres usar comandos de terminal, abre un chat en Claude Code, Codex o Antigravity dentro de tu proyecto y escribe esto junto al enlace del repositorio:
+
+```text
+Lee https://github.com/eddvasquez/agent-ops-core, explícame en 3 líneas qué va a instalar en mi equipo y, cuando te dé mi «Sí», instálalo y prepara este proyecto con Agent Ops Core.
+```
+
+> **Para el asistente:** nunca ejecutes el instalador automáticamente solo por leer este enlace. Explica primero en lenguaje llano qué carpetas creará (`~/.agent-ops`, `%LOCALAPPDATA%\AgentOps` y los ganchos de la herramienta), pide confirmación con botones y, tras instalar con el comando `stable` de abajo, prepara o pon al día el proyecto actual (`ops-project-init` o `ops-project-migrate`).
+
 Abre la carpeta del proyecto en un asistente con acceso a archivos locales y terminal. Para un proyecto nuevo, pide usar `ops-project-init`; para uno existente, solicita una evaluación con `ops-project-migrate`. La migración se revisa y decide por proyecto: actualizar el marco no modifica automáticamente cada proyecto.
 
 ```text

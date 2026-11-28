@@ -5,6 +5,13 @@ Todos los cambios relevantes de Agent Ops Core se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/). Los cambios de cada skill pública se detallan en `docs/changelogs/<skill>.md`. El changelog, `VERSION` y los changelogs de skills viven en `docs/` porque las instalaciones existentes solo aceptan publicaciones dentro de su lista de rutas permitidas.
 
 ## [Unreleased]
+### Added
+- Plantilla de plugin para Claude Code (`templates/claude-plugin/`) y lanzador `scripts/plugin-bootstrap-hook.ps1` para arranque desde el enlace del repositorio con guía de instalación asistida si falta el runtime local.
+- Guía de instalación asistida desde el chat en `README.md` (con permiso explícito antes de ejecutar `install.ps1`).
+- Oferta automática de inicialización (`ops-project-init`) en `SessionStart.psm1` para carpetas sin gobierno cuando existe instalación activa, con exclusión de rutas del sistema y opt-out por proyecto (`DeferProjectInit` en `Integrations.psm1` / `integrations.ps1` -> `uninitialized-defer.json`).
+
+### Changed
+- `SessionStart.psm1`: avisa en lenguaje llano cuando un proyecto gobernado tiene un `AGENTS.md` desactualizado (`ops-project-migrate`) y recuerda explicar `AGENTS_REVIEW_REQUIRED` sin tecnicismos antes de decidir.
 
 ## [3.25.0] - 2026-11-27
 ### Added
